@@ -25,3 +25,6 @@ lib/openzeppelin-contracts-upgradeable/
 .vscode
 snapshots
 lib
+
+# Localnet addresses
+deployments/localnet

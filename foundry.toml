@@ -25,5 +25,6 @@ extra_output = ["storageLayout"]
 runs = 1_000
 seed = "0x0000000000000000000000000000000000000000000000000000000000000001"
 
-[etherscan]
-sepolia = { key = "${ETHERSCAN_API_KEY}" }
+# TODO: non-localnet + localnet case handle
+# [etherscan]
+# sepolia = { key = "${ETHERSCAN_API_KEY}" }
