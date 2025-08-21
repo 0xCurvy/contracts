@@ -4,12 +4,14 @@ pragma solidity ^0.8.30;
 import {Script, console2} from "forge-std/Script.sol";
 import {CSUC, CSUC_Types, CSUC_Constants} from "../src/csuc/CSUC.sol";
 import {
-    CurvyAggregator, CurvyAggregator_Types, CurvyAggregator_Constants
-} from "../src/aggregator/CurvyAggregator.sol";
+    CurvyAggregator_NoAssetTransfer,
+    CurvyAggregator_Types,
+    CurvyAggregator_Constants
+} from "../src/aggregator/CurvyAggregator_NoAssetTransfer.sol";
 import {
     ICSUC_ActionHandler,
-    CurvyAggregator_CSUC_ActionHandler
-} from "../src/aggregator/csuc_action_handler/CurvyAggregator_CSUC_ActionHandler.sol";
+    CurvyAggregator_CSUC_NoAssetTransfer_ActionHandler
+} from "../src/aggregator/csuc_action_handler/CurvyAggregator_CSUC_NoAssetTransfer_ActionHandler.sol";
 
 contract Integration_Deposit_To_Aggregator_From_CSUC_Script is Script {
     function run() public {
@@ -17,7 +19,7 @@ contract Integration_Deposit_To_Aggregator_From_CSUC_Script is Script {
 
         vm.startBroadcast(deployerPk);
 
-        aggregator = CurvyAggregator(
+        aggregator = CurvyAggregator_NoAssetTransfer(
             vm.parseAddress(
                 vm.readFile(
                     string(abi.encodePacked("./deployments/", vm.envString("CHAIN_NAME"), "/CurvyAggregator.address"))
@@ -30,9 +32,9 @@ contract Integration_Deposit_To_Aggregator_From_CSUC_Script is Script {
             )
         );
 
-        actionHandler = new CurvyAggregator_CSUC_ActionHandler();
+        actionHandler = new CurvyAggregator_CSUC_NoAssetTransfer_ActionHandler();
 
-        console2.log("CurvyAggregator_CSUC_ActionHandler deployed at: ", address(actionHandler));
+        console2.log("CurvyAggregator_CSUC_NoAssetTransfer_ActionHandler deployed at: ", address(actionHandler));
         vm.writeFile(
             string(
                 abi.encodePacked(
@@ -67,6 +69,6 @@ contract Integration_Deposit_To_Aggregator_From_CSUC_Script is Script {
     address private feeCollector;
 
     CSUC public csuc;
-    CurvyAggregator public aggregator;
-    CurvyAggregator_CSUC_ActionHandler public actionHandler;
+    CurvyAggregator_NoAssetTransfer public aggregator;
+    CurvyAggregator_CSUC_NoAssetTransfer_ActionHandler public actionHandler;
 }

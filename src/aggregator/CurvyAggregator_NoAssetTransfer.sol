@@ -64,6 +64,13 @@ contract CurvyAggregator_NoAssetTransfer is
         if (_update.csuc != address(0)) {
             csuc = ICSUC(_update.csuc);
         }
+        if (_update.feeCollector != address(0)) {
+            feeCollector = _update.feeCollector;
+        }
+
+        // Note: withdrawBps = 0 is valid value
+        withdrawBps = _update.withdrawBps;
+
         return true;
     }
 
@@ -194,13 +201,14 @@ contract CurvyAggregator_NoAssetTransfer is
 
         // Update the fee collector's balance
         uint256 _minimumFee = (_amount * withdrawBps) / CurvyAggregator_Constants.TOTAL_BASE_POINTS;
-        require(_feeAmount < _minimumFee, "CurvyAggregator: fee amount incorrectly set!");
+        require(_feeAmount >= _minimumFee, "CurvyAggregator: fee amount incorrectly set!");
 
         // Note: Aggregator holds its funds inside CSUC -> User 'withdrawal' from Aggregator
         //       happens through CSUC contract. From which they can withdraw to arbitrary address.
         uint256 _actionId = CSUC_Constants.TRANSFER_ACTION_ID;
 
         CSUC_Types.Action[] memory _actions = new CSUC_Types.Action[](2);
+        _actions[0].from = address(this);
         _actions[0].payload = CSUC_Types.ActionPayload({
             actionId: _actionId,
             token: _token,
@@ -209,6 +217,7 @@ contract CurvyAggregator_NoAssetTransfer is
             parameters: abi.encode(_to),
             limit: block.number
         });
+        _actions[1].from = address(this);
         _actions[1].payload = CSUC_Types.ActionPayload({
             actionId: _actionId,
             token: _token,
@@ -248,6 +257,12 @@ contract CurvyAggregator_NoAssetTransfer is
         returns (CurvyAggregator_Types.NoteWithMetaData memory _note)
     {
         return noteInfo[_noteHash];
+    }
+
+    // TODO: remove this function before mainnet deployment
+    function reset() public {
+        noteTreeRoot = 0;
+        nullifierTreeRoot = 0;
     }
 
     // ------------------------------------------------------------------ Storage

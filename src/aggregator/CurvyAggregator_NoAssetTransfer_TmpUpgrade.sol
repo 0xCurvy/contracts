@@ -10,9 +10,9 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {ICSUC, CSUC_Constants} from "../csuc/Exports.sol";
+import {ICSUC, CSUC_Constants, CSUC_Types} from "../csuc/Exports.sol";
 
-import {ICurvyAggregator} from "./interface/ICurvyAggregator.sol";
+import {ICurvyAggregator_NoAssetTransfer} from "./interface/ICurvyAggregator_NoAssetTransfer.sol";
 
 import {
     ICurvyInsertionVerifier,
@@ -24,16 +24,17 @@ import {CurvyAggregator_Types} from "./utils/_Types.sol";
 import {CurvyAggregator_Constants} from "./utils/_Constants.sol";
 
 /**
- * @title CurvyAggregator
+ * @title CurvyAggregator_NoAssetTransfer
  * @author Curvy Protocol (https://curvy.box)
  * @dev Curvy's Aggregator contract.
  */
-contract CurvyAggregator is
+/// @custom:oz-upgrades-from CurvyAggregator_NoAssetTransfer
+contract CurvyAggregator_NoAssetTransfer_TmpUpgrade is
     Initializable,
     UUPSUpgradeable,
     OwnableUpgradeable,
     ReentrancyGuardWithInitializer,
-    ICurvyAggregator
+    ICurvyAggregator_NoAssetTransfer
 {
     function initialize() public initializer {
         __Ownable_init(msg.sender);
@@ -43,7 +44,7 @@ contract CurvyAggregator is
 
     function _authorizeUpgrade(address _newImplementation) internal override onlyOwner {}
 
-    /// @inheritdoc ICurvyAggregator
+    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function updateConfig(CurvyAggregator_Types.ConfigurationUpdate memory _update)
         public
         onlyOwner
@@ -64,54 +65,35 @@ contract CurvyAggregator is
         if (_update.csuc != address(0)) {
             csuc = ICSUC(_update.csuc);
         }
+        if (_update.feeCollector != address(0)) {
+            feeCollector = _update.feeCollector;
+        }
+
+        // Note: withdrawBps = 0 is valid value
+        withdrawBps = _update.withdrawBps;
+
         return true;
     }
 
-    /// @inheritdoc ICurvyAggregator
-    function wrapNative(CurvyAggregator_Types.Note[] memory _notes) public payable onlyCSUC returns (bool _success) {
-        uint256 _totalAmount;
+    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
+    function wrap(CurvyAggregator_Types.Note[] memory _notes) public onlyCSUC returns (bool _success) {
         for (uint256 i; i < _notes.length; ++i) {
-            require(_notes[i].amount != 0, "CurvyAggregator: wrapping 0 value not allowed!");
+            // Wrapping a note with zero amount is not allowed
+            if (_notes[i].amount == 0) return false;
+
             address _token = address(uint160(_notes[i].token));
-            require(_token == CurvyAggregator_Constants.NATIVE_TOKEN, "CurvyAggregator: token id mismatch!");
 
             bytes32 _noteHash = keccak256(abi.encode(_notes[i]));
             noteInfo[_noteHash].note = _notes[i];
             noteInfo[_noteHash].deadline = block.number + CurvyAggregator_Constants.NOTE_INCLUSION_BLOCK_OFFSET;
-            _totalAmount += _notes[i].amount;
 
             emit WrappingToken(_token, _notes[i].amount);
         }
 
-        require(msg.value == _totalAmount, "CurvyAggregator: msg.value != sum(amounts)!");
-
         return true;
     }
 
-    /// @inheritdoc ICurvyAggregator
-    function wrapERC20(CurvyAggregator_Types.Note[] memory _notes) public onlyCSUC returns (bool _success) {
-        for (uint256 i; i < _notes.length; ++i) {
-            bytes32 _noteHash = keccak256(abi.encode(_notes[i]));
-            noteInfo[_noteHash].note = _notes[i];
-            noteInfo[_noteHash].deadline = block.number + CurvyAggregator_Constants.NOTE_INCLUSION_BLOCK_OFFSET;
-
-            address _token = address(uint160(_notes[i].token));
-            uint256 _amount = _notes[i].amount;
-
-            require(_amount != 0, "CurvyAggregator: wrapping 0 value not allowed!");
-
-            uint256 _totalBefore = IERC20(_token).balanceOf(address(this));
-            IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
-            uint256 _totalAfter = IERC20(_token).balanceOf(address(this));
-            require(_totalAfter - _totalBefore == _amount, "CurvyAggregator: ERC20 transfer failed!");
-
-            emit WrappingToken(_token, _amount);
-        }
-
-        return true;
-    }
-
-    /// @inheritdoc ICurvyAggregator
+    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function processWraps(CurvyAggregator_Types.WrappingZKP memory _data) public returns (bool _success) {
         uint256 _totalNoteFields = _data.inputs.length - 2;
         for (uint256 i; i < _totalNoteFields; i += CurvyAggregator_Constants.CURVY_INSERTION_NOTE_FIELDS) {
@@ -155,7 +137,7 @@ contract CurvyAggregator is
         return true;
     }
 
-    /// @inheritdoc ICurvyAggregator
+    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function operatorExecute(CurvyAggregator_Types.ActionExecutionZKP calldata _data)
         public
         onlyOperator
@@ -184,34 +166,20 @@ contract CurvyAggregator is
         return true;
     }
 
-    /// @inheritdoc ICurvyAggregator
+    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function collectFees(address[] memory _tokens, address _to) public onlyFeeCollector returns (bool _success) {
-        for (uint256 i = 0; i < _tokens.length; ++i) {
-            address _token = _tokens[i];
-            uint256 _balance = feeCollectorBalances[_token][feeCollector];
-            require(_balance > 0, "CurvyAggregator: no fees to collect!");
-
-            // Reset the balance after collecting
-            feeCollectorBalances[_token][feeCollector] = 0;
-
-            if (_token == CurvyAggregator_Constants.NATIVE_TOKEN) {
-                (_success,) = _to.call{value: _balance}("");
-                require(_success, "CurvyAggregator: native transfer failed!");
-            } else {
-                IERC20(_token).safeTransfer(_to, _balance);
-            }
-        }
-        return true;
+        revert("CurvyAggregator: collectFees is deprecated, use CSUC instead!");
     }
 
-    /// @inheritdoc ICurvyAggregator
+    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function unwrap(CurvyAggregator_Types.UnwrappingZKP calldata _data) public nonReentrant returns (bool _success) {
         uint256 _oldNoteTreeRoot = _data.inputs[_data.inputs.length - 4];
         uint256 _oldNullifierTreeRoot = _data.inputs[_data.inputs.length - 3];
 
         address _to = address(uint160(_data.inputs[_data.inputs.length - 2]));
 
-        bool _withdrawFlag = _data.inputs[_data.inputs.length - 1] == 0;
+        // Note: should be removed in the future - only withdrawals to CSUC are allowed
+        bool _withdrawingToCSUC = _data.inputs[_data.inputs.length - 1] == 0;
         uint256 _amount = _data.inputs[0];
 
         // TODO: check if ...nullifiers... need to be emitted
@@ -235,74 +203,67 @@ contract CurvyAggregator is
         // Update the fee collector's balance
         uint256 _minimumFee = (_amount * withdrawBps) / CurvyAggregator_Constants.TOTAL_BASE_POINTS;
         require(_feeAmount >= _minimumFee, "CurvyAggregator: fee amount incorrectly set!");
-        feeCollectorBalances[_token][feeCollector] += _feeAmount;
 
-        // withdraw to CSUC, and add the funds to `_to` address
-        if (_withdrawFlag == true) {
-            if (_token == CurvyAggregator_Constants.NATIVE_TOKEN) {
-                // User wants to withdraw to CSUC - native token
-                ICSUC(csuc).wrapNative{value: _amount}(_to);
-            } else {
-                // User wants to withdraw to CSUC - ERC20 token
-                IERC20(_token).safeIncreaseAllowance(address(csuc), _amount);
-                ICSUC(csuc).wrapERC20(_to, _token, _amount);
-                IERC20(_token).safeDecreaseAllowance(address(csuc), 0);
-            }
-        } else {
-            // Handle the case if the User wants to withdraw to their own address
-            if (_token == CurvyAggregator_Constants.NATIVE_TOKEN) {
-                // Regular native transfer to the User's desired address
-                (_success,) = _to.call{value: _amount}("");
-                require(_success, "CurvyAggregator: native transfer failed!");
-            } else {
-                // Regular ERC20 transfer to the User's desired address
-                IERC20(_token).safeTransfer(_to, _amount);
-            }
-        }
+        // Note: Aggregator holds its funds inside CSUC -> User 'withdrawal' from Aggregator
+        //       happens through CSUC contract. From which they can withdraw to arbitrary address.
+        uint256 _actionId = CSUC_Constants.TRANSFER_ACTION_ID;
+
+        CSUC_Types.Action[] memory _actions = new CSUC_Types.Action[](2);
+        _actions[0].from = address(this);
+        _actions[0].payload = CSUC_Types.ActionPayload({
+            actionId: _actionId,
+            token: _token,
+            amount: _amount,
+            totalFee: 0,
+            parameters: abi.encode(_to),
+            limit: block.number
+        });
+        _actions[1].from = address(this);
+        _actions[1].payload = CSUC_Types.ActionPayload({
+            actionId: _actionId,
+            token: _token,
+            amount: _feeAmount,
+            totalFee: 0,
+            parameters: abi.encode(feeCollector),
+            limit: block.number
+        });
+
+        require(
+            ICSUC(csuc).actionHandlerCallback(_actions) == _actions.length,
+            "CurvyAggregator: CSUC action handler failed!"
+        );
 
         return true;
     }
 
-    /// @inheritdoc ICurvyAggregator
+    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function withdrawRejected(bytes32 _noteHash) public nonReentrant returns (bool _success) {
-        CurvyAggregator_Types.NoteWithMetaData storage _noteWithMetadata = noteInfo[_noteHash];
-
-        require(_noteWithMetadata.included == false, "CurvyAggregator: note is already included!");
-        require(_noteWithMetadata.deadline < block.number, "CurvyAggregator: note is not rejected yet!");
-        require(_noteWithMetadata.cancelled == false, "CurvyAggregator: note is already cancelled!");
-
-        _noteWithMetadata.cancelled = true;
-        address _sender = _noteWithMetadata.sender;
-        address _token = address(uint160(_noteWithMetadata.note.token));
-        uint256 _amount = _noteWithMetadata.note.amount;
-
-        if (_token == CurvyAggregator_Constants.NATIVE_TOKEN) {
-            (_success,) = _sender.call{value: _amount}("");
-            require(_success, "CurvyAggregator: native transfer failed!");
-        } else {
-            IERC20(_token).safeTransfer(_sender, _amount);
-        }
-
-        return true;
+        revert("CurvyAggregator: withdrawRejected is deprecated (deposits happen through CSUC)!");
     }
 
-    /// @inheritdoc ICurvyAggregator
+    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function noteTree() public view returns (uint256 _root) {
         return noteTreeRoot;
     }
 
-    /// @inheritdoc ICurvyAggregator
+    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function nullifierTree() public view returns (uint256 _root) {
         return nullifierTreeRoot;
     }
 
-    /// @inheritdoc ICurvyAggregator
+    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function getNoteInfo(bytes32 _noteHash)
         external
         view
         returns (CurvyAggregator_Types.NoteWithMetaData memory _note)
     {
         return noteInfo[_noteHash];
+    }
+
+    // TODO: remove this function before mainnet deployment
+    function reset() public {
+        noteTreeRoot = 0;
+        nullifierTreeRoot = 0;
     }
 
     // ------------------------------------------------------------------ Storage
@@ -337,7 +298,7 @@ contract CurvyAggregator is
 
     /// @notice Balances of the fee collector
     /// @dev Maps token address to fee collector address to balance.
-    mapping(address => mapping(address => uint256)) public feeCollectorBalances;
+    mapping(address => mapping(address => uint256)) public feeCollectorBalancesDeprecated;
 
     /// @notice ICSUC handle
     ICSUC public csuc;

@@ -20,9 +20,6 @@ contract CurvyAggregator_CSUC_NoAssetTransfer_ActionHandler is ICSUC_ActionHandl
 
         (CurvyAggregator_Types.Note[] memory _notes) = abi.decode(_payload.parameters, (CurvyAggregator_Types.Note[]));
 
-        (uint256 _balanceBefore, uint256 _nonceBefore) =
-            _unpackBalanceAndNonce(balanceAndNonce[_payload.token][_action.from]);
-
         if (!_fromHasEnoughAssets(_payload.token, _action.from, _payload.amount + _payload.totalFee)) {
             return false;
         }
@@ -35,14 +32,22 @@ contract CurvyAggregator_CSUC_NoAssetTransfer_ActionHandler is ICSUC_ActionHandl
             return false;
         }
 
-        balanceAndNonce[_payload.token][_action.from] =
-            _packBalanceAndNonce(_balanceBefore - _payload.amount - _payload.totalFee, _nonceBefore + 1);
+        // Sender's balance gets decreased
+        (uint256 _senderBalanceBefore, uint256 _senderNonceBefore) =
+            _unpackBalanceAndNonce(balanceAndNonce[_payload.token][_action.from]);
 
-        if (_payload.token == CurvyAggregator_Constants.NATIVE_TOKEN) {
-            _success = ICurvyAggregator_NoAssetTransfer(aggregator).wrap(_notes);
-        } else {
-            _success = ICurvyAggregator_NoAssetTransfer(aggregator).wrap(_notes);
-        }
+        balanceAndNonce[_payload.token][_action.from] =
+            _packBalanceAndNonce(_senderBalanceBefore - _payload.amount - _payload.totalFee, _senderNonceBefore + 1);
+
+        // Aggregator's balance gets increased
+        address _aggregatorCached = aggregator;
+
+        (uint256 _aggregatorBalanceBefore, uint256 _aggregatorNonceBefore) =
+            _unpackBalanceAndNonce(balanceAndNonce[_payload.token][_aggregatorCached]);
+        balanceAndNonce[_payload.token][_aggregatorCached] =
+            _packBalanceAndNonce(_aggregatorBalanceBefore + _payload.amount, _aggregatorNonceBefore);
+
+        _success = ICurvyAggregator_NoAssetTransfer(_aggregatorCached).wrap(_notes);
     }
 
     /// @inheritdoc ICSUC_ActionHandler
