@@ -12,4 +12,8 @@ contract MockERC20 is ERC20 {
     constructor(uint256 _totalSupply) ERC20("MockERC20", "M20") {
         _mint(msg.sender, _totalSupply);
     }
+
+    function dbg_mint(address to, uint256 amount) external {
+        _mint(to, amount);
+    }
 }

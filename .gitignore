@@ -31,3 +31,4 @@ deployments/localnet
 
 # Artifacts from .ts
 sdk/**/**/*.js
+zk-verifiers/script/*.js
