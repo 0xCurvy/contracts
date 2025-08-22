@@ -21,6 +21,7 @@ lib/openzeppelin-contracts-upgradeable/
 # Dotenv file
 .env
 .env.tmp
+.env.production
 .wake
 .vscode
 snapshots
