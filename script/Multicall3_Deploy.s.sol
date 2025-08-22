@@ -5,7 +5,7 @@ import {Script, console2} from "forge-std/Script.sol";
 
 import {Multicall3} from "../src/utils/Multicall3.sol";
 
-contract Localnet_Multicall3_Deploy_Script is Script {
+contract Multicall3_Deploy_Script is Script {
     function run() public {
         deployerPk = vm.envUint("DEPLOYER_PK");
         feeCollector = operator = vm.envAddress("OPERATOR_ADDR");
