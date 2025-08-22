@@ -26,7 +26,8 @@ This section is meant for people who want to contribute to the Curvy project.
 **Foundry**:
 
 ```bash
-curl -L https://foundry.paradigm.xyz | bash &&foundryup
+curl -L https://foundry.paradigm.xyz | bash && foundryup -i 1.2.1
+
 ```
 
 **Hardhat**:
