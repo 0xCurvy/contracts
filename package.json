@@ -4,7 +4,7 @@
         "install": "forge install",
         "build": "forge build",
         "build:zk-verifiers": "pnpm run hardhat compile",
-        "typechain:generate": "pnpm run build && pnpm run typechain --target=ethers-v6 ./out/CSUC.sol/CSUC.json ./out/CurvyAggregator.sol/CurvyAggregator.json ./out/CurvyAggregator_CSUC_ActionHandler.sol/CurvyAggregator_CSUC_ActionHandler.json --out-dir=./generated/types && cp -r ./generated/types ./sdk",
+        "typechain:generate": "pnpm run build && pnpm run typechain --target=ethers-v6 ./out/CSUC.sol/CSUC.json ./out/CurvyAggregator.sol/CurvyAggregator.json ./out/CurvyAggregator_CSUC_ActionHandler.sol/CurvyAggregator_CSUC_ActionHandler.json --out-dir=./generated/types",
         "cleanup": "rm -rf cache cache_hardhat out artifacts snapshots",
         "deploy:preparation": "pnpm run cleanup && source $CURVY_CONTRACTS_ENV_FILE_PATH && mkdir -p ./deployments/$CHAIN_NAME && rm -rf ./deployments/$CHAIN_NAME/*.address",
         "simulate:deploy:csuc": "pnpm run cleanup && source $CURVY_CONTRACTS_ENV_FILE_PATH && forge script ./script/CSUC_Deploy.s.sol:CSUC_Deploy_Script --rpc-url $RPC_URL",
