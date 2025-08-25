@@ -1,7 +1,6 @@
 {
     "name": "contracts",
     "scripts": {
-        "install": "forge build",
         "build": "forge build",
         "build:zk-verifiers": "pnpm run hardhat compile",
         "typechain:generate": "pnpm run build && pnpm run typechain --target=ethers-v6 ./out/CSUC.sol/CSUC.json ./out/CurvyAggregator.sol/CurvyAggregator.json ./out/CurvyAggregator_CSUC_ActionHandler.sol/CurvyAggregator_CSUC_ActionHandler.json --out-dir=./generated/types",
