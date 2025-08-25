@@ -23,13 +23,20 @@ contract MockERC20_Deploy_Script is Script {
 
         uint256 _individualAmount = _totalSupply / 100;
 
-        // Curvy Users with zero ETH balance
-        mockERC20.dbg_mint(vm.envAddress("USER_2_ADDR"), _individualAmount);
-        mockERC20.dbg_mint(vm.envAddress("USER_3_ADDR"), _individualAmount);
+        // Curvy Users with non-zero ETH balance and zero ERC20 balance
+        payable(vm.envAddress("USER_1_CSA_1_ADDR")).transfer(0.33 ether);
+        payable(vm.envAddress("USER_2_CSA_1_ADDR")).transfer(0.33 ether);
+        payable(vm.envAddress("USER_3_CSA_1_ADDR")).transfer(0.33 ether);
 
-        // Curvy Users with non-zero ETH balance
-        mockERC20.dbg_mint(vm.envAddress("USER_4_ADDR"), _individualAmount);
-        mockERC20.dbg_mint(vm.envAddress("USER_5_ADDR"), _individualAmount);
+        // Curvy Users with zero ETH balance, and non-zero ERC20 balance
+        mockERC20.dbg_mint(vm.envAddress("USER_1_CSA_2_ADDR"), _individualAmount);
+        mockERC20.dbg_mint(vm.envAddress("USER_2_CSA_2_ADDR"), _individualAmount);
+        mockERC20.dbg_mint(vm.envAddress("USER_3_CSA_2_ADDR"), _individualAmount);
+
+        // Curvy Users with non-zero ETH balance, and non-zero ERC20 balance
+        mockERC20.dbg_mint(vm.envAddress("USER_1_CSA_3_ADDR"), _individualAmount);
+        mockERC20.dbg_mint(vm.envAddress("USER_2_CSA_3_ADDR"), _individualAmount);
+        mockERC20.dbg_mint(vm.envAddress("USER_3_CSA_3_ADDR"), _individualAmount);
 
         vm.stopBroadcast();
     }
