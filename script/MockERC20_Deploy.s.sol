@@ -34,6 +34,11 @@ contract MockERC20_Deploy_Script is Script {
         mockERC20.dbg_mint(vm.envAddress("USER_3_CSA_2_ADDR"), _individualAmount);
 
         // Curvy Users with non-zero ETH balance, and non-zero ERC20 balance
+
+        payable(vm.envAddress("USER_1_CSA_3_ADDR")).transfer(0.13 ether);
+        payable(vm.envAddress("USER_2_CSA_3_ADDR")).transfer(0.13 ether);
+        payable(vm.envAddress("USER_3_CSA_3_ADDR")).transfer(0.13 ether);
+
         mockERC20.dbg_mint(vm.envAddress("USER_1_CSA_3_ADDR"), _individualAmount);
         mockERC20.dbg_mint(vm.envAddress("USER_2_CSA_3_ADDR"), _individualAmount);
         mockERC20.dbg_mint(vm.envAddress("USER_3_CSA_3_ADDR"), _individualAmount);

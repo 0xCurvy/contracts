@@ -22,6 +22,7 @@ lib/openzeppelin-contracts-upgradeable/
 .env
 .env.tmp
 .env.production
+.env.localnet
 .wake
 .vscode
 snapshots
