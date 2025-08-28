@@ -15,6 +15,8 @@
         "deploy:integration:csuc-aggregator": "pnpm simulate:integration:csuc-aggregator --broadcast $CURVY_CONTRACTS_VERIFY",
         "simulate:deploy:all": "pnpm deploy:preparation && pnpm simulate:deploy:csuc && pnpm deploy:zk-verifiers && pnpm simulate:deploy:aggregator && pnpm simulate:integration:csuc-aggregator",
         "deploy:all": "pnpm deploy:preparation && pnpm deploy:csuc && pnpm deploy:zk-verifiers && pnpm deploy:aggregator && pnpm deploy:integration:csuc-aggregator",
+        "simulate:upgrade:all": "pnpm cleanup && source .env && forge script ./script/upgrades/UpgradeAll.s.sol:UpgradeAll_Script --rpc-url $RPC_URL",
+        "upgrade:all": "pnpm simulate:upgrade:all --broadcast $CURVY_CONTRACTS_VERIFY",
         "simulate:deploy:mockERC20": "pnpm run cleanup && source $CURVY_CONTRACTS_ENV_FILE_PATH && forge script ./script/MockERC20_Deploy.s.sol:MockERC20_Deploy_Script --rpc-url $RPC_URL",
         "simulate:deploy:multicall3": "pnpm run cleanup && source $CURVY_CONTRACTS_ENV_FILE_PATH && forge script ./script/Multicall3_Deploy.s.sol:Multicall3_Deploy_Script --rpc-url $RPC_URL",
         "sanity-checks:csuc-wrap": "source $CURVY_CONTRACTS_ENV_FILE_PATH && forge script ./script/sanity-checks/CSUC_Wrap.s.sol:CSUC_Wrap_Script --rpc-url $RPC_URL --broadcast $CURVY_CONTRACTS_VERIFY",
@@ -23,10 +25,10 @@
         "sanity-checks:csuc-aggregator": "source $CURVY_CONTRACTS_ENV_FILE_PATH && forge script ./script/sanity-checks/Integration_CSUC_Aggregator.s.sol:Integration_CSUC_Aggregator_Script --rpc-url $RPC_URL",
         "sanity-checks:all": "pnpm sanity-checks:csuc-wrap && pnpm sanity-checks:csuc-transfer && pnpm sanity-checks:csuc-unwrap",
         "cleanup:localnet": "pkill -f \"anvil\" | sleep 2",
-        "start:localnet": "anvil &",
+        "start:localnet": "anvil --block-time 1 > localnet-chain.log &",
         "deploy:mockERC20:localnet": "pnpm simulate:deploy:mockERC20 --broadcast",
         "deploy:multicall3:localnet": "pnpm simulate:deploy:multicall3 --broadcast",
-        "deploy:all:localnet": "cp ./.env.localnet ./.env && export CURVY_CONTRACTS_ENV_FILE_PATH=./.env && pnpm run deploy:all && pnpm run deploy:mockERC20:localnet && pnpm run deploy:multicall3:localnet"
+        "deploy:all:localnet": "cp ./.env.localnet ./.env && export CURVY_CONTRACTS_ENV_FILE_PATH=./.env && pnpm run deploy:all && pnpm run deploy:mockERC20:localnet && pnpm run deploy:multicall3:localnet && pnpm upgrade:all"
     },
     "dependencies": {
         "@nomicfoundation/hardhat-foundry": "^1.1.1",
