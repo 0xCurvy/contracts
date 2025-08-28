@@ -55,7 +55,7 @@ interface ICurvyAggregationVerifier {
      * @param input The public input to the proof.
      * @return r True if the proof is valid, false otherwise.
      */
-    function verifyProof(uint256[2] memory a, uint256[2][2] memory b, uint256[2] memory c, uint256[126] memory input)
+    function verifyProof(uint256[2] memory a, uint256[2][2] memory b, uint256[2] memory c, uint256[46] memory input)
         external
         view
         returns (bool r);
