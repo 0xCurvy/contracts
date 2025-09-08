@@ -173,20 +173,35 @@ contract CurvyAggregator_NoAssetTransfer_TmpUpgrade is
 
     /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function unwrap(CurvyAggregator_Types.UnwrappingZKP calldata _data) public nonReentrant returns (bool _success) {
-        uint256 _oldNoteTreeRoot = _data.inputs[_data.inputs.length - 4];
-        uint256 _oldNullifierTreeRoot = _data.inputs[_data.inputs.length - 3];
+        // circuit:
+        // outputs:
+        //      newNullifierRoot    idx = 0
+        //      feeAmount           idx = 1
+        // public inputs:
+        //      notesTreeRoot       idx = 2
+        //      oldNullifiersRoot   idx = 3
+        //      destinationAddress  idx = {4, 5, 6, 7, 8, 9, 10, 11, 12, 13}
+        //      nullifiersHash      idx = 14
+        //      token               idx = 15
+        uint256 _oldNoteTreeRoot = _data.inputs[2];
+        uint256 _oldNullifierTreeRoot = _data.inputs[3];
 
-        address _to = address(uint160(_data.inputs[_data.inputs.length - 2]));
+        address[] memory _destinationAddresses = new address[];
+        uint256 cnt = 0;
+        for (uint256 i = 4; i < 14; i++) {
+            if (_data.inputs[i] == 0) {
+                break;
+            }
+            _destinationAddresses[cnt] = address(uint160(_data.inputs[i]));
+            cnt++;
+        }
 
-        // Note: should be removed in the future - only withdrawals to CSUC are allowed
-        bool _withdrawingToCSUC = _data.inputs[_data.inputs.length - 1] == 0;
         uint256 _amount = _data.inputs[0];
 
         // TODO: check if ...nullifiers... need to be emitted
-        uint256 _inputLength = _data.inputs.length;
-        uint256 _newNullifierTreeRoot = _data.inputs[_inputLength - 7];
-        address _token = address(uint160(_data.inputs[_inputLength - 6]));
-        uint256 _feeAmount = _data.inputs[_inputLength - 5];
+        uint256 _newNullifierTreeRoot = _data.inputs[0];
+        address _token = address(uint160(_data.inputs[15]));
+        uint256 _feeAmount = _data.inputs[1];
 
         // Check if the current state was computed over on by the circuit/proof
         require(noteTreeRoot == _oldNoteTreeRoot, "CurvyAggregator: current note tree root mismatch!");
