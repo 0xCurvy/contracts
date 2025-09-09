@@ -203,7 +203,7 @@ contract CurvyAggregator_NoAssetTransfer_TmpUpgrade is
 
         // TODO: check if ...nullifiers... need to be emitted
         uint256 _newNullifierTreeRoot = _data.inputs[0];
-        address _token = address(uint160(_data.inputs[15]));
+        address _token = address(uint160(_data.inputs[25]));
         uint256 _feeAmount = _data.inputs[1];
 
         // Check if the current state was computed over on by the circuit/proof
