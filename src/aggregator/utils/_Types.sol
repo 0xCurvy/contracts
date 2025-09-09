@@ -97,6 +97,6 @@ library CurvyAggregator_Types {
         uint256[2] a;
         uint256[2][2] b;
         uint256[2] c;
-        uint256[23] inputs;
+        uint256[26] inputs;
     }
 }

@@ -187,18 +187,17 @@ contract CurvyAggregator_NoAssetTransfer_TmpUpgrade is
         uint256 _oldNoteTreeRoot = _data.inputs[2];
         uint256 _oldNullifierTreeRoot = _data.inputs[3];
 
-        address[] memory _destinationAddresses = new address[];
-        uint256[] memory _withdrawnAmounts = new uint256[];
-        uint256 cnt = 0;
+        address[] memory _destinationAddresses = new address[](10);
+        uint256[] memory _withdrawnAmounts = new uint256[](10);
         uint256 amount = 0;
+        uint256 cnt = 0;
         for (uint256 i = 4; i < 14; i++) {
-            if (_data.inputs[i] == 0) {
-                break;
+            if (_data.inputs[i] != 0) {
+                cnt++;
             }
-            _withdrawnAmounts[cnt] = _data.inputs[i];
+            _withdrawnAmounts[i - 4] = _data.inputs[i];
             amount += _data.inputs[i];
-            _destinationAddresses[cnt] = address(uint160(_data.inputs[i + 10]));
-            cnt++;
+            _destinationAddresses[i - 4] = address(uint160(_data.inputs[i + 10]));
         }
 
         // TODO: check if ...nullifiers... need to be emitted
@@ -227,7 +226,10 @@ contract CurvyAggregator_NoAssetTransfer_TmpUpgrade is
         uint256 _actionId = CSUC_Constants.TRANSFER_ACTION_ID;
 
         CSUC_Types.Action[] memory _actions = new CSUC_Types.Action[](cnt + 1);
-        for (uint256 i = 0; i < cnt - 1; i++) {
+        for (uint256 i = 0; i < cnt; i++) {
+            if (_withdrawnAmounts[i] == 0) {
+                continue;
+            }
             _actions[i].from = address(this);
             _actions[i].payload = CSUC_Types.ActionPayload({
                 actionId: _actionId,
@@ -238,8 +240,8 @@ contract CurvyAggregator_NoAssetTransfer_TmpUpgrade is
                 limit: block.number
             });
         }
-        _actions[cnt - 1].from = address(this);
-        _actions[cnt - 1].payload = CSUC_Types.ActionPayload({
+        _actions[cnt].from = address(this);
+        _actions[cnt].payload = CSUC_Types.ActionPayload({
             actionId: _actionId,
             token: _token,
             amount: _feeAmount,
