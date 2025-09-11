@@ -15,7 +15,7 @@ gas_limit_test = "200000000000000"
 optimizer = true
 optimizer_runs = 200
 exclude = ["zk-verifiers"]
-fs_permissions = [{ access = "read-write", path = "./"}]
+fs_permissions = [{ access = "read-write", path = "./"}, { access = "read", path = "../devenv/users.json"}]
 ffi = true
 ast = true
 build_info = true

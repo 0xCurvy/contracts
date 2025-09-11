@@ -25,10 +25,10 @@
         "sanity-checks:csuc-aggregator": "source $CURVY_CONTRACTS_ENV_FILE_PATH && forge script ./script/sanity-checks/Integration_CSUC_Aggregator.s.sol:Integration_CSUC_Aggregator_Script --rpc-url $RPC_URL",
         "sanity-checks:all": "pnpm sanity-checks:csuc-wrap && pnpm sanity-checks:csuc-transfer && pnpm sanity-checks:csuc-unwrap",
         "cleanup:localnet": "pkill -f \"anvil\" | sleep 2",
-        "start:localnet": "anvil --block-time 1 > localnet-chain.log &",
+        "start:localnet": "anvil &",
         "deploy:mockERC20:localnet": "pnpm simulate:deploy:mockERC20 --broadcast",
         "deploy:multicall3:localnet": "pnpm simulate:deploy:multicall3 --broadcast",
-        "deploy:all:localnet": "cp ./.env.localnet ./.env && export CURVY_CONTRACTS_ENV_FILE_PATH=./.env && pnpm run deploy:all && pnpm run deploy:mockERC20:localnet && pnpm run deploy:multicall3:localnet && pnpm upgrade:all"
+        "deploy:all:localnet": "sleep 2 && export CURVY_CONTRACTS_ENV_FILE_PATH=./.env && pnpm run deploy:all && pnpm run deploy:mockERC20:localnet && pnpm run deploy:multicall3:localnet && pnpm upgrade:all"
     },
     "dependencies": {
         "@nomicfoundation/hardhat-foundry": "^1.1.1",
