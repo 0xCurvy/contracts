@@ -28,7 +28,7 @@
         "start:localnet": "anvil &",
         "deploy:mockERC20:localnet": "pnpm simulate:deploy:mockERC20 --broadcast",
         "deploy:multicall3:localnet": "pnpm simulate:deploy:multicall3 --broadcast",
-        "deploy:all:localnet": "export CURVY_CONTRACTS_ENV_FILE_PATH=./.env && pnpm run deploy:all && pnpm run deploy:mockERC20:localnet && pnpm run deploy:multicall3:localnet && pnpm upgrade:all"
+        "deploy:all:localnet": "sleep 2 && export CURVY_CONTRACTS_ENV_FILE_PATH=./.env && pnpm run deploy:all && pnpm run deploy:mockERC20:localnet && pnpm run deploy:multicall3:localnet && pnpm upgrade:all"
     },
     "dependencies": {
         "@nomicfoundation/hardhat-foundry": "^1.1.1",
