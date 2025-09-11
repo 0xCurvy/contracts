@@ -4,10 +4,10 @@ pragma solidity ^0.8.30;
 import {Script, console2} from "forge-std/Script.sol";
 import {CSUC, CSUC_Types, CSUC_Constants} from "../src/csuc/CSUC.sol";
 import {
-    CurvyAggregator_NoAssetTransfer,
+    CurvyAggregator_NoAssetTransfer_TmpUpgrade,
     CurvyAggregator_Types,
     CurvyAggregator_Constants
-} from "../src/aggregator/CurvyAggregator_NoAssetTransfer.sol";
+} from "../src/aggregator/CurvyAggregator_NoAssetTransfer_TmpUpgrade.sol";
 import {
     ICSUC_ActionHandler,
     CurvyAggregator_CSUC_NoAssetTransfer_ActionHandler
