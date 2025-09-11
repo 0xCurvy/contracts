@@ -4,9 +4,11 @@ pragma solidity ^0.8.30;
 import {Script, console2} from "forge-std/Script.sol";
 import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
-import {
-    CurvyAggregator, CurvyAggregator_Types, CurvyAggregator_Constants
-} from "../src/aggregator/CurvyAggregator.sol";
+// import {
+//     CurvyAggregator, CurvyAggregator_Types, CurvyAggregator_Constants
+// } from "../src/aggregator/CurvyAggregator.sol";
+
+import {CurvyAggregator_NoAssetTransfer_TmpUpgrade} from "../src/aggregator/CurvyAggregator_NoAssetTransfer_TmpUpgrade.sol";
 
 contract CurvyAggregator_Deploy_Script is Script {
     function run() public {
@@ -16,7 +18,7 @@ contract CurvyAggregator_Deploy_Script is Script {
 
         vm.startBroadcast(deployerPk);
 
-        address proxy = Upgrades.deployUUPSProxy("CurvyAggregator.sol", abi.encodeCall(CurvyAggregator.initialize, ()));
+        address proxy = Upgrades.deployUUPSProxy("CurvyAggregator_NoAssetTransfer_TmpUpgrade.sol", abi.encodeCall(CurvyAggregator_NoAssetTransfer_TmpUpgrade.initialize, ()));
         aggregator = CurvyAggregator(proxy);
 
         aggregator.updateConfig(_buildConfig());
