@@ -19,7 +19,7 @@ contract Integration_Deposit_To_Aggregator_From_CSUC_Script is Script {
 
         vm.startBroadcast(deployerPk);
 
-        aggregator = CurvyAggregator_NoAssetTransfer(
+        aggregator = CurvyAggregator_NoAssetTransfer_TmpUpgrade(
             vm.parseAddress(
                 vm.readFile(
                     string(abi.encodePacked("./deployments/", vm.envString("CHAIN_NAME"), "/CurvyAggregator.address"))
@@ -69,6 +69,6 @@ contract Integration_Deposit_To_Aggregator_From_CSUC_Script is Script {
     address private feeCollector;
 
     CSUC public csuc;
-    CurvyAggregator_NoAssetTransfer public aggregator;
+    CurvyAggregator_NoAssetTransfer_TmpUpgrade public aggregator;
     CurvyAggregator_CSUC_NoAssetTransfer_ActionHandler public actionHandler;
 }

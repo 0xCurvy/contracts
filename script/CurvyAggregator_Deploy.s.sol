@@ -8,7 +8,7 @@ import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 //     CurvyAggregator, CurvyAggregator_Types, CurvyAggregator_Constants
 // } from "../src/aggregator/CurvyAggregator.sol";
 
-import {CurvyAggregator_NoAssetTransfer_TmpUpgrade} from "../src/aggregator/CurvyAggregator_NoAssetTransfer_TmpUpgrade.sol";
+import {CurvyAggregator_NoAssetTransfer_TmpUpgrade, CurvyAggregator_Types} from "../src/aggregator/CurvyAggregator_NoAssetTransfer_TmpUpgrade.sol";
 
 contract CurvyAggregator_Deploy_Script is Script {
     function run() public {
@@ -19,7 +19,7 @@ contract CurvyAggregator_Deploy_Script is Script {
         vm.startBroadcast(deployerPk);
 
         address proxy = Upgrades.deployUUPSProxy("CurvyAggregator_NoAssetTransfer_TmpUpgrade.sol", abi.encodeCall(CurvyAggregator_NoAssetTransfer_TmpUpgrade.initialize, ()));
-        aggregator = CurvyAggregator(proxy);
+        aggregator = CurvyAggregator_NoAssetTransfer_TmpUpgrade(proxy);
 
         aggregator.updateConfig(_buildConfig());
         console2.log("CurvyAggregator deployed at: ", address(aggregator));
@@ -65,5 +65,5 @@ contract CurvyAggregator_Deploy_Script is Script {
     address private operator;
     address private feeCollector;
 
-    CurvyAggregator public aggregator;
+    CurvyAggregator_NoAssetTransfer_TmpUpgrade public aggregator;
 }
