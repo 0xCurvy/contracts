@@ -173,20 +173,37 @@ contract CurvyAggregator_NoAssetTransfer_TmpUpgrade is
 
     /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function unwrap(CurvyAggregator_Types.UnwrappingZKP calldata _data) public nonReentrant returns (bool _success) {
-        uint256 _oldNoteTreeRoot = _data.inputs[_data.inputs.length - 4];
-        uint256 _oldNullifierTreeRoot = _data.inputs[_data.inputs.length - 3];
+        // circuit:
+        // outputs:
+        //      newNullifierRoot    idx = 0
+        //      feeAmount           idx = 1
+        // public inputs:
+        //      notesTreeRoot       idx = 2
+        //      oldNullifiersRoot   idx = 3
+        //      withdrawnAmounts    idx = {4, 5, 6, 7, 8, 9, 10, 11, 12, 13}
+        //      destinationAddress  idx = {14, 15, 16, 17, 18, 19, 20, 21, 22, 23}
+        //      nullifiersHash      idx = 24
+        //      token               idx = 25
+        uint256 _oldNoteTreeRoot = _data.inputs[2];
+        uint256 _oldNullifierTreeRoot = _data.inputs[3];
 
-        address _to = address(uint160(_data.inputs[_data.inputs.length - 2]));
-
-        // Note: should be removed in the future - only withdrawals to CSUC are allowed
-        bool _withdrawingToCSUC = _data.inputs[_data.inputs.length - 1] == 0;
-        uint256 _amount = _data.inputs[0];
+        address[] memory _destinationAddresses = new address[](10);
+        uint256[] memory _withdrawnAmounts = new uint256[](10);
+        uint256 amount = 0;
+        uint256 cnt = 0;
+        for (uint256 i = 4; i < 14; i++) {
+            if (_data.inputs[i] != 0) {
+                cnt++;
+            }
+            _withdrawnAmounts[i - 4] = _data.inputs[i];
+            amount += _data.inputs[i];
+            _destinationAddresses[i - 4] = address(uint160(_data.inputs[i + 10]));
+        }
 
         // TODO: check if ...nullifiers... need to be emitted
-        uint256 _inputLength = _data.inputs.length;
-        uint256 _newNullifierTreeRoot = _data.inputs[_inputLength - 7];
-        address _token = address(uint160(_data.inputs[_inputLength - 6]));
-        uint256 _feeAmount = _data.inputs[_inputLength - 5];
+        uint256 _newNullifierTreeRoot = _data.inputs[0];
+        address _token = address(uint160(_data.inputs[25]));
+        uint256 _feeAmount = _data.inputs[1];
 
         // Check if the current state was computed over on by the circuit/proof
         require(noteTreeRoot == _oldNoteTreeRoot, "CurvyAggregator: current note tree root mismatch!");
@@ -201,25 +218,30 @@ contract CurvyAggregator_NoAssetTransfer_TmpUpgrade is
         nullifierTreeRoot = _newNullifierTreeRoot;
 
         // Update the fee collector's balance
-        uint256 _minimumFee = (_amount * withdrawBps) / CurvyAggregator_Constants.TOTAL_BASE_POINTS;
+        uint256 _minimumFee = (amount * withdrawBps) / CurvyAggregator_Constants.TOTAL_BASE_POINTS;
         require(_feeAmount >= _minimumFee, "CurvyAggregator: fee amount incorrectly set!");
 
         // Note: Aggregator holds its funds inside CSUC -> User 'withdrawal' from Aggregator
         //       happens through CSUC contract. From which they can withdraw to arbitrary address.
         uint256 _actionId = CSUC_Constants.TRANSFER_ACTION_ID;
 
-        CSUC_Types.Action[] memory _actions = new CSUC_Types.Action[](2);
-        _actions[0].from = address(this);
-        _actions[0].payload = CSUC_Types.ActionPayload({
-            actionId: _actionId,
-            token: _token,
-            amount: _amount,
-            totalFee: 0,
-            parameters: abi.encode(_to),
-            limit: block.number
-        });
-        _actions[1].from = address(this);
-        _actions[1].payload = CSUC_Types.ActionPayload({
+        CSUC_Types.Action[] memory _actions = new CSUC_Types.Action[](cnt + 1);
+        for (uint256 i = 0; i < cnt; i++) {
+            if (_withdrawnAmounts[i] == 0) {
+                continue;
+            }
+            _actions[i].from = address(this);
+            _actions[i].payload = CSUC_Types.ActionPayload({
+                actionId: _actionId,
+                token: _token,
+                amount: _withdrawnAmounts[i],
+                totalFee: 0,
+                parameters: abi.encode(_destinationAddresses[i]),
+                limit: block.number
+            });
+        }
+        _actions[cnt].from = address(this);
+        _actions[cnt].payload = CSUC_Types.ActionPayload({
             actionId: _actionId,
             token: _token,
             amount: _feeAmount,

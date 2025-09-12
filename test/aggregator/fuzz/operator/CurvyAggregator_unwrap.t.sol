@@ -20,7 +20,7 @@ contract CurvyAggregator_operatorExecuteInvalidProofs_FuzzTest is BoilerPlate {
         uint256[2] memory a,
         uint256[2][2] memory b,
         uint256[2] memory c,
-        uint256[23] memory inputs
+        uint256[26] memory inputs
     ) public {
         // Note: there's a small chance that the proof verification and inputs will be valid
         vm.startBroadcast(operator);
