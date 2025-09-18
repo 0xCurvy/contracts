@@ -1,6 +1,15 @@
 {
-    "compilerOptions": {
-        "module": "NodeNext",
-        "moduleResolution": "NodeNext"
-    }
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "outDir": "dist",
+    "resolveJsonModule": true,
+    "noImplicitAny": false,
+    "strictPropertyInitialization": false,
+    "baseUrl": "."
+  },
+  "include": ["tests", "src/gen/typechain"],
+  "files": ["hardhat.config.ts"]
 }
