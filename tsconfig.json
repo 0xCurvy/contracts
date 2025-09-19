@@ -10,6 +10,6 @@
     "strictPropertyInitialization": false,
     "baseUrl": "."
   },
-  "include": ["tests", "src/gen/typechain"],
-  "files": ["hardhat.config.ts"]
+  "include": ["./src", "./scripts", "./tests"],
+  "files": ["./hardhat.config.ts"]
 }
