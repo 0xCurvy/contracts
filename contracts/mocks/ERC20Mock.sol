@@ -165,6 +165,7 @@ contract ERC20 is IERC20 {
    * @param spender The address that will spend the tokens.
    * @param value The number of tokens that can be spent.
    */
+  // THIS IS NOT GOOD! WE MOCK TOO MUCH
   function _approve(address owner, address spender, uint256 value) internal {
     require(spender != address(0));
     require(owner != address(0));

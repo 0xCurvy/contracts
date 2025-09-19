@@ -19,7 +19,8 @@ contract MetaERC20Wrapper is ERC1155Meta, ERC1155MintBurn {
   // Variables
   uint256 internal nTokens = 1;                         // Number of ERC-20 tokens registered
   uint256 constant internal ETH_ID = 0x1;               // ID fo tokens representing Ether is 1
-  address constant internal ETH_ADDRESS = address(0x1); // Address for tokens representing Ether is 0x00...01
+  // CURVY CHANGE
+  address constant internal ETH_ADDRESS = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE); // Address for tokens representing Ether is 0x00...01
   mapping (address => uint256) internal addressToID;    // Maps the ERC-20 addresses to their metaERC20 id
   mapping (uint256 => address) internal IDtoAddress;    // Maps the metaERC20 ids to their ERC-20 address
 
