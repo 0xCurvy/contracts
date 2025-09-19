@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import { network } from "hardhat";
+import { concatHex, encodeAbiParameters, encodePacked, keccak256, parseAbiParameters, size, toBytes } from "viem";
 
 const { viem } = await network.connect({ network: "localhost" });
 
@@ -14,7 +15,6 @@ if (!metaERC20WrapperAddress) {
   throw new Error("MetaERC20Wrapper address not found for chain-31337");
 }
 const metaERC20Wrapper = await viem.getContractAt("MetaERC20Wrapper", metaERC20WrapperAddress);
-
 const erc20MockAddress = deployedAddresses["ERC20Mock#ERC20Mock"];
 if (!erc20MockAddress) {
   throw new Error("ERC20Mock address not found for chain-31337");
@@ -41,42 +41,72 @@ console.log("SENDER:", await metaERC20Wrapper.read.balanceOf([senderClient.accou
 console.log("OPERATOR:", await metaERC20Wrapper.read.balanceOf([operatorClient.account.address, 2n]));
 console.log("RECIPIENT:", await metaERC20Wrapper.read.balanceOf([recipientClient.account.address, 2n]));
 
-const signature = await senderClient.signTypedData({
-  domain: {
-    name: "Wrap Test",
-    version: "1",
-    chainId: 31337,
-    verifyingContract: metaERC20WrapperAddress,
-  },
-  types: {
-    Test: [
-      { name: "META_TX_TYPEHASH", type: "bytes32" },
-      { name: "from", type: "address" },
-      { name: "to", type: "address" },
-      { name: "id", type: "uint256" },
-      { name: "amount", type: "uint256" },
-      { name: "isGasFee", type: "uint256" },
-      { name: "nonce", type: "uint256" },
-    ],
-  } as const,
-  primaryType: "Test",
-  message: {
-    META_TX_TYPEHASH: "0xce0b514b3931bdbe4d5d44e4f035afe7113767b7db71949271f6a62d9c60f558",
-    from: senderClient.account.address,
-    to: recipientClient.account.address,
-    id: 2n,
-    amount: 5n,
-    isGasFee: 1n,
-    nonce: await metaERC20Wrapper.read.getNonce([senderClient.account.address]),
-  },
-});
+console.log(erc20MockAddress);
+console.log(metaERC20WrapperAddress);
+const aaa = await metaERC20Wrapper.read.getIdAddress([2n]);
+console.log(aaa);
 
-const txHash = await metaERC20Wrapper.write.metaSafeTransferFrom(
-  [senderClient.account.address, recipientClient.account.address, 2n, 5n, true, signature],
-  { account: operatorClient.account },
+const from = senderClient.account.address;
+const to = recipientClient.account.address;
+const id = await metaERC20Wrapper.read.getTokenID([erc20MockAddress]); // npr. 2n
+const amount = 5n;
+const isGasFee = false; // bez refund-a
+const nonce = await metaERC20Wrapper.read.getNonce([from]);
+
+// --- 1) _encMembers = abi.encode(META_TX_TYPEHASH, from, to, id, amount, isGasFee?1:0)
+const META_TX_TYPEHASH = "0xce0b514b3931bdbe4d5d44e4f035afe7113767b7db71949271f6a62d9c60f558";
+const encMembers = encodeAbiParameters(parseAbiParameters("bytes32, address, address, uint256, uint256, uint256"), [
+  META_TX_TYPEHASH,
+  from,
+  to,
+  id,
+  amount,
+  isGasFee ? 1n : 0n,
+]);
+
+// --- 2) signedData (tj. drugi element iz (bytes,bytes)) = abi.encode(bytes transferData)
+//     ako ne šalješ custom transferData, neka bude prazan bytes
+const transferData = "0x";
+const signedData = encodeAbiParameters(parseAbiParameters("bytes"), [transferData]);
+
+// --- 3) structHash i eip712Hash kao u kontraktu
+const structHash = keccak256(encodePacked(["bytes", "uint256", "bytes32"], [encMembers, nonce, keccak256(signedData)]));
+
+const DOMAIN_SEPARATOR_TYPEHASH = "0x035aff83d86937d35b32e04f0ddc6ff469290eef2f1b692d8a815c89404d4749"; // iz LibEIP712
+const domainSeparator = keccak256(
+  encodeAbiParameters(parseAbiParameters("bytes32, address"), [DOMAIN_SEPARATOR_TYPEHASH, metaERC20WrapperAddress]),
 );
 
-console.log(`Transaction sent: ${txHash}`);
+// EIP-712 poruka (isto kao LibEIP712.hashEIP712Message)
+const eip712Hash = keccak256(encodePacked(["bytes2", "bytes32", "bytes32"], ["0x1901", domainSeparator, structHash]));
+
+// --- 4) POTPIS: EthSign (sigType=0x02) → potpisuješ RAW *32-bajtni* eip712Hash
+const sig65 = await senderClient.signMessage({ message: { raw: toBytes(eip712Hash) } }); // r||s||v (65B)
+
+// --- 5) Sastavi finalni sig: r||s||v||nonce(uint256)||sigType(0x02) → 98 bajtova
+const noncePacked = encodePacked(["uint256"], [nonce]);
+const sigWithNonceAndType = concatHex([sig65, noncePacked, "0x02"]);
+
+// (opcionalno: proveri dužinu)
+console.log("sig bytes:", size(sigWithNonceAndType)); // treba 98
+
+// --- 6) finalni _data: abi.encode(bytes sig, bytes signedData)
+const data = encodeAbiParameters(parseAbiParameters("bytes, bytes"), [sigWithNonceAndType, signedData]);
+
+// --- 7) DEBUG: provera potpisa PRE nego što šalješ tx
+const ok = await metaERC20Wrapper.read.isValidSignature([
+  from,
+  eip712Hash,
+  encodePacked(["bytes", "uint256", "bytes"], [encMembers, nonce, signedData]),
+  sigWithNonceAndType,
+]);
+console.log("isValidSignature?", ok); // očekuješ true
+
+// --- 8) META TRANSFER (operator plaća gas)
+const txHash = await metaERC20Wrapper.write.metaSafeTransferFrom([from, to, id, amount, isGasFee, data], {
+  account: operatorClient.account,
+});
+console.log("tx:", txHash);
 
 console.log("\n***NATIVE BALANCES***\n");
 console.log("SENDER:", await publicClient.getBalance({ address: senderClient.account.address }));
