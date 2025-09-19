@@ -1,45 +1,41 @@
 import type { HardhatUserConfig } from "hardhat/config";
 
-import "@nomiclabs/hardhat-truffle5";
-import "@nomiclabs/hardhat-ethers";
-import "hardhat-gas-reporter";
-import "solidity-coverage";
+import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
+import { configVariable } from "hardhat/config";
 
 const config: HardhatUserConfig = {
+  plugins: [hardhatToolboxViemPlugin],
   solidity: {
-    version: "0.8.18",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 100000,
-        details: {
-          yul: true,
-          constantOptimizer: false,
+    profiles: {
+      default: {
+        version: "0.8.28",
+      },
+      production: {
+        version: "0.8.28",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
         },
       },
     },
   },
-  paths: {
-    root: "src",
-    tests: "../tests",
-  },
   networks: {
-    ganache: {
-      url: "http://127.0.0.1:8545",
-      blockGasLimit: 10000000,
+    hardhatMainnet: {
+      type: "edr-simulated",
+      chainType: "l1",
     },
-    matic: {
-      url: "https://rpc-mainnet.matic.network",
+    hardhatOp: {
+      type: "edr-simulated",
+      chainType: "op",
     },
-    coverage: {
-      url: "http://localhost:8555",
+    sepolia: {
+      type: "http",
+      chainType: "l1",
+      url: configVariable("SEPOLIA_RPC_URL"),
+      accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
     },
-  },
-  gasReporter: {
-    enabled: !!process.env.REPORT_GAS === true,
-    currency: "USD",
-    gasPrice: 21,
-    showTimeSpent: true,
   },
 };
 
