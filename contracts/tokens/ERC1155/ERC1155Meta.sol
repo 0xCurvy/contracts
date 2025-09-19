@@ -109,6 +109,7 @@ contract ERC1155Meta is ERC1155, SignatureValidator {
       // Hence we only pass the gasLimit to the recipient such that the relayer knows the griefing
       // limit. Nothing can prevent the receiver to revert the transaction as close to the gasLimit as
       // possible, but the relayer can now only accept meta-transaction gasLimit within a certain range.
+      // TODO: Ovo najberovatnije treba da obrisemo
       _callonERC1155Received(_from, _to, _id, _amount, gasReceipt.gasLimitCallback, transferData);
 
       // Transfer gas cost
@@ -357,6 +358,7 @@ contract ERC1155Meta is ERC1155, SignatureValidator {
         _safeTransferFrom(_from, feeRecipient, tokenID, fee);
 
         // No need to protect against griefing since recipient (if contract) is most likely owned by the relayer
+        // CURVY CHANGE: IT WILL BE EOA
         _callonERC1155Received(_from, feeRecipient, tokenID, gasleft(), fee, "");
 
       // Fee is paid from another ERC-1155 contract

@@ -18,9 +18,6 @@ import {CurvyAggregator_Constants} from "./utils/_Constants.sol";
 /// @custom:oz-upgrades-from CurvyAggregator_NoAssetTransfer
 contract CurvyAggregator
 {
-    function _authorizeUpgrade(address _newImplementation) internal override {}
-
-    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function updateConfig(CurvyAggregator_Types.ConfigurationUpdate memory _update)
     public
     returns (bool _success)
@@ -50,7 +47,6 @@ contract CurvyAggregator
         return true;
     }
 
-    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function wrap(CurvyAggregator_Types.Note[] memory _notes) public onlyCSUC returns (bool _success) {
         for (uint256 i; i < _notes.length; ++i) {
             // Wrapping a note with zero amount is not allowed
@@ -62,13 +58,12 @@ contract CurvyAggregator
             noteInfo[_noteHash].note = _notes[i];
             noteInfo[_noteHash].deadline = block.number + CurvyAggregator_Constants.NOTE_INCLUSION_BLOCK_OFFSET;
 
-            emit WrappingToken(_token, _notes[i].amount);
+//            emit WrappingToken(_token, _notes[i].amount);
         }
 
         return true;
     }
 
-    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function processWraps(CurvyAggregator_Types.WrappingZKP memory _data) public returns (bool _success) {
         uint256 _totalNoteFields = _data.inputs.length - 2;
         for (uint256 i; i < _totalNoteFields; i += CurvyAggregator_Constants.CURVY_INSERTION_NOTE_FIELDS) {
@@ -112,7 +107,6 @@ contract CurvyAggregator
         return true;
     }
 
-    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function operatorExecute(CurvyAggregator_Types.ActionExecutionZKP calldata _data)
     public
     onlyOperator
@@ -141,13 +135,11 @@ contract CurvyAggregator
         return true;
     }
 
-    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function collectFees(address[] memory _tokens, address _to) public onlyFeeCollector returns (bool _success) {
         revert("CurvyAggregator: collectFees is deprecated, use CSUC instead!");
     }
 
-    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
-    function unwrap(CurvyAggregator_Types.UnwrappingZKP calldata _data) public nonReentrant returns (bool _success) {
+    function unwrap(CurvyAggregator_Types.UnwrappingZKP calldata _data) public returns (bool _success) {
         // circuit:
         // outputs:
         //      newNullifierRoot    idx = 0
@@ -233,22 +225,18 @@ contract CurvyAggregator
         return true;
     }
 
-    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
-    function withdrawRejected(bytes32 _noteHash) public nonReentrant returns (bool _success) {
+    function withdrawRejected(bytes32 _noteHash) public returns (bool _success) {
         revert("CurvyAggregator: withdrawRejected is deprecated (deposits happen through CSUC)!");
     }
 
-    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function noteTree() public view returns (uint256 _root) {
         return noteTreeRoot;
     }
 
-    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function nullifierTree() public view returns (uint256 _root) {
         return nullifierTreeRoot;
     }
 
-    /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function getNoteInfo(bytes32 _noteHash)
     external
     view
@@ -308,7 +296,8 @@ contract CurvyAggregator
 
     /// @notice Modifier to ensure `deposits/wraps` can happen only from the CSUC contract.
     modifier onlyCSUC() {
-        require(msg.sender == address(csuc), "CurvyAggregator: only CSUC can call this function!");
+//        require(msg.sender == address(csuc), "CurvyAggregator: only CSUC can call this function!");
+        require(msg.sender == address(0x0), "CurvyAggregator: only CSUC can call this function!");
         _;
     }
 

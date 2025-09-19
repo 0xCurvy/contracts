@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.30;
 
-import {CSUC_Constants} from "../../csuc/utils/_Constants.sol";
-
 /**
  * @title CurvyAggregator_Constants
  * @author Curvy Protocol (https://curvy.box)
@@ -13,7 +11,7 @@ library CurvyAggregator_Constants {
     uint256 public constant NOTE_INCLUSION_BLOCK_OFFSET = 1_000;
 
     /// Constant used to represent the 'native' token in the Aggregator.
-    address public constant NATIVE_TOKEN = CSUC_Constants.NATIVE_TOKEN;
+    address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /// The CSUC Action Handler ID
     uint256 public constant CURVY_AGGREGATOR_CSUC_ACTION_HANDLER_ID =

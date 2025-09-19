@@ -84,6 +84,7 @@ contract ERC1155 is IERC1155, ERC165 {
     internal virtual
   {
     // Update balances
+    // !!! solidity >=0.8 reverts on uint overflows/underflows which is why this is still safe code
     balances[_from][_id] -= _amount;
     balances[_to][_id] += _amount;
 
