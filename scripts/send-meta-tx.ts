@@ -5,7 +5,7 @@ import { concatHex, encodeAbiParameters, encodePacked, keccak256, parseAbiParame
 const { viem } = await network.connect({ network: "localhost" });
 
 const publicClient = await viem.getPublicClient();
-const [senderClient, operatorClient, recipientClient] = await viem.getWalletClients();
+const [senderClient, operatorClient, recipientClient, _operatorClient] = await viem.getWalletClients();
 
 const deployedAddressesPath = "./ignition/deployments/chain-31337/deployed_addresses.json";
 const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));

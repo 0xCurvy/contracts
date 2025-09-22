@@ -15,6 +15,8 @@ import "../../utils/SignatureValidator.sol";
 contract ERC1155Meta is ERC1155, SignatureValidator {
   using LibBytes for bytes;
 
+  address public immutable Operator;
+
   /***********************************|
   |       Variables and Structs       |
   |__________________________________*/
@@ -50,6 +52,20 @@ contract ERC1155Meta is ERC1155, SignatureValidator {
 
   event NonceChange(address indexed signer, uint256 newNonce);
 
+  /// @dev Modifier to restrict function calls to the Operator.
+  modifier onlyOperator() {
+    require(msg.sender == Operator, "Caller is not the operator");
+    _;
+  }
+
+  /**
+    * @dev Sets the operator address upon deployment.
+     * @param _Operator The address to set as the operator.
+     */
+  constructor(address _Operator) {
+    require(_Operator != address(0), "Operator cannot be the zero address");
+    Operator = _Operator;
+  }
 
   /****************************************|
   |     Public Meta Transfer Functions     |
@@ -76,7 +92,7 @@ contract ERC1155Meta is ERC1155, SignatureValidator {
     uint256 _amount,
     bool _isGasFee,
     bytes memory _data)
-    public virtual
+    public virtual onlyOperator
   {
     require(_to != address(0), "ERC1155Meta#metaSafeTransferFrom: INVALID_RECIPIENT");
 
@@ -141,7 +157,7 @@ contract ERC1155Meta is ERC1155, SignatureValidator {
     uint256[] memory _amounts,
     bool _isGasFee,
     bytes memory _data)
-    public virtual
+    public virtual onlyOperator
   {
     require(_to != address(0), "ERC1155Meta#metaSafeBatchTransferFrom: INVALID_RECIPIENT");
 
@@ -208,7 +224,7 @@ contract ERC1155Meta is ERC1155, SignatureValidator {
     bool _approved,
     bool _isGasFee,
     bytes memory _data)
-    public virtual
+    public virtual onlyOperator
   {
     // Verify signature and extract the signed data
     bytes memory signedData = _signatureValidation(
