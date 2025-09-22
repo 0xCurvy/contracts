@@ -50,6 +50,43 @@ contract CurvyAggregator
         return true;
     }
 
+    // depositNotes function from the CSUC (wrap)
+    //     sa kojeg walleta se prebacuje i koliko i koji ownerHash se prebacuje
+    //     ubacuje u niz noteova koji je pending queue
+
+    function depositNotes(CurvyAggregator_Types.Note[] memory _notes) public onlyCSUC returns (bool _success) {
+        for (uint256 i; i < _notes.length; ++i) {
+            // Wrapping a note with zero amount is not allowed
+            if (_notes[i].amount == 0) return false;
+        }
+        
+        return true;
+    }
+    
+    // commitDepositBatch function
+    //     receive proof
+    //     calculate hash of notes from array
+    //     check root
+    //     verify proof
+    //     update root (note)
+    //     clear pending queue
+    
+
+    // commitAggregationBatch function
+    //     receive proof
+    //     calculate hash of nullifiers
+    //     check roots
+    //     verify proof
+    //     update roots
+
+    // commitWithdrawBatch function
+    //     receive proof
+    //     calculate hash of nullifiers
+    //     check roots
+    //     verify proof
+    //     update root (nullifier)
+    //     execute transfers in batch
+
     /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function wrap(CurvyAggregator_Types.Note[] memory _notes) public onlyCSUC returns (bool _success) {
         for (uint256 i; i < _notes.length; ++i) {
