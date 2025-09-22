@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.30;
 
+import {MetaERC20Wrapper} from "../wrapper/MetaERC20Wrapper.sol";
+import {IERC1155TokenReceiver} from "../interfaces/IERC1155TokenReceiver.sol";
+
 import {
 ICurvyInsertionVerifier,
 ICurvyAggregationVerifier,
@@ -16,8 +19,12 @@ import {CurvyAggregator_Constants} from "./utils/_Constants.sol";
  * @dev Curvy's Aggregator contract.
  */
 /// @custom:oz-upgrades-from CurvyAggregator_NoAssetTransfer
-contract CurvyAggregator
+contract CurvyAggregator is IERC1155TokenReceiver
 {
+    /// @notice Link to wrapper contract
+    constructor(address payable tokenWrapperAddress) {
+        tokenWrapper = MetaERC20Wrapper(tokenWrapperAddress);
+    }
     function _authorizeUpgrade(address _newImplementation) internal override {}
 
     /// @inheritdoc ICurvyAggregator_NoAssetTransfer
@@ -54,13 +61,31 @@ contract CurvyAggregator
     //     sa kojeg walleta se prebacuje i koliko i koji ownerHash se prebacuje
     //     ubacuje u niz noteova koji je pending queue
 
-    function depositNotes(CurvyAggregator_Types.Note[] memory _notes) public onlyCSUC returns (bool _success) {
-        for (uint256 i; i < _notes.length; ++i) {
-            // Wrapping a note with zero amount is not allowed
-            if (_notes[i].amount == 0) return false;
+    function depositNotes(
+        address[] memory fromAddresses,
+        CurvyAggregator_Types.Note[] memory _notes,
+        bytes[] memory signatures
+    ) public onlyCSUC returns (bool _success) {
+        for (uint i = 0; i < notes.length; i += 1) {
+            CurvyAggregator_Types.Note[] memory note = _notes[i];
+
+            // PROBABLY NOT FEASIBLE DUE TO COSTS
+            // ====================================
+            // tokenWrapper.metaSafeTransferFrom(
+            //     fromAddresses[i],
+            //     address(this),
+            //     note.token,
+            //     note.amount,
+            //     false,
+            //     signatures[i]
+            // );
+
+            bytes32 noteId = sha256(
+                abi.encode(note.ownerHash, note.token, note.amount)
+            ); // Mozda redosled ne valja
+
+            pendingIdsQueue[noteId] = true;
         }
-        
-        return true;
     }
     
     // commitDepositBatch function
@@ -70,6 +95,42 @@ contract CurvyAggregator
     //     verify proof
     //     update root (note)
     //     clear pending queue
+    function commitDepositBatch(
+        bytes32[] memory depositedNoteIds,
+        uint[] memory proof_a,
+        uint[][] memory proof_b,
+        uint[] memory proof_c,
+        uint[] memory publicInputs
+    ) public {
+        uint256 num = depositedNoteIds.length;
+        require(num <= MAX_PENDING, "Invalid note ids array length");
+
+        for (uint256 i = 0; i < num; i += 1) {
+            bytes32 noteId = depositedNoteIds[i];
+            require(pendingIdsQueue[noteId], "Note not scheduled for deposit!");
+            delete pendingIdsQueue[noteId];
+        }
+
+        bytes32 notesHash = sha256(abi.encode(depositedNoteIds));
+
+        uint256 numPublicInputs = publicInputs.length;
+
+        // SOME public input oldNotesTreeRoot == notesTreeRoot (require)
+        require(
+            notesTreeRoot == publicInputs[numPublicInputs - 3],
+            "Invalid notes root"
+        );
+
+        // SOME public input notesHash == notesHash (require)
+        require(
+            uint256(notesHash) == publicInputs[numPublicInputs - 1],
+            "Notes hash missmatch"
+        ); // PROVERITI INDEX
+
+        // TODO: Verify proof
+
+        notesTreeRoot = publicInputs[numPublicInputs - 2];
+    }
     
 
     // commitAggregationBatch function
@@ -301,6 +362,14 @@ contract CurvyAggregator
     }
 
     // ------------------------------------------------------------------ Storage
+    /// @notice Maximum number of pending notes
+    uint256 constant MAX_PENDING = 50;
+
+    /// @notice Link to wrapper contract
+    MetaERC20Wrapper tokenWrapper;
+
+    /// @notice Queue of note ids waiting for deposit commitment
+    mapping(bytes32 => bool) pendingIdsQueue;
 
     /// @notice Root of the tree containing all notes.
     uint256 noteTreeRoot;
@@ -353,5 +422,28 @@ contract CurvyAggregator
     modifier onlyFeeCollector() {
         require(msg.sender == feeCollector, "CurvyAggregator: only fee collector can call this function!");
         _;
+    }
+
+    bytes4 internal constant ERC1155_RECEIVED_VALUE = 0xf23a6e61;
+    bytes4 internal constant ERC1155_BATCH_RECEIVED_VALUE = 0xbc197c81;
+
+    function onERC1155Received(
+        address _operator,
+        address _from,
+        uint256 _id,
+        uint256 _amount,
+        bytes calldata _data
+    ) external pure returns (bytes4) {
+        return ERC1155_RECEIVED_VALUE;
+    }
+
+    function onERC1155BatchReceived(
+        address _operator,
+        address _from,
+        uint256[] calldata _ids,
+        uint256[] calldata _amounts,
+        bytes calldata _data
+    ) external pure returns (bytes4) {
+        return ERC1155_BATCH_RECEIVED_VALUE;
     }
 }
