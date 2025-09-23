@@ -108,6 +108,10 @@ const txHash = await metaERC20Wrapper.write.metaSafeTransferFrom([from, to, id, 
 });
 console.log("tx:", txHash);
 
+const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+console.log(receipt);
+
 console.log("\n***NATIVE BALANCES***\n");
 console.log("SENDER:", await publicClient.getBalance({ address: senderClient.account.address }));
 console.log("OPERATOR:", await publicClient.getBalance({ address: operatorClient.account.address }));
