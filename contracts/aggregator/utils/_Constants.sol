@@ -24,4 +24,11 @@ library CurvyAggregator_Constants {
 
     /// The maximum base points = 100%
     uint256 public constant TOTAL_BASE_POINTS = 10_000;
+
+    // Response values for ERC115500000
+    bytes4 internal constant ERC1155_RECEIVED_VALUE = 0xf23a6e61;
+    bytes4 internal constant ERC1155_BATCH_RECEIVED_VALUE = 0xbc197c81;
+
+    // Snark scalar field
+    uint256 public constant SNARK_SCALAR_FIELD = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
 }

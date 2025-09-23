@@ -71,9 +71,9 @@ contract CurvyAggregator is IERC1155TokenReceiver
         //     signature
         // );
 
-        bytes32 noteId = sha256(
-            abi.encode(note.ownerHash, note.token, note.amount)
-        ); // Mozda redosled ne valja
+        bytes32 noteId = bytes32(uint256(sha256(
+            abi.encodePacked(note.ownerHash, note.token, note.amount)
+        )) % CurvyAggregator_Constants.SNARK_SCALAR_FIELD); // Mozda redosled ne valja
         pendingIdsQueue[noteId] = true;
     }
 
@@ -132,7 +132,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
             delete pendingIdsQueue[noteId];
         }
 
-        bytes32 notesHash = sha256(abi.encode(depositedNoteIds));
+        bytes32 notesHash = bytes32(uint256(sha256(abi.encodePacked(depositedNoteIds))) % CurvyAggregator_Constants.SNARK_SCALAR_FIELD);
 
         uint256 numPublicInputs = publicInputs.length;
 
@@ -444,9 +444,6 @@ contract CurvyAggregator is IERC1155TokenReceiver
         require(msg.sender == feeCollector, "CurvyAggregator: only fee collector can call this function!");
         _;
     }
-
-    bytes4 internal constant ERC1155_RECEIVED_VALUE = 0xf23a6e61;
-    bytes4 internal constant ERC1155_BATCH_RECEIVED_VALUE = 0xbc197c81;
 
     function onERC1155Received(
         address _operator,
