@@ -71,9 +71,9 @@ contract CurvyAggregator is IERC1155TokenReceiver
         //     signature
         // );
 
-        bytes32 noteId = bytes32(uint256(sha256(
+        uint256 noteId = uint256(sha256(
             abi.encodePacked(note.ownerHash, note.token, note.amount)
-        )) % CurvyAggregator_Constants.SNARK_SCALAR_FIELD); // Mozda redosled ne valja
+        )) % CurvyAggregator_Constants.SNARK_SCALAR_FIELD; // Mozda redosled ne valja
         pendingIdsQueue[noteId] = true;
     }
 
@@ -117,7 +117,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
     //     update root (note)
     //     clear pending queue
     function commitDepositBatch(
-        bytes32[] memory depositedNoteIds,
+        uint256[] memory depositedNoteIds,
         uint[] memory proof_a,
         uint[][] memory proof_b,
         uint[] memory proof_c,
@@ -127,12 +127,12 @@ contract CurvyAggregator is IERC1155TokenReceiver
         require(num <= MAX_PENDING, "Invalid note ids array length");
 
         for (uint256 i = 0; i < num; i += 1) {
-            bytes32 noteId = depositedNoteIds[i];
+            uint256 noteId = depositedNoteIds[i];
             require(pendingIdsQueue[noteId], "Note not scheduled for deposit!");
             delete pendingIdsQueue[noteId];
         }
 
-        bytes32 notesHash = bytes32(uint256(sha256(abi.encodePacked(depositedNoteIds))) % CurvyAggregator_Constants.SNARK_SCALAR_FIELD);
+        uint256 notesHash = uint256(sha256(abi.encodePacked(depositedNoteIds))) % CurvyAggregator_Constants.SNARK_SCALAR_FIELD;
 
         uint256 numPublicInputs = publicInputs.length;
 
@@ -144,7 +144,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
 
         // SOME public input notesHash == notesHash (require)
         require(
-            uint256(notesHash) == publicInputs[numPublicInputs - 1],
+            notesHash == publicInputs[numPublicInputs - 1],
             "Notes hash missmatch"
         ); // PROVERITI INDEX
 
@@ -390,7 +390,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
     MetaERC20Wrapper tokenWrapper;
 
     /// @notice Queue of note ids waiting for deposit commitment
-    mapping(bytes32 => bool) pendingIdsQueue;
+    mapping(uint256 => bool) pendingIdsQueue;
 
     /// @notice Root of the tree containing all notes.
     uint256 noteTreeRoot;
