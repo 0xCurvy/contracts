@@ -57,36 +57,57 @@ contract CurvyAggregator is IERC1155TokenReceiver
         return true;
     }
 
+    function depositNote(
+        address fromAddress,
+        Note memory note,
+        bytes memory signature
+    ) public {
+        // tokenWrapper.metaSafeTransferFrom(
+        //     fromAddress,
+        //     address(this),
+        //     note.token,
+        //     note.amount,
+        //     false,
+        //     signature
+        // );
+
+        bytes32 noteId = sha256(
+            abi.encode(note.ownerHash, note.token, note.amount)
+        ); // Mozda redosled ne valja
+        pendingIdsQueue[noteId] = true;
+    }
+
+
     // depositNotes function from the CSUC (wrap)
     //     sa kojeg walleta se prebacuje i koliko i koji ownerHash se prebacuje
     //     ubacuje u niz noteova koji je pending queue
 
-    function depositNotes(
-        address[] memory fromAddresses,
-        CurvyAggregator_Types.Note[] memory _notes,
-        bytes[] memory signatures
-    ) public onlyCSUC returns (bool _success) {
-        for (uint i = 0; i < notes.length; i += 1) {
-            CurvyAggregator_Types.Note[] memory note = _notes[i];
+    // function depositNotes(
+    //     address[] memory fromAddresses,
+    //     CurvyAggregator_Types.Note[] memory _notes,
+    //     bytes[] memory signatures
+    // ) public onlyCSUC returns (bool _success) {
+    //     for (uint i = 0; i < notes.length; i += 1) {
+    //         CurvyAggregator_Types.Note[] memory note = _notes[i];
 
-            // PROBABLY NOT FEASIBLE DUE TO COSTS
-            // ====================================
-            // tokenWrapper.metaSafeTransferFrom(
-            //     fromAddresses[i],
-            //     address(this),
-            //     note.token,
-            //     note.amount,
-            //     false,
-            //     signatures[i]
-            // );
+    //         // PROBABLY NOT FEASIBLE DUE TO COSTS
+    //         // ====================================
+    //         // tokenWrapper.metaSafeTransferFrom(
+    //         //     fromAddresses[i],
+    //         //     address(this),
+    //         //     note.token,
+    //         //     note.amount,
+    //         //     false,
+    //         //     signatures[i]
+    //         // );
 
-            bytes32 noteId = sha256(
-                abi.encode(note.ownerHash, note.token, note.amount)
-            ); // Mozda redosled ne valja
+    //         bytes32 noteId = sha256(
+    //             abi.encode(note.ownerHash, note.token, note.amount)
+    //         ); // Mozda redosled ne valja
 
-            pendingIdsQueue[noteId] = true;
-        }
-    }
+    //         pendingIdsQueue[noteId] = true;
+    //     }
+    // }
     
     // commitDepositBatch function
     //     receive proof
