@@ -44,9 +44,6 @@ contract CurvyAggregator is IERC1155TokenReceiver
         if (_update.operator != address(0)) {
             operator = _update.operator;
         }
-        if (_update.csuc != address(0)) {
-//            csuc = ICSUC(_update.csuc);
-        }
         if (_update.feeCollector != address(0)) {
             feeCollector = _update.feeCollector;
         }
@@ -423,9 +420,6 @@ contract CurvyAggregator is IERC1155TokenReceiver
     /// @notice Balances of the fee collector
     /// @dev Maps token address to fee collector address to balance.
     mapping(address => mapping(address => uint256)) public feeCollectorBalancesDeprecated;
-
-    /// @notice ICSUC handle
-//    ICSUC public csuc;
 
     /// @notice Modifier to ensure that the function can be called only by the Curvy Operator.
     modifier onlyOperator() {
