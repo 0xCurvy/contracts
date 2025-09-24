@@ -191,8 +191,6 @@ contract ERC20 is IERC20 {
 
 contract ERC20Mock is ERC20 {
 
-  constructor() public { }
-
   function mockMint(address _address, uint256 _amount) public {
     _mint(_address, _amount);
   }

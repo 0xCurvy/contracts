@@ -1,4 +1,5 @@
-pragma solidity ^0.8.28;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.8.0;
 
 import "../interfaces/IERC20.sol";
 import "../interfaces/IERC165.sol";
@@ -36,7 +37,7 @@ contract MetaERC20Wrapper is ERC1155Meta, ERC1155MintBurn {
   |__________________________________*/
 
   // Register ETH as ID #1 and address 0x1
-  constructor() {
+  constructor() ERC1155Meta(msg.sender) {
     addressToID[ETH_ADDRESS] = ETH_ID;
     IDtoAddress[ETH_ID] = ETH_ADDRESS;
   }
