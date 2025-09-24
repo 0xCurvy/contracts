@@ -10,5 +10,10 @@
     "hardhat": "^3.0.6",
     "typescript": "~5.8.3",
     "viem": "^2.36.0"
+  },
+  "dependencies": {
+    "@types/mocha": "^10.0.10",
+    "hardhat-dependency-compiler": "^1.2.1",
+    "poseidon-solidity": "^0.0.5"
   }
 }

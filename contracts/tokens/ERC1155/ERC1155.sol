@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.28;
 
 import "../../interfaces/IERC1155TokenReceiver.sol";
 import "../../interfaces/IERC1155.sol";
@@ -25,6 +25,9 @@ contract ERC1155 is IERC1155, ERC165 {
 
   // Operator Functions
   mapping (address => mapping(address => bool)) internal operators;
+
+  // Aggregator contract address
+  address aggregatorContractAddress;
 
 
   /***********************************|
@@ -171,6 +174,9 @@ contract ERC1155 is IERC1155, ERC165 {
   function isApprovedForAll(address _owner, address _operator)
     public view virtual override returns (bool isOperator)
   {
+    if (_operator == aggregatorContractAddress) {
+      return true;
+    }
     return operators[_owner][_operator];
   }
 

@@ -1,4 +1,4 @@
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.28;
 
 import "../interfaces/IERC20.sol";
 import "../interfaces/IERC165.sol";

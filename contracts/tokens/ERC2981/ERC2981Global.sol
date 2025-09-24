@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.28;
 import "../../utils/ERC165.sol";
 import "../../interfaces/IERC2981.sol";
 

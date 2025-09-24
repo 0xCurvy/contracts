@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.28;
 
 import "../interfaces/IERC1271Wallet.sol";
 import "../utils/LibBytes.sol";
@@ -24,9 +24,7 @@ contract LibEIP712 {
   bytes32 internal EIP712_DOMAIN_HASH;
 
   // Instantiate EIP712_DOMAIN_HASH
-  constructor (bytes32 domain_hash_1155)
-    public
-  {
+  constructor (bytes32 domain_hash_1155) {
     EIP712_DOMAIN_HASH = domain_hash_1155;
   }
 
@@ -81,7 +79,7 @@ contract ERC1271WalletValidationMock is LibEIP712 {
   |__________________________________*/
 
   // Set rejection to true by default
-  constructor (bytes32 domain_hash_1155) public LibEIP712(domain_hash_1155) {
+  constructor (bytes32 domain_hash_1155) LibEIP712(domain_hash_1155) {
     owner = msg.sender;
   }
 
@@ -191,13 +189,13 @@ contract ERC1271WalletValidationMock is LibEIP712 {
   |              Receiver             |
   |__________________________________*/
 
-  function onERC1155Received(address _operator, address _from, uint256 _id, uint256 _value, bytes memory _data)
+  function onERC1155Received(address _operator, address _from, uint256 _id, uint256 _value, bytes memory _data) pure
     public returns(bytes4)
   {
     return 0xf23a6e61;
   }
 
-  function onERC1155BatchReceived(address _operator, address _from, uint256[] memory _ids, uint256[] memory _values, bytes memory _data)
+  function onERC1155BatchReceived(address _operator, address _from, uint256[] memory _ids, uint256[] memory _values, bytes memory _data) pure
     public returns(bytes4)
   {
     return 0xbc197c81;
