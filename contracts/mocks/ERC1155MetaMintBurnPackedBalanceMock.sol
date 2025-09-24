@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.28;
 
 import "../tokens/ERC1155PackedBalance/ERC1155MetaPackedBalance.sol";
 import "../tokens/ERC1155PackedBalance/ERC1155MintBurnPackedBalance.sol";

@@ -1,4 +1,4 @@
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.28;
 
 /**
  * Utility library of inline functions on addresses
