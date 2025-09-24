@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "test": "vitest run"
+    "deploy:MetaErc20Wrapper": "hardhat ignition deploy ./ignition/modules/MetaErc20Wrapper.ts --network localhost",
+    "deploy:CurvyAggregator": "hardhat ignition deploy ./ignition/modules/CurvyAggregator.ts --network localhost",
+    "test": "npm run deploy:MetaErc20Wrapper && npm run deploy:CurvyAggregator && vitest run"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.0.3",
