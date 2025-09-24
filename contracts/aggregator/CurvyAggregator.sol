@@ -1,5 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
+<<<<<<< HEAD
 pragma solidity ^0.8.28;
+=======
+pragma solidity 0.8.30;
+
+import {PoseidonT4} from "poseidon-solidity/PoseidonT4.sol";
+>>>>>>> e3e02101b942e7ab718bec00a0a85a2fb1d3833c
 
 import {MetaERC20Wrapper} from "../wrapper/MetaERC20Wrapper.sol";
 import {IERC1155TokenReceiver} from "../interfaces/IERC1155TokenReceiver.sol";
@@ -25,7 +31,11 @@ contract CurvyAggregator is IERC1155TokenReceiver
     constructor(address payable tokenWrapperAddress) {
         tokenWrapper = MetaERC20Wrapper(tokenWrapperAddress);
     }
+<<<<<<< HEAD
     function _authorizeUpgrade(address _newImplementation) internal override {}
+=======
+    function _authorizeUpgrade(address _newImplementation) internal {}
+>>>>>>> e3e02101b942e7ab718bec00a0a85a2fb1d3833c
 
     function updateConfig(CurvyAggregator_Types.ConfigurationUpdate memory _update)
     public
@@ -43,18 +53,28 @@ contract CurvyAggregator is IERC1155TokenReceiver
         if (_update.operator != address(0)) {
             operator = _update.operator;
         }
+<<<<<<< HEAD
         if (_update.csuc != address(0)) {
 //            csuc = ICSUC(_update.csuc);
         }
         if (_update.feeCollector != address(0)) {
             feeCollector = _update.feeCollector;
         }
+=======
+>>>>>>> e3e02101b942e7ab718bec00a0a85a2fb1d3833c
 
         // Note: withdrawBps = 0 is valid value
         withdrawBps = _update.withdrawBps;
 
         return true;
     }
+
+    event DepositedNote(uint256 noteId);
+    event DepositedNotesHash(uint256 notesHash);
+
+    // depositNotes function from the CSUC (wrap)
+    //     sa kojeg walleta se prebacuje i koliko i koji ownerHash se prebacuje
+    //     ubacuje u niz noteova koji je pending queue
 
     function depositNote(
         address fromAddress,
@@ -70,43 +90,16 @@ contract CurvyAggregator is IERC1155TokenReceiver
         //     signature
         // );
 
+<<<<<<< HEAD
         uint256 noteId = uint256(sha256(
             abi.encodePacked(note.ownerHash, note.token, note.amount)
         )) % CurvyAggregator_Constants.SNARK_SCALAR_FIELD; // Mozda redosled ne valja
+=======
+        uint256 noteId = PoseidonT4.hash([note.ownerHash, note.token, note.amount]);
+
+>>>>>>> e3e02101b942e7ab718bec00a0a85a2fb1d3833c
         pendingIdsQueue[noteId] = true;
     }
-
-
-    // depositNotes function from the CSUC (wrap)
-    //     sa kojeg walleta se prebacuje i koliko i koji ownerHash se prebacuje
-    //     ubacuje u niz noteova koji je pending queue
-
-    // function depositNotes(
-    //     address[] memory fromAddresses,
-    //     CurvyAggregator_Types.Note[] memory _notes,
-    //     bytes[] memory signatures
-    // ) public onlyCSUC returns (bool _success) {
-    //     for (uint i = 0; i < notes.length; i += 1) {
-    //         CurvyAggregator_Types.Note[] memory note = _notes[i];
-
-    //         // PROBABLY NOT FEASIBLE DUE TO COSTS
-    //         // ====================================
-    //         // tokenWrapper.metaSafeTransferFrom(
-    //         //     fromAddresses[i],
-    //         //     address(this),
-    //         //     note.token,
-    //         //     note.amount,
-    //         //     false,
-    //         //     signatures[i]
-    //         // );
-
-    //         bytes32 noteId = sha256(
-    //             abi.encode(note.ownerHash, note.token, note.amount)
-    //         ); // Mozda redosled ne valja
-
-    //         pendingIdsQueue[noteId] = true;
-    //     }
-    // }
     
     // commitDepositBatch function
     //     receive proof
@@ -117,11 +110,11 @@ contract CurvyAggregator is IERC1155TokenReceiver
     //     clear pending queue
     function commitDepositBatch(
         uint256[] memory depositedNoteIds,
-        uint[] memory proof_a,
-        uint[][] memory proof_b,
-        uint[] memory proof_c,
-        uint[] memory publicInputs
-    ) public {
+        uint256[2] memory proof_a,
+        uint256[2][2] memory proof_b,
+        uint256[2] memory proof_c,
+        uint256[152] memory publicInputs
+    ) public returns (bool success) {
         uint256 num = depositedNoteIds.length;
         require(num <= MAX_PENDING, "Invalid note ids array length");
 
@@ -132,6 +125,8 @@ contract CurvyAggregator is IERC1155TokenReceiver
         }
 
         uint256 notesHash = uint256(sha256(abi.encodePacked(depositedNoteIds))) % CurvyAggregator_Constants.SNARK_SCALAR_FIELD;
+
+        emit DepositedNotesHash(notesHash);
 
         uint256 numPublicInputs = publicInputs.length;
 
@@ -150,6 +145,8 @@ contract CurvyAggregator is IERC1155TokenReceiver
         // TODO: Verify proof
 
         notesTreeRoot = publicInputs[numPublicInputs - 2];
+
+        return true;
     }
     
 
@@ -160,6 +157,38 @@ contract CurvyAggregator is IERC1155TokenReceiver
     //     verify proof
     //     update roots
 
+<<<<<<< HEAD
+=======
+    function commitAggregation(
+        uint256[2] memory proof_a,
+        uint256[2][2] memory proof_b,
+        uint256[2] memory proof_c,
+        uint256[46] memory publicInputs
+    ) public returns (bool success) {
+
+
+        // TODO: check indexes of publicInputs
+        uint256 oldNullifiersTreeRoot = publicInputs[21];
+        uint256 newNullifiersTreeRoot = publicInputs[22];
+        uint256 oldNotesTreeRoot = publicInputs[23];
+        uint256 newNotesTreeRoot = publicInputs[24];
+
+        require(notesTreeRoot == oldNotesTreeRoot, "CurvyAggregator: current note tree root mismatch!");
+        require(nullifiersTreeRoot == oldNullifiersTreeRoot, "CurvyAggregator: current nullifier tree root mismatch!");
+
+        // require(
+        //     aggregationVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),
+        //     "CurvyAggregator: invalid aggregation proof!"
+        // );
+
+        // Update the roots of the trees
+        notesTreeRoot = newNotesTreeRoot;
+        nullifiersTreeRoot = newNullifiersTreeRoot;
+
+        return true;
+    }
+
+>>>>>>> e3e02101b942e7ab718bec00a0a85a2fb1d3833c
     // commitWithdrawBatch function
     //     receive proof
     //     calculate hash of nullifiers
@@ -366,6 +395,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
         return nullifierTreeRoot;
     }
 
+<<<<<<< HEAD
     /// @inheritdoc ICurvyAggregator_NoAssetTransfer
     function getNoteInfo(bytes32 _noteHash)
     external
@@ -375,6 +405,8 @@ contract CurvyAggregator is IERC1155TokenReceiver
         return noteInfo[_noteHash];
     }
 
+=======
+>>>>>>> e3e02101b942e7ab718bec00a0a85a2fb1d3833c
     // TODO: remove this function before mainnet deployment
     function reset() public {
         noteTreeRoot = 0;
@@ -389,15 +421,12 @@ contract CurvyAggregator is IERC1155TokenReceiver
     MetaERC20Wrapper tokenWrapper;
 
     /// @notice Queue of note ids waiting for deposit commitment
-    mapping(uint256 => bool) pendingIdsQueue;
+    mapping(uint256 => bool) public pendingIdsQueue;
 
     /// @notice Root of the tree containing all notes.
     uint256 noteTreeRoot;
     /// @notice Root of the tree contaiing all of the used nullifiers.
     uint256 nullifierTreeRoot;
-
-    /// @notice Notes that are waiting to be included in the note tree / were rejected / withdraw.
-    mapping(bytes32 => CurvyAggregator_Types.NoteWithMetaData) noteInfo;
 
     /// @notice Curvy's insertion verifier.
     ICurvyInsertionVerifier public insertionVerifier;
@@ -411,14 +440,12 @@ contract CurvyAggregator is IERC1155TokenReceiver
     /// @notice Curvy Operator
     address public operator;
 
-    /// @notice Curvy Fee Collector
-    address public feeCollector;
-
     /// @notice Withdraw Fee computed in basis points (bps).
     /// @dev 100 bps = 1% of the amount being withdrawn.
     /// @dev Example: 0.8% fee should be set to 80 bps.
     uint256 public withdrawBps;
 
+<<<<<<< HEAD
     /// @notice Balances of the fee collector
     /// @dev Maps token address to fee collector address to balance.
     mapping(address => mapping(address => uint256)) public feeCollectorBalancesDeprecated;
@@ -426,12 +453,15 @@ contract CurvyAggregator is IERC1155TokenReceiver
     /// @notice ICSUC handle
 //    ICSUC public csuc;
 
+=======
+>>>>>>> e3e02101b942e7ab718bec00a0a85a2fb1d3833c
     /// @notice Modifier to ensure that the function can be called only by the Curvy Operator.
     modifier onlyOperator() {
         require(msg.sender == operator, "CurvyAggregator: only operator can call this function!");
         _;
     }
 
+<<<<<<< HEAD
     /// @notice Modifier to ensure `deposits/wraps` can happen only from the CSUC contract.
     modifier onlyCSUC() {
         require(msg.sender == address(csuc), "CurvyAggregator: only CSUC can call this function!");
@@ -444,6 +474,8 @@ contract CurvyAggregator is IERC1155TokenReceiver
         _;
     }
 
+=======
+>>>>>>> e3e02101b942e7ab718bec00a0a85a2fb1d3833c
     function onERC1155Received(
         address _operator,
         address _from,

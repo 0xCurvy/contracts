@@ -10,5 +10,8 @@
     "hardhat": "^3.0.6",
     "typescript": "~5.8.3",
     "viem": "^2.36.0"
+  },
+  "dependencies": {
+    "poseidon-solidity": "^0.0.5"
   }
 }
