@@ -1,6 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
 
-import {PoseidonT4} from "poseidon-solidity/PoseidonT4.sol";
+import {PoseidonT4} from "./utils/PoseidonT4.sol";
 
 import {MetaERC20Wrapper} from "../wrapper/MetaERC20Wrapper.sol";
 import {IERC1155TokenReceiver} from "../interfaces/IERC1155TokenReceiver.sol";
@@ -60,15 +61,15 @@ contract CurvyAggregator is IERC1155TokenReceiver
 
     function depositNote(
         address fromAddress,
-        CurvyAggregator_Types.Note memory note,
-        bytes memory signature
+        CurvyAggregator_Types.Note memory note
+        // bytes memory signature
     ) public {
         tokenWrapper.safeTransferFrom(
             fromAddress,
             address(this),
             note.token,
             note.amount,
-            signature
+            new bytes(0) // signature
         );
 
         uint256 noteId = PoseidonT4.hash([note.ownerHash, note.token, note.amount]);

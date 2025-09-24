@@ -1,12 +1,13 @@
 import { AbstractContract, RevertError, expect, RevertUnsafeMathError } from './utils'
-import * as utils from './utils'
+import * as utils from './utils/'
 
 import { MetaERC20Wrapper, CurvyAggregator } from 'src/gen/typechain'
 
-import { BigNumber } from 'ethers'
-
 // init test wallets from package.json mnemonic
-import { ethers, web3 } from 'hardhat'
+import { ethers, web3 } from 'hardhat';
+import { BigNumber } from 'ethers';
+
+
 
 const { wallet: ownerWallet, provider: ownerProvider, signer: ownerSigner } = utils.createTestWallet(web3, 0)
 

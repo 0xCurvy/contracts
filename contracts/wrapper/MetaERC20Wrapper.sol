@@ -57,7 +57,7 @@ contract MetaERC20Wrapper is ERC1155Meta, ERC1155MintBurn {
   }
 
   // TODO: set onlyOwner
-  function setAggregatorContractAddress(address aggregatorAddress) public {
+  function setAggregatorContractAddress(address aggregatorAddress) public onlyOperator {
     aggregatorContractAddress = aggregatorAddress;
   }
 
