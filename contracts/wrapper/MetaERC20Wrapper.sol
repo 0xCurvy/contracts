@@ -36,13 +36,7 @@ contract MetaERC20Wrapper is ERC1155Meta, ERC1155MintBurn {
   |__________________________________*/
 
   // Register ETH as ID #1 and address 0x1
-
-  /**
-   * @dev The constructor now accepts an operator address and passes it
-   * up to the ERC1155Meta parent contract.
-   * @param _operator The address to set as the operator.
-   */
-  constructor(address _operator) ERC1155Meta(_operator) {
+  constructor() {
     addressToID[ETH_ADDRESS] = ETH_ID;
     IDtoAddress[ETH_ID] = ETH_ADDRESS;
   }
@@ -59,6 +53,11 @@ contract MetaERC20Wrapper is ERC1155Meta, ERC1155MintBurn {
   receive () external payable {
     // Deposit ETH sent with transaction
     deposit(ETH_ADDRESS, msg.sender, msg.value);
+  }
+
+  // TODO: set onlyOwner
+  function setAggregatorContractAddress(address aggregatorAddress) public {
+    aggregatorContractAddress = aggregatorAddress;
   }
 
   /**
@@ -282,7 +281,7 @@ contract MetaERC20Wrapper is ERC1155Meta, ERC1155MintBurn {
    *      This function MUST NOT consume more than 5,000 gas.
    * @return Whether ERC-165 or ERC1155TokenReceiver interfaces are supported.
    */
-  function supportsInterface(bytes4 interfaceID) public override pure returns (bool) {
+  function supportsInterface(bytes4 interfaceID) public override view returns (bool) {
     return  interfaceID == type(IERC165).interfaceId ||
       interfaceID == type(IERC1155).interfaceId || 
       interfaceID == type(IERC1155TokenReceiver).interfaceId;
