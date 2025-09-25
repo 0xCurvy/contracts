@@ -70,6 +70,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
             address(this),
             note.token,
             note.amount,
+            // TODO: Dodati potpis da verifikumemo za metaSafeTransaferFrom
             new bytes(0) // signature
         );
 
