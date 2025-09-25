@@ -118,12 +118,10 @@ test("commit deposit batch", async () => {
 
     const notesHash = BigInt(sha256(encodedNoteIds)) % SNARK_SCALAR_FIELD;
 
-    const publicInputs = new Array(152).fill("0");
-    publicInputs[149] = "0";
-    publicInputs[150] = "123";
-    publicInputs[151] = notesHash.toString();
-
-    console.log(noteIds, proof_a, proof_b, proof_c, publicInputs);
+    const publicInputs = new Array(52).fill("0");
+    publicInputs[49] = "0";
+    publicInputs[50] = "123";
+    publicInputs[51] = notesHash.toString();
 
     const tx = await curvyAggregator.write.commitDepositBatch([noteIds, proof_a, proof_b, proof_c, publicInputs]);
 

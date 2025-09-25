@@ -1,8 +1,24 @@
+import { CurvySDK, Note } from "@0xcurvy/curvy-sdk";
 const MAX_NOTES = 50;
 
 const generateNoteDepositPayload = async (notes: any[]) => {
+    const curvySDK = CurvySDK.init("local");
     // const notesTree = new NotesTree();
     // TODO: Insert notes into notesTree (skip 0 amounts),
+
+    const note3 = new  Note({
+        ownerHash: "122345",
+        balance: {
+            token: "1",
+            amount: "3000"
+        },
+        deliveryTag: {
+            ephemeralKey: "0",
+            viewTag: "0"
+        }
+    });
+
+    
     
     const noteDepositPayload = {
         oldNotesRoot: 0n,
