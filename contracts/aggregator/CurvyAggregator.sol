@@ -28,6 +28,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
         tokenWrapper = MetaERC20Wrapper(tokenWrapperAddress);
         operator = msg.sender;
     }
+    
     function _authorizeUpgrade(address _newImplementation) internal {}
 
     function updateConfig(CurvyAggregator_Types.ConfigurationUpdate memory _update)
@@ -197,7 +198,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
     uint256 constant MAX_PENDING = 50;
 
     /// @notice Link to wrapper contract
-    MetaERC20Wrapper tokenWrapper;
+    MetaERC20Wrapper public tokenWrapper;
 
     /// @notice Queue of note ids waiting for deposit commitment
     mapping(uint256 => bool) public pendingIdsQueue;
