@@ -24,9 +24,9 @@ beforeAll(async () => {
     await metaERC20Wrapper.write.deposit([
         "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
         OPERATOR_ADDRESS,
-        "1000"
+        "10000"
     ], {
-        value: 1000n
+        value: 10000n
     });
     
     const balance = await metaERC20Wrapper.read.balanceOf([
@@ -36,6 +36,20 @@ beforeAll(async () => {
 
     expect(balance).toBeDefined();
     expect(balance).toBeGreaterThan(0n);
+
+    await curvyAggregator.write.updateConfig([
+        {
+            insertionVerifier: "0x0000000000000000000000000000000000000000",
+            aggregationVerifier: "0x0000000000000000000000000000000000000000",
+            withdrawVerifier: "0x0000000000000000000000000000000000000000",
+            operator: "0x0000000000000000000000000000000000000000",
+            feeCollector: "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+        }
+    ]);
+
+    const feeCollector = await curvyAggregator.read.feeCollector() as string;
+    expect(feeCollector).toBeDefined();
+    expect(feeCollector.toLowerCase()).toBe("0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc".toLowerCase());
 })
 
 test('should be able to get the curvy aggregator', async () => {
@@ -58,18 +72,18 @@ test('should be able to deposit notes', async () => {
     const note1: Note = {
         ownerHash: "122345",
         token: "1",
-        amount: "100"
+        amount: "3000"
     };
 
     const note2: Note = {
         ownerHash: "122345",
         token: "1",
-        amount: "50"
+        amount: "1000"
     };
 
     const tx1 = await curvyAggregator.write.depositNote([fromAddresses, note1]);
 
-    console.log("TX1:", tx1);
+    expect(tx1).toBeDefined();
 
     const tx2 = await curvyAggregator.write.depositNote([fromAddresses, note2]);
 
@@ -77,19 +91,19 @@ test('should be able to deposit notes', async () => {
 })
 
 test("commit deposit batch", async () => {
-    const { curvyAggregator } = getContracts();
+    const { curvyAggregator, metaERC20Wrapper } = getContracts();
     expect(curvyAggregator).toBeDefined();
 
     const note1: Note = {
         ownerHash: "122345",
         token: "1",
-        amount: "100"
+        amount: "3000"
     };
 
     const note2: Note = {
         ownerHash: "122345",
         token: "1",
-        amount: "50"
+        amount: "1000"
     };
 
     const proof_a = ["0", "0"];
@@ -114,10 +128,12 @@ test("commit deposit batch", async () => {
     const tx = await curvyAggregator.write.commitDepositBatch([noteIds, proof_a, proof_b, proof_c, publicInputs]);
 
     expect(tx).toBeDefined();
+
+    console.log("AGG BALANCE AFTER DEPOSIT:", await metaERC20Wrapper.read.balanceOf([curvyAggregator.address, "1"]));
 })
 
 test("commit aggregation batch", async () => {
-    const { curvyAggregator } = getContracts();
+    const { curvyAggregator, metaERC20Wrapper } = getContracts();
     expect(curvyAggregator).toBeDefined();
 
     const proof_a = ["0", "0"];
@@ -133,4 +149,30 @@ test("commit aggregation batch", async () => {
     const tx = await curvyAggregator.write.commitAggregationBatch([proof_a, proof_b, proof_c, publicInputs]);
 
     expect(tx).toBeDefined();
+
+    console.log("AGG BALANCE AFTER AGGREGATION:", await metaERC20Wrapper.read.balanceOf([curvyAggregator.address, "1"]));
+})
+
+test("commit withdrawal batch", async () => {
+    const { curvyAggregator, metaERC20Wrapper } = getContracts();
+    expect(curvyAggregator).toBeDefined();
+
+    const proof_a = ["0", "0"];
+    const proof_b = [["0", "0"], ["0", "0"]];
+    const proof_c = ["0", "0"];
+
+    const publicInputs = new Array(26).fill("0");
+    publicInputs[0] = "222";
+    publicInputs[1] = "6";
+    publicInputs[2] = "456";
+    publicInputs[3] = "111";
+    publicInputs[4] = "3990";
+    publicInputs[14] = "0x70997970c51812dc3a010c7d01b50e0d17dc79c8";
+    publicInputs[25] = "1";
+
+    const tx = await curvyAggregator.write.commitWithdrawalBatch([proof_a, proof_b, proof_c, publicInputs]);
+
+    expect(tx).toBeDefined();
+
+    console.log("AGG BALANCE AFTER WITHDRAWAL:", await metaERC20Wrapper.read.balanceOf([curvyAggregator.address, "1"]));
 })

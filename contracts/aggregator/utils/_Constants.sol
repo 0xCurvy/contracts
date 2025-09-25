@@ -20,9 +20,6 @@ library CurvyAggregator_Constants {
     /// The number of fields in any Note
     uint256 public constant CURVY_INSERTION_NOTE_FIELDS = 3;
 
-    /// The maximum base points = 100%
-    uint256 public constant TOTAL_BASE_POINTS = 10_000;
-
     // Response values for ERC115500000
     bytes4 internal constant ERC1155_RECEIVED_VALUE = 0xf23a6e61;
     bytes4 internal constant ERC1155_BATCH_RECEIVED_VALUE = 0xbc197c81;

@@ -15,8 +15,6 @@ library CurvyAggregator_Types {
      * @param withdrawVerifier Address of the new withdrawal verifier.
      * @param operator Address of the Curvy Operator that will be used for the Aggregator.
      * @param feeCollector Address of the Curvy Fee Collector that will be used for the Aggregator.
-     * @param withdrawBps Withdraw fee computed in basis points (bps).
-     * @param csuc Address of the Curvy Single User Contract (CSUC) that will be used for the Aggregator.
      */
     struct ConfigurationUpdate {
         address insertionVerifier;
@@ -24,8 +22,6 @@ library CurvyAggregator_Types {
         address withdrawVerifier;
         address operator;
         address feeCollector;
-        uint256 withdrawBps;
-        address csuc;
     }
 
     /**

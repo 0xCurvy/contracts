@@ -52,9 +52,6 @@ contract CurvyAggregator is IERC1155TokenReceiver
             feeCollector = _update.feeCollector;
         }
 
-        // Note: withdrawBps = 0 is valid value
-        withdrawBps = _update.withdrawBps;
-
         return true;
     }
 
@@ -281,11 +278,6 @@ contract CurvyAggregator is IERC1155TokenReceiver
 
     /// @notice Curvy Fee Collector
     address public feeCollector;
-    
-    /// @notice Withdraw Fee computed in basis points (bps).
-    /// @dev 100 bps = 1% of the amount being withdrawn.
-    /// @dev Example: 0.8% fee should be set to 80 bps.
-    uint256 public withdrawBps;
 
     /// @notice Modifier to ensure that the function can be called only by the Curvy Operator.
     modifier onlyOperator() {
