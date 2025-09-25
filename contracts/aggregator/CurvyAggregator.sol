@@ -26,6 +26,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
     /// @notice Link to wrapper contract
     constructor(address payable tokenWrapperAddress) {
         tokenWrapper = MetaERC20Wrapper(tokenWrapperAddress);
+        operator = msg.sender;
     }
     function _authorizeUpgrade(address _newImplementation) internal {}
 
