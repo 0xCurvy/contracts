@@ -152,8 +152,6 @@ contract CurvyAggregator is IERC1155TokenReceiver
         uint256[2] memory proof_c,
         uint256[46] memory publicInputs
     ) public returns (bool success) {
-
-
         // TODO: check indexes of publicInputs
         uint256 oldNullifiersTreeRoot = publicInputs[21];
         uint256 newNullifiersTreeRoot = publicInputs[22];
