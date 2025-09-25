@@ -115,15 +115,45 @@ contract MetaERC20Wrapper is ERC1155Meta, ERC1155MintBurn {
   |         Withdraw Functions        |
   |__________________________________*/
 
-  /**
-   * @dev Withdraw wrapped ERC20 tokens in this contract to receive the original ERC20s or ETH
-   * @param _token The addess of the token to withdrww from this contract
-   * @param _to The address where the withdrawn tokens will go to
-   * @param _value The amount of tokens to withdraw
-   */
-  function withdraw(address _token, address payable _to, uint256 _value) public {
-    uint256 tokenID = getTokenID(_token);
-    _withdraw(msg.sender, _to, tokenID, _value);
+  function metaWithdraw(
+    address _from,
+    address payable _to,
+    uint256 _id,
+    uint256 _amount,
+    bool _isGasFee,
+    bytes memory _data
+  ) public onlyOperator {
+    /**
+     * CURVY CHANGE: this wasn't implemented
+     */
+    require(_to != address(0), "ERC1155Meta#metaSafeTransferFrom: INVALID_RECIPIENT");
+
+    // Initializing
+    bytes memory transferData;
+    GasReceipt memory gasReceipt;
+
+    // Verify signature and extract the signed data
+    bytes memory signedData = _signatureValidation(
+      _from,
+      _data,
+      abi.encode(
+        META_TX_TYPEHASH,
+        _from, // Address as uint256
+        _to,   // Address as uint256
+        _id,
+        _amount,
+        _isGasFee ? uint256(1) : uint256(0)  // Boolean as uint256
+      )
+    );
+
+    // TODO: Amount treba da bude uvek max
+    _withdraw(_from, _to, _id, _amount);
+
+    // If Gas is being reimbursed
+    if (_isGasFee) {
+      (gasReceipt, transferData) = abi.decode(signedData, (GasReceipt, bytes));
+      _transferGasFee(_from, gasReceipt);
+    }
   }
 
   /**
