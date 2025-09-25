@@ -198,7 +198,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
-        uint256[46] memory publicInputs
+        uint256[26] memory publicInputs
     ) public returns (bool success) {
 
         require(publicInputs[3] == nullifiersTreeRoot, "CurvyAggregator: current nullifier tree root mismatch!");
