@@ -95,7 +95,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
-        uint256[152] memory publicInputs
+        uint256[52] memory publicInputs
     ) public returns (bool success) {
         uint256 num = depositedNoteIds.length;
         require(num <= MAX_PENDING, "Invalid note ids array length");
