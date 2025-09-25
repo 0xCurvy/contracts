@@ -27,6 +27,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
     constructor(address payable tokenWrapperAddress) {
         tokenWrapper = MetaERC20Wrapper(tokenWrapperAddress);
         operator = msg.sender;
+        feeCollector = msg.sender;
     }
     
     function _authorizeUpgrade(address _newImplementation) internal {}
@@ -46,6 +47,9 @@ contract CurvyAggregator is IERC1155TokenReceiver
         }
         if (_update.operator != address(0)) {
             operator = _update.operator;
+        }
+        if (_update.feeCollector != address(0)) {
+            feeCollector = _update.feeCollector;
         }
 
         // Note: withdrawBps = 0 is valid value
@@ -142,7 +146,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
     //     verify proof
     //     update roots
 
-    function commitAggregation(
+    function commitAggregationBatch(
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
@@ -178,6 +182,63 @@ contract CurvyAggregator is IERC1155TokenReceiver
     //     verify proof
     //     update root (nullifier)
     //     execute transfers in batch
+
+    // circuit:
+    // outputs:
+    //      newNullifierRoot    idx = 0
+    //      feeAmount           idx = 1
+    // public inputs:
+    //      notesTreeRoot       idx = 2
+    //      oldNullifiersRoot   idx = 3
+    //      withdrawnAmounts    idx = {4, 5, 6, 7, 8, 9, 10, 11, 12, 13}
+    //      destinationAddress  idx = {14, 15, 16, 17, 18, 19, 20, 21, 22, 23}
+    //      nullifiersHash      idx = 24
+    //      token               idx = 25
+    function commitWithdrawalBatch(
+        uint256[2] memory proof_a,
+        uint256[2][2] memory proof_b,
+        uint256[2] memory proof_c,
+        uint256[46] memory publicInputs
+    ) public returns (bool success) {
+
+        require(publicInputs[3] == nullifiersTreeRoot, "CurvyAggregator: current nullifier tree root mismatch!");
+        require(publicInputs[2] == notesTreeRoot, "CurvyAggregator: current note tree root mismatch!");
+
+        // TODO: Verify proof
+        // require(
+        //     withdrawVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),
+        //     "CurvyAggregator: invalid withdraw proof!"
+        // );
+
+        // Update the root of the nullifier tree
+        nullifiersTreeRoot = publicInputs[0];
+
+        // Transfer withdrawals
+        for (uint256 i = 0; i < 10; i += 1) {
+            uint256 amount = publicInputs[4 + i];
+            address destinationAddress = address(uint160(publicInputs[14 + i]));
+            if (amount != 0) {
+                tokenWrapper.safeTransferFrom(
+                    address(this),
+                    destinationAddress,
+                    publicInputs[25],
+                    amount,
+                    new bytes(0)
+                );
+            }
+        }
+
+        // Transfer fee
+        tokenWrapper.safeTransferFrom(
+            address(this),
+            feeCollector,
+            publicInputs[25],
+            publicInputs[1],
+            new bytes(0)
+        );
+
+        return true;
+    }
 
     function noteTree() public view returns (uint256 _root) {
         return notesTreeRoot;
@@ -220,6 +281,9 @@ contract CurvyAggregator is IERC1155TokenReceiver
     /// @notice Curvy Operator
     address public operator;
 
+    /// @notice Curvy Fee Collector
+    address public feeCollector;
+    
     /// @notice Withdraw Fee computed in basis points (bps).
     /// @dev 100 bps = 1% of the amount being withdrawn.
     /// @dev Example: 0.8% fee should be set to 80 bps.
