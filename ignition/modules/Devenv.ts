@@ -1,12 +1,18 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import CurvyAggregator from "./CurvyAggregator";
 
 const DEPOSIT_AMOUNT = 10n * 10n ** 18n;
 
-export default buildModule("ERC20", (m) => {
-  const deployer = m.getAccount(0);
+export default buildModule("Devenv", (m) => {
+  m.useModule(CurvyAggregator);
+
+  const metaERC20Wrapper = m.contract("MetaERC20Wrapper");
+
+  const multicall3 = m.contract("Multicall3");
 
   const erc20Mock = m.contract("ERC20Mock");
-  const metaERC20Wrapper = m.contract("MetaERC20Wrapper");
+
+  const deployer = m.getAccount(0);
 
   const mint = m.call(erc20Mock, "mockMint", [deployer, DEPOSIT_AMOUNT]);
 
@@ -14,10 +20,9 @@ export default buildModule("ERC20", (m) => {
     after: [mint],
   });
 
-  // 6. Deposit the mock tokens into the wrapper
   m.call(metaERC20Wrapper, "deposit", [erc20Mock, deployer, DEPOSIT_AMOUNT / 2n], {
     after: [approval],
   });
 
-  return { erc20Mock, metaERC20Wrapper };
+  return { erc20Mock, multicall3 };
 });

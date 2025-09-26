@@ -1,11 +1,11 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import CurvyInsertionVerifierModule from "./CurvyInsertionVerifier";
-import ERC20 from "./ERC20";
 
 export default buildModule("CurvyAggregator", (m) => {
   const poseidonT4 = m.library("PoseidonT4");
-  const { erc20Mock, metaERC20Wrapper } = m.useModule(ERC20);
   const { curvyInsertionVerifier } = m.useModule(CurvyInsertionVerifierModule);
+
+  const metaERC20Wrapper = m.contract("MetaERC20Wrapper");
 
   const curvyAggregator = m.contract("CurvyAggregator", [metaERC20Wrapper], {
     libraries: {
@@ -25,5 +25,5 @@ export default buildModule("CurvyAggregator", (m) => {
     },
   ]);
 
-  return { curvyAggregator, metaERC20Wrapper, erc20Mock };
+  return { curvyAggregator, metaERC20Wrapper };
 });

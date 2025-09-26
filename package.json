@@ -3,13 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "compile": "hardhat compile",
-    "clean": "hardhat clean",
-    "deploy:ERC20": "hardhat ignition deploy ./ignition/modules/ERC20.ts --network localhost",
-    "deploy:CurvyAggregator": "hardhat ignition deploy ./ignition/modules/CurvyAggregator.ts --network localhost",
-    "deploy:CurvyInsertionVerifier": "hardhat ignition deploy ./ignition/modules/CurvyInsertionVerifier.ts --network localhost",
-    "deploy:all": "pnpm run clean && pnpm run deploy:ERC20 && pnpm run deploy:CurvyAggregator && pnpm run deploy:CurvyInsertionVerifier",
-    "test": "pnpm run clean && pnpm run compile && pnpm run deploy:all && vitest run",
+    "build": "hardhat compile",
+    "dev": "pnpm hardhat ignition deploy ./ignition/modules/Devenv.ts --network=localhost",
+    "test": "pnpm run dev && vitest run",
     "start:hardhat": "pnpm hardhat node"
   },
   "devDependencies": {
