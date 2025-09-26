@@ -15,7 +15,7 @@ export default buildModule("ERC20", (m) => {
   });
 
   // 6. Deposit the mock tokens into the wrapper
-  m.call(metaERC20Wrapper, "deposit", [erc20Mock, deployer, DEPOSIT_AMOUNT], {
+  m.call(metaERC20Wrapper, "deposit", [erc20Mock, deployer, DEPOSIT_AMOUNT / 2n], {
     after: [approval],
   });
 

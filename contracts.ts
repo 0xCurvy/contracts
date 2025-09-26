@@ -32,7 +32,7 @@ export const getContracts = (rpcUrl: string = 'http://localhost:8545', networkNa
 
     const metaERC20Wrapper = getContract({
         abi: MetaERC20WrapperArtifacts.abi,
-        address: deployedAddresses["MetaERC20Wrapper#MetaERC20Wrapper"] as Address,
+        address: deployedAddresses["ERC20#MetaERC20Wrapper"] as Address,
         client: publicClient,
     });
 
@@ -51,5 +51,6 @@ export const getContracts = (rpcUrl: string = 'http://localhost:8545', networkNa
     return {
         metaERC20Wrapper,
         curvyAggregator,
+        curvyInsertionVerifier,
     }
 }
