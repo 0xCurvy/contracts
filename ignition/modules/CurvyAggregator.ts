@@ -13,6 +13,8 @@ export default buildModule("CurvyAggregator", (m) => {
     },
   });
 
+  m.call(metaERC20Wrapper, "setAggregatorContractAddress", [curvyAggregator]);
+
   m.call(curvyAggregator, "updateConfig", [
     {
       insertionVerifier: curvyInsertionVerifier,

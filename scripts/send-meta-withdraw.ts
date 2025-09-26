@@ -7,6 +7,8 @@ const { viem } = await network.connect({ network: "localhost" });
 const publicClient = await viem.getPublicClient();
 const [senderClient, operatorClient, recipientClient, _operatorClient] = await viem.getWalletClients();
 
+console.log({ senderClient })
+
 const deployedAddressesPath = "./ignition/deployments/chain-31337/deployed_addresses.json";
 const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
 
@@ -43,9 +45,11 @@ console.log("RECIPIENT:", await metaERC20Wrapper.read.balanceOf([recipientClient
 
 console.log(erc20MockAddress);
 console.log(metaERC20WrapperAddress);
+const aaa = await metaERC20Wrapper.read.getIdAddress([2n]);
+console.log(aaa);
 
 const from = senderClient.account.address;
-const to = senderClient.account.address;
+const to = recipientClient.account.address;
 const id = await metaERC20Wrapper.read.getTokenID([erc20MockAddress]); // npr. 2n
 const amount = 5n;
 const isGasFee = false; // bez refund-a
@@ -99,6 +103,8 @@ const ok = await metaERC20Wrapper.read.isValidSignature([
   sigWithNonceAndType,
 ]);
 console.log("isValidSignature?", ok); // očekuješ true
+
+console.log("data:", data);
 
 // --- 8) META TRANSFER (operator plaća gas)
 const txHash = await metaERC20Wrapper.write.metaWithdraw([from, to, id, amount, isGasFee, data], {
