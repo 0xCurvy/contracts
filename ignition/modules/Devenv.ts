@@ -4,9 +4,7 @@ import CurvyAggregator from "./CurvyAggregator";
 const DEPOSIT_AMOUNT = 10n * 10n ** 18n;
 
 export default buildModule("Devenv", (m) => {
-  m.useModule(CurvyAggregator);
-
-  const metaERC20Wrapper = m.contract("MetaERC20Wrapper");
+  const { metaERC20Wrapper } = m.useModule(CurvyAggregator);
 
   const multicall3 = m.contract("Multicall3");
 
