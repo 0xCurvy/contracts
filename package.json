@@ -4,9 +4,9 @@
   "type": "module",
   "scripts": {
     "build": "hardhat compile",
-    "dev": "pnpm hardhat ignition deploy ./ignition/modules/Devenv.ts --network=localhost",
+    "dev": "pnpm hardhat clean && pnpm hardhat ignition deploy ./ignition/modules/Devenv.ts --network=hardhat",
     "test": "pnpm run dev && vitest run",
-    "start:hardhat": "pnpm hardhat node"
+    "start:hardhat": "pnpm hardhat node --network=hardhat"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.0.3",

@@ -1,5 +1,6 @@
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import { configVariable, type HardhatUserConfig } from "hardhat/config";
+import { localhost } from "viem/chains";
 
 const config: HardhatUserConfig = {
   plugins: [hardhatToolboxViemPlugin],
@@ -20,6 +21,14 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
+    hardhat: {
+      type: "edr-simulated",
+      chainType: "l1",
+      mining: {
+        auto: false,
+        interval: 500,
+      }
+    },
     hardhatMainnet: {
       type: "edr-simulated",
       chainType: "l1",
