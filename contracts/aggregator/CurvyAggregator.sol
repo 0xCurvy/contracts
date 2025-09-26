@@ -76,7 +76,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
             new bytes(0) // signature
         );
 
-        uint256 noteId = PoseidonT4.hash([note.ownerHash, note.token, note.amount]);
+        uint256 noteId = PoseidonT4.hash([note.ownerHash, note.amount, note.token]);
 
         pendingIdsQueue[noteId] = true;
 
@@ -91,38 +91,26 @@ contract CurvyAggregator is IERC1155TokenReceiver
     //     update root (note)
     //     clear pending queue
     function commitDepositBatch(
-        uint256[] memory depositedNoteIds,
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
-        uint256[52] memory publicInputs
+        uint256[5] memory publicInputs
     ) public returns (bool success) {
-        uint256 num = depositedNoteIds.length;
-        require(num <= MAX_PENDING, "Invalid note ids array length");
-
-        for (uint256 i = 0; i < num; i += 1) {
-            uint256 noteId = depositedNoteIds[i];
-            require(pendingIdsQueue[noteId], "Note not scheduled for deposit!");
-            delete pendingIdsQueue[noteId];
+        for (uint256 i = 0; i < MAX_PENDING; i += 1) {
+            uint256 noteId = publicInputs[i];
+            if (noteId != 0) {
+                require(pendingIdsQueue[noteId], "Note not scheduled for deposit!");
+                delete pendingIdsQueue[noteId];
+            }
         }
-
-        uint256 notesHash = uint256(sha256(abi.encodePacked(depositedNoteIds))) % CurvyAggregator_Constants.SNARK_SCALAR_FIELD;
-
-        emit DepositedNotesHash(notesHash);
 
         uint256 numPublicInputs = publicInputs.length;
 
         // SOME public input oldNotesTreeRoot == notesTreeRoot (require)
         require(
-            notesTreeRoot == publicInputs[numPublicInputs - 3],
+            notesTreeRoot == publicInputs[numPublicInputs - 2],
             "Invalid notes root"
         );
-
-        // SOME public input notesHash == notesHash (require)
-        require(
-            notesHash == publicInputs[numPublicInputs - 1],
-            "Notes hash missmatch"
-        ); // PROVERITI INDEX
 
         // TODO: Verify proof
         // require(
@@ -130,7 +118,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
         //     "CurvyAggregator: invalid insertion proof!"
         // );
 
-        notesTreeRoot = publicInputs[numPublicInputs - 2];
+        notesTreeRoot = publicInputs[numPublicInputs - 1];
 
         return true;
     }
@@ -251,7 +239,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
 
     // ------------------------------------------------------------------ Storage
     /// @notice Maximum number of pending notes
-    uint256 constant MAX_PENDING = 50;
+    uint256 constant MAX_PENDING = 3;
 
     /// @notice Link to wrapper contract
     MetaERC20Wrapper public tokenWrapper;
