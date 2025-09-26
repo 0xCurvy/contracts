@@ -10,5 +10,5 @@ export default buildModule("CurvyAggregator", (m) => {
     },
   });
 
-  return { curvyAggregator };
+  return { curvyAggregator, metaERC20Wrapper };
 });

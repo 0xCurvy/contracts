@@ -3,11 +3,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "compile": "hardhat compile",
-    "deploy:MetaErc20Wrapper": "hardhat ignition deploy ./ignition/modules/MetaErc20Wrapper.ts --network localhost",
-    "deploy:CurvyAggregator": "hardhat ignition deploy ./ignition/modules/CurvyAggregator.ts --network localhost",
-    "deploy:all": "pnpm run deploy:MetaErc20Wrapper && pnpm run deploy:CurvyAggregator",
-    "test": "pnpm run compile && pnpm run deploy:all && vitest run"
+    "build": "hardhat compile",
+    "dev": "pnpm hardhat ignition deploy ./ignition/modules/Devenv.ts --network=localhost",
+    "test": "pnpm run dev && vitest run",
+    "start:hardhat": "pnpm hardhat node"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.0.3",
