@@ -6,7 +6,8 @@
     "compile": "hardhat compile",
     "deploy:MetaErc20Wrapper": "hardhat ignition deploy ./ignition/modules/MetaErc20Wrapper.ts --network localhost",
     "deploy:CurvyAggregator": "hardhat ignition deploy ./ignition/modules/CurvyAggregator.ts --network localhost",
-    "deploy:all": "pnpm run deploy:MetaErc20Wrapper && pnpm run deploy:CurvyAggregator",
+    "deploy:CurvyInsertionVerifier": "hardhat ignition deploy ./ignition/modules/CurvyInsertionVerifier.ts --network localhost",
+    "deploy:all": "pnpm run deploy:MetaErc20Wrapper && pnpm run deploy:CurvyAggregator && pnpm run deploy:CurvyInsertionVerifier",
     "test": "pnpm run compile && pnpm run deploy:all && vitest run"
   },
   "devDependencies": {
