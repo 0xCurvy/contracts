@@ -21,5 +21,5 @@ export default buildModule("CurvyAggregator", (m) => {
     feeCollector: "0x0000000000000000000000000000000000000000",
   }]);
 
-  return { curvyAggregator };
+  return { curvyAggregator, metaERC20Wrapper };
 });
