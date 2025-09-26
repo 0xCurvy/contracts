@@ -10,12 +10,12 @@ const [senderClient, operatorClient, recipientClient, _operatorClient] = await v
 const deployedAddressesPath = "./ignition/deployments/chain-31337/deployed_addresses.json";
 const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
 
-const metaERC20WrapperAddress = deployedAddresses["MetaERC20Wrapper#MetaERC20Wrapper"];
+const metaERC20WrapperAddress = deployedAddresses["ERC20#MetaERC20Wrapper"];
 if (!metaERC20WrapperAddress) {
   throw new Error("MetaERC20Wrapper address not found for chain-31337");
 }
 const metaERC20Wrapper = await viem.getContractAt("MetaERC20Wrapper", metaERC20WrapperAddress);
-const erc20MockAddress = deployedAddresses["ERC20Mock#ERC20Mock"];
+const erc20MockAddress = deployedAddresses["ERC20#ERC20Mock"];
 if (!erc20MockAddress) {
   throw new Error("ERC20Mock address not found for chain-31337");
 }

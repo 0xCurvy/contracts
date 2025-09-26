@@ -8,7 +8,7 @@ const [senderClient] = await viem.getWalletClients();
 const deployedAddressesPath = "./ignition/deployments/chain-31337/deployed_addresses.json";
 const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
 
-const metaERC20WrapperAddress = deployedAddresses["MetaERC20Wrapper#MetaERC20Wrapper"];
+const metaERC20WrapperAddress = deployedAddresses["ERC20#MetaERC20Wrapper"];
 if (!metaERC20WrapperAddress) {
   throw new Error("MetaERC20Wrapper address not found for chain-31337");
 }

@@ -14,7 +14,7 @@ if (!erc20MockAddress) {
 }
 const erc20Mock = await viem.getContractAt("ERC20Mock", erc20MockAddress);
 
-const metaERC20WrapperAddress = deployedAddresses["MetaERC20Wrapper#MetaERC20Wrapper"];
+const metaERC20WrapperAddress = deployedAddresses["ERC20#MetaERC20Wrapper"];
 if (!metaERC20WrapperAddress) {
   throw new Error("MetaERC20Wrapper address not found for chain-31337");
 }

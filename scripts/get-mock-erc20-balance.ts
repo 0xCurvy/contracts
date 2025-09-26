@@ -7,7 +7,7 @@ const [senderClient] = await viem.getWalletClients();
 
 const deployedAddressesPath = "./ignition/deployments/chain-31337/deployed_addresses.json";
 const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
-const erc20MockAddress = deployedAddresses["ERC20Mock#ERC20Mock"];
+const erc20MockAddress = deployedAddresses["ERC20#ERC20Mock"];
 
 if (!erc20MockAddress) {
   throw new Error("ERC20Mock address not found for chain-31337");
