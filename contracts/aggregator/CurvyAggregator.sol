@@ -113,10 +113,10 @@ contract CurvyAggregator is IERC1155TokenReceiver
         );
 
         // TODO: Verify proof
-        // require(
-        //     insertionVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),
-        //     "CurvyAggregator: invalid insertion proof!"
-        // );
+        require(
+            insertionVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),
+            "CurvyAggregator: invalid insertion proof!"
+        );
 
         notesTreeRoot = publicInputs[numPublicInputs - 1];
 
