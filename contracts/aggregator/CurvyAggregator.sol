@@ -135,21 +135,26 @@ contract CurvyAggregator is IERC1155TokenReceiver
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
-        uint256[46] memory publicInputs
+        uint256[14] memory publicInputs
     ) public returns (bool success) {
         // TODO: check indexes of publicInputs
-        uint256 oldNullifiersTreeRoot = publicInputs[21];
-        uint256 newNullifiersTreeRoot = publicInputs[22];
-        uint256 oldNotesTreeRoot = publicInputs[23];
-        uint256 newNotesTreeRoot = publicInputs[24];
+        // uint256 oldNullifiersTreeRoot = publicInputs[21];
+        // uint256 newNullifiersTreeRoot = publicInputs[22];
+        // uint256 oldNotesTreeRoot = publicInputs[23];
+        // uint256 newNotesTreeRoot = publicInputs[24];
+
+        uint256 oldNullifiersTreeRoot = publicInputs[10];
+        uint256 newNullifiersTreeRoot = publicInputs[11];
+        uint256 oldNotesTreeRoot = publicInputs[12];
+        uint256 newNotesTreeRoot = publicInputs[13];
 
         require(notesTreeRoot == oldNotesTreeRoot, "CurvyAggregator: current note tree root mismatch!");
         require(nullifiersTreeRoot == oldNullifiersTreeRoot, "CurvyAggregator: current nullifier tree root mismatch!");
 
-        // require(
-        //     aggregationVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),
-        //     "CurvyAggregator: invalid aggregation proof!"
-        // );
+        require(
+            aggregationVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),
+            "CurvyAggregator: invalid aggregation proof!"
+        );
 
         // Update the roots of the trees
         notesTreeRoot = newNotesTreeRoot;
@@ -181,30 +186,29 @@ contract CurvyAggregator is IERC1155TokenReceiver
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
-        uint256[26] memory publicInputs
+        uint256[10] memory publicInputs // Bilo 26
     ) public returns (bool success) {
 
         require(publicInputs[3] == nullifiersTreeRoot, "CurvyAggregator: current nullifier tree root mismatch!");
         require(publicInputs[2] == notesTreeRoot, "CurvyAggregator: current note tree root mismatch!");
 
-        // TODO: Verify proof
-        // require(
-        //     withdrawVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),
-        //     "CurvyAggregator: invalid withdraw proof!"
-        // );
+        require(
+            withdrawVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),
+            "CurvyAggregator: invalid withdraw proof!"
+        );
 
         // Update the root of the nullifier tree
         nullifiersTreeRoot = publicInputs[0];
 
         // Transfer withdrawals
-        for (uint256 i = 0; i < 10; i += 1) {
+        for (uint256 i = 0; i < MAX_WITHDRAWALS; i += 1) {
             uint256 amount = publicInputs[4 + i];
             address destinationAddress = address(uint160(publicInputs[14 + i]));
             if (amount != 0) {
                 tokenWrapper.safeTransferFrom(
                     address(this),
                     destinationAddress,
-                    publicInputs[25],
+                    publicInputs[9],
                     amount,
                     new bytes(0)
                 );
@@ -215,7 +219,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
         tokenWrapper.safeTransferFrom(
             address(this),
             feeCollector,
-            publicInputs[25],
+            publicInputs[9],
             publicInputs[1],
             new bytes(0)
         );
@@ -240,6 +244,9 @@ contract CurvyAggregator is IERC1155TokenReceiver
     // ------------------------------------------------------------------ Storage
     /// @notice Maximum number of pending notes
     uint256 constant MAX_PENDING = 3;
+
+    /// @notice Maximum number of withdrawals
+    uint256 constant MAX_WITHDRAWALS = 2;
 
     /// @notice Link to wrapper contract
     MetaERC20Wrapper public tokenWrapper;
