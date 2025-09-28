@@ -90,6 +90,19 @@ contract CurvyAggregator is IERC1155TokenReceiver
     //     verify proof
     //     update root (note)
     //     clear pending queue
+
+    // circuit:
+    // ------------20-50---------------
+    // public inputs:
+    //      noteIds             idx = {0, 1, ..., 50}
+    //      oldNotesRoot        idx = 51
+    //      newNotesRoot        idx = 52
+    // ------------20-3----------------
+    // public inputs:
+    //      noteIds             idx = {0, 1, 2}
+    //      oldNotesRoot        idx = 3
+    //      newNotesRoot        idx = 4
+    // ---------------------------------
     function commitDepositBatch(
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
@@ -131,6 +144,29 @@ contract CurvyAggregator is IERC1155TokenReceiver
     //     verify proof
     //     update roots
 
+    // circuit:
+    // ------------10-10-2---------------
+    // outputs:
+    //      outputNoteIds       idx = {0, 1, ..., 20}
+    // public inputs:
+    //      oldNullifiersRoot   idx = 21
+    //      newNullifiersRoot   idx = 22
+    //      oldNotesRoot        idx = 23
+    //      newNotesRoot        idx = 24
+    //      ephemeralKeys       idx = {25, 26, ..., 44}
+    //      nullifiersHash      idx = 45
+    // ------------2-2-2----------------
+    // outputs:
+    //      outputNoteIds       idx = {0, 1, 2, 3, 4, 5}
+    // public inputs:
+    //      oldNullifiersRoot   idx = 6
+    //      newNullifiersRoot   idx = 7
+    //      oldNotesRoot        idx = 8
+    //      newNotesRoot        idx = 9
+    //      ephemeralKeys       idx = {10, 11, 12, 13}
+    //      nullifiersHash      idx = 14
+    // ---------------------------------
+
     function commitAggregationBatch(
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
@@ -143,10 +179,10 @@ contract CurvyAggregator is IERC1155TokenReceiver
         // uint256 oldNotesTreeRoot = publicInputs[23];
         // uint256 newNotesTreeRoot = publicInputs[24];
 
-        uint256 oldNullifiersTreeRoot = publicInputs[10];
-        uint256 newNullifiersTreeRoot = publicInputs[11];
-        uint256 oldNotesTreeRoot = publicInputs[12];
-        uint256 newNotesTreeRoot = publicInputs[13];
+        uint256 oldNullifiersTreeRoot = publicInputs[6];
+        uint256 newNullifiersTreeRoot = publicInputs[7];
+        uint256 oldNotesTreeRoot = publicInputs[8];
+        uint256 newNotesTreeRoot = publicInputs[9];
 
         require(notesTreeRoot == oldNotesTreeRoot, "CurvyAggregator: current note tree root mismatch!");
         require(nullifiersTreeRoot == oldNullifiersTreeRoot, "CurvyAggregator: current nullifier tree root mismatch!");
@@ -172,16 +208,30 @@ contract CurvyAggregator is IERC1155TokenReceiver
     //     execute transfers in batch
 
     // circuit:
+    // ------------10-10-20---------------
     // outputs:
     //      newNullifierRoot    idx = 0
     //      feeAmount           idx = 1
     // public inputs:
     //      notesTreeRoot       idx = 2
     //      oldNullifiersRoot   idx = 3
-    //      withdrawnAmounts    idx = {4, 5, 6, 7, 8, 9, 10, 11, 12, 13}
-    //      destinationAddress  idx = {14, 15, 16, 17, 18, 19, 20, 21, 22, 23}
+    //      withdrawnAmounts    idx = {4, 5, ..., 13}
+    //      destinationAddress  idx = {14, 15, ..., 23}
     //      nullifiersHash      idx = 24
     //      token               idx = 25
+    // ------------2-2-20---------------
+    // outputs:
+    //      newNullifierRoot    idx = 0
+    //      feeAmount           idx = 1
+    // public inputs:
+    //      notesTreeRoot       idx = 2
+    //      oldNullifiersRoot   idx = 3
+    //      withdrawnAmounts    idx = {4, 5}
+    //      destinationAddress  idx = {6, 7}
+    //      nullifiersHash      idx = 8
+    //      token               idx = 9
+    // ---------------------------------
+
     function commitWithdrawalBatch(
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
@@ -203,7 +253,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
         // Transfer withdrawals
         for (uint256 i = 0; i < MAX_WITHDRAWALS; i += 1) {
             uint256 amount = publicInputs[4 + i];
-            address destinationAddress = address(uint160(publicInputs[14 + i]));
+            address destinationAddress = address(uint160(publicInputs[6 + i]));
             if (amount != 0) {
                 tokenWrapper.safeTransferFrom(
                     address(this),
