@@ -157,14 +157,14 @@ contract CurvyAggregator is IERC1155TokenReceiver
     //      nullifiersHash      idx = 45
     // ------------2-2-2----------------
     // outputs:
-    //      outputNoteIds       idx = {0, 1, 2, 3, 4, 5}
+    //      outputNoteIds       idx = {0, 1, 2, 3, 4}
     // public inputs:
-    //      oldNullifiersRoot   idx = 6
-    //      newNullifiersRoot   idx = 7
-    //      oldNotesRoot        idx = 8
-    //      newNotesRoot        idx = 9
-    //      ephemeralKeys       idx = {10, 11, 12, 13}
-    //      nullifiersHash      idx = 14
+    //      oldNullifiersRoot   idx = 5
+    //      newNullifiersRoot   idx = 6
+    //      oldNotesRoot        idx = 7
+    //      newNotesRoot        idx = 8
+    //      ephemeralKeys       idx = {9, 10, 11, 12}
+    //      nullifiersHash      idx = 13
     // ---------------------------------
 
     function commitAggregationBatch(
@@ -179,10 +179,10 @@ contract CurvyAggregator is IERC1155TokenReceiver
         // uint256 oldNotesTreeRoot = publicInputs[23];
         // uint256 newNotesTreeRoot = publicInputs[24];
 
-        uint256 oldNullifiersTreeRoot = publicInputs[6];
-        uint256 newNullifiersTreeRoot = publicInputs[7];
-        uint256 oldNotesTreeRoot = publicInputs[8];
-        uint256 newNotesTreeRoot = publicInputs[9];
+        uint256 oldNullifiersTreeRoot = publicInputs[5];
+        uint256 newNullifiersTreeRoot = publicInputs[6];
+        uint256 oldNotesTreeRoot = publicInputs[7];
+        uint256 newNotesTreeRoot = publicInputs[8];
 
         require(notesTreeRoot == oldNotesTreeRoot, "CurvyAggregator: current note tree root mismatch!");
         require(nullifiersTreeRoot == oldNullifiersTreeRoot, "CurvyAggregator: current nullifier tree root mismatch!");

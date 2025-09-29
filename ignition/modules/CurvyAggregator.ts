@@ -1,9 +1,10 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import CurvyInsertionVerifierModule from "./CurvyInsertionVerifier";
 
 export default buildModule("CurvyAggregator", (m) => {
   const poseidonT4 = m.library("PoseidonT4");
-  const { curvyInsertionVerifier } = m.useModule(CurvyInsertionVerifierModule);
+  const curvyInsertionVerifier = m.contract("CurvyInsertionVerifier");
+  const curvyAggregationVerifier = m.contract("CurvyAggregationVerifier");
+  const curvyWithdrawVerifier = m.contract("CurvyWithdrawVerifier");
 
   const metaERC20Wrapper = m.contract("MetaERC20Wrapper");
 
@@ -18,10 +19,10 @@ export default buildModule("CurvyAggregator", (m) => {
   m.call(curvyAggregator, "updateConfig", [
     {
       insertionVerifier: curvyInsertionVerifier,
-      aggregationVerifier: "0x0000000000000000000000000000000000000000",
-      withdrawVerifier: "0x0000000000000000000000000000000000000000",
-      operator: "0x0000000000000000000000000000000000000000",
-      feeCollector: "0x0000000000000000000000000000000000000000",
+      aggregationVerifier: curvyAggregationVerifier,
+      withdrawVerifier: curvyWithdrawVerifier,
+      operator: "0x0000000000000000000000000000000000000000", // TODO use or delete
+      feeCollector: "0x0000000000000000000000000000000000000000", // TODO use or delete
     },
   ]);
 
