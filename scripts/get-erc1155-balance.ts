@@ -14,6 +14,6 @@ if (!metaERC20WrapperAddress) {
 }
 const metaERC20Wrapper = await viem.getContractAt("MetaERC20Wrapper", metaERC20WrapperAddress);
 
-const balance = await metaERC20Wrapper.read.balanceOf([senderClient.account.address, 2n]);
+const balance = await metaERC20Wrapper.read.balanceOf(["0xa945718274f825b3C795e3712dabf042233B39e9", 2n]);
 
 console.dir(balance);
