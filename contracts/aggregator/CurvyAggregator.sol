@@ -125,7 +125,6 @@ contract CurvyAggregator is IERC1155TokenReceiver
             "Invalid notes root"
         );
 
-        // TODO: Verify proof
         require(
             insertionVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),
             "CurvyAggregator: invalid insertion proof!"
@@ -173,7 +172,6 @@ contract CurvyAggregator is IERC1155TokenReceiver
         uint256[2] memory proof_c,
         uint256[14] memory publicInputs
     ) public returns (bool success) {
-        // TODO: check indexes of publicInputs
         // uint256 oldNullifiersTreeRoot = publicInputs[21];
         // uint256 newNullifiersTreeRoot = publicInputs[22];
         // uint256 oldNotesTreeRoot = publicInputs[23];
