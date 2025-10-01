@@ -19,5 +19,5 @@
 # Hardhat coverage reports
 /coverage
 
-# Deployments for localhost chain
-ignition/deployments/chain-31337
+# Deployments for all chains
+ignition/deployments/
