@@ -1,38 +1,23 @@
-node_modules/
-package-lock.json
-pnpm-lock.yaml
+# Node modules
+/node_modules
 
-# Compiler files
-artifacts/
-cache/
-cache_hardhat/
-out/
-generated/
+# Compilation output
+/dist
 
-# Ignores development broadcast logs
-/broadcast
-/broadcast/*/31337/
-/broadcast/**/dry-run/
+# pnpm deploy output
+/bundle
 
-# Docs
-lib/openzeppelin-contracts-upgradeable/
+# Hardhat Build Artifacts
+/artifacts
 
+# Hardhat compilation (v2) support directory
+/cache
 
-# Dotenv file
-.env
-.env.tmp
-.env.production
-.env.localnet
-.wake
-.vscode
-snapshots
-lib
+# Typechain output
+/types
 
-# Localnet addresses
-deployments/localnet
+# Hardhat coverage reports
+/coverage
 
-# Artifacts from .ts
-sdk/**/**/*.js
-zk-verifiers/script/*.js
-
-localnet-chain.log
+# Deployments for localhost chain
+ignition/deployments/chain-31337

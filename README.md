@@ -1,94 +1,57 @@
-# Curvy Protocol's EVM-contracts
+# Sample Hardhat 3 Beta Project (`node:test` and `viem`)
 
-![Curvy Banner](./docs//assets/curvy-banner.png)
+This project showcases a Hardhat 3 Beta project using the native Node.js test runner (`node:test`) and the `viem` library for Ethereum interactions.
 
-This repository contains the Curvy contracts implementations on the EVM-based chains. Chains with different runtime environments (i.e. Starknet, Solana, ...) have their own repositories.
+To learn more about the Hardhat 3 Beta, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3 Beta](https://hardhat.org/hardhat3-beta-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
 
-The project is a hybrid between [Hardhat's](https://hardhat.org/) (v2.22.4) and [Foundry's](https://book.getfoundry.sh/) (v1.2.1) development environments, with the main focus on Foundry.
+## Project Overview
 
-During development, the contracts are tested on the [Ethereum Sepolia](https://sepolia.etherscan.io/) testnet.
+This example project includes:
 
-## High-level Overview
+- A simple Hardhat configuration file.
+- Foundry-compatible Solidity unit tests.
+- TypeScript integration tests using [`node:test`](nodejs.org/api/test.html), the new Node.js native test runner, and [`viem`](https://viem.sh/).
+- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
 
-Currently, the project is divided into two main parts:
+## Usage
 
-- **Curvy Single User Contrac (CSUC)**: A single-user contract that allows users to perform private transfers and withdrawals of both ERC20 and Native tokens.
-    - Documentation: [./docs/csuc](docs/csuc/README.md)
-- **Curvy Aggregator**: A privacy layer for grouping (aggregating) different input 'notes' that have the same hidden owner.
-    - Documentation: [./aggregator/csuc](docs/aggregator/README.md)
+### Running Tests
 
-## Developer Guide
+To run all the tests in the project, execute the following command:
 
-This section is meant for people who want to contribute to the Curvy project.
-
-### Installation: Prerequisites
-
-**Foundry**:
-
-```bash
-curl -L https://foundry.paradigm.xyz | bash && foundryup -i 1.2.1
-
+```shell
+npx hardhat test
 ```
 
-**Hardhat**:
+You can also selectively run the Solidity or `node:test` tests:
 
-```bash
-yarn global add hardhat
+```shell
+npx hardhat test solidity
+npx hardhat test nodejs
 ```
 
-### Installation: Project Setup
+### Make a deployment to Sepolia
 
-**Foundry**:
+This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
 
-```bash
-forge install
+To run the deployment to a local chain:
+
+```shell
+npx hardhat ignition deploy ignition/modules/Counter.ts
 ```
 
-**Hardhat**:
+To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
 
-```bash
-yarn install
+You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
+
+To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
+
+```shell
+npx hardhat keystore set SEPOLIA_PRIVATE_KEY
 ```
 
-### Testing
+After setting the variable, you can run the deployment with the Sepolia network:
 
-```bash
-forge test -vvvv
+```shell
+npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
 ```
-
-## Deployment
-
-Environment vars setup (and update):
-
-```bash
-cp .env.example .env
-```
-
-Run deployment script:
-
-```bash
-yarn run deploy
-```
-
-## Type Generation
-
-```bash
-yarn run typechain:generate
-```
-
-## Useful links:
-
-### Ethereum Sepolia
-
-- Add network to Metamask: https://chainlist.org/chain/11155111
-- Block Explorer: https://sepolia.etherscan.io
-- Sepolia Faucet: https://sepolia-faucet.pk910.de/
-
-### Ethereum Mainnet
-
-- Add network to Metamask: https://chainlist.org/chain/1
-- Block Explorer: https://etherscan.io
-
-## License
-
-This work is licensed under the Business Source License 1.1 (BUSL-1.1).
