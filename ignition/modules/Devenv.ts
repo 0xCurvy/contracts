@@ -16,14 +16,20 @@ export default buildModule("Devenv", (m) => {
 
   const deployer = m.getAccount(0);
 
-  const mint = m.call(erc20Mock, "mockMint", [deployer, DEPOSIT_AMOUNT]);
+  const mintErc20 = m.call(erc20Mock, "mockMint", [deployer, DEPOSIT_AMOUNT]);
 
   const approval = m.call(erc20Mock, "approve", [metaERC20Wrapper, DEPOSIT_AMOUNT], {
-    after: [mint],
+    after: [mintErc20],
   });
 
   m.call(metaERC20Wrapper, "deposit", [erc20Mock, deployer, DEPOSIT_AMOUNT / 2n], {
     after: [approval],
+    id: "deposit1",
+  });
+
+  m.call(metaERC20Wrapper, "deposit", ["0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", deployer, DEPOSIT_AMOUNT / 2n], {
+    value: DEPOSIT_AMOUNT / 2n,
+    id: "deposit2",
   });
 
   const addresses = JSON.parse(fs.readFileSync("../devenv/addresses.json", "utf-8"));

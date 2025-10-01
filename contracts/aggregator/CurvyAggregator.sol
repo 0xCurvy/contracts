@@ -97,17 +97,17 @@ contract CurvyAggregator is IERC1155TokenReceiver
     //      noteIds             idx = {0, 1, ..., 50}
     //      oldNotesRoot        idx = 51
     //      newNotesRoot        idx = 52
-    // ------------20-3----------------
+    // ------------20-2----------------
     // public inputs:
-    //      noteIds             idx = {0, 1, 2}
-    //      oldNotesRoot        idx = 3
-    //      newNotesRoot        idx = 4
+    //      noteIds             idx = {0, 1}
+    //      oldNotesRoot        idx = 2
+    //      newNotesRoot        idx = 3
     // ---------------------------------
     function commitDepositBatch(
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
-        uint256[5] memory publicInputs
+        uint256[4] memory publicInputs
     ) public returns (bool success) {
         for (uint256 i = 0; i < MAX_PENDING; i += 1) {
             uint256 noteId = publicInputs[i];
@@ -119,7 +119,6 @@ contract CurvyAggregator is IERC1155TokenReceiver
 
         uint256 numPublicInputs = publicInputs.length;
 
-        // SOME public input oldNotesTreeRoot == notesTreeRoot (require)
         require(
             notesTreeRoot == publicInputs[numPublicInputs - 2],
             "Invalid notes root"
@@ -134,7 +133,6 @@ contract CurvyAggregator is IERC1155TokenReceiver
 
         return true;
     }
-    
 
     // commitAggregationBatch function
     //     receive proof
@@ -234,7 +232,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
-        uint256[10] memory publicInputs // Bilo 26
+        uint256[10] memory publicInputs
     ) public returns (bool success) {
 
         require(publicInputs[3] == nullifiersTreeRoot, "CurvyAggregator: current nullifier tree root mismatch!");
@@ -291,7 +289,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
 
     // ------------------------------------------------------------------ Storage
     /// @notice Maximum number of pending notes
-    uint256 constant MAX_PENDING = 3;
+    uint256 constant MAX_PENDING = 2;
 
     /// @notice Maximum number of withdrawals
     uint256 constant MAX_WITHDRAWALS = 2;
