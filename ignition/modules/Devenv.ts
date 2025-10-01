@@ -1,8 +1,8 @@
+import fs from "node:fs";
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import CurvyAggregator from "./CurvyAggregator";
-import fs from "node:fs";
 
-const DEPOSIT_AMOUNT = 10n * 10n ** 18n;
+const DEPOSIT_AMOUNT = 1000n * 10n ** 18n;
 
 export default buildModule("Devenv", (m) => {
   // Deploy aggregator and ERC1155
