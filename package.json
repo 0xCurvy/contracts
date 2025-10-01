@@ -19,13 +19,7 @@
   },
   "dependencies": {
     "@0xcurvy/curvy-sdk": "workspace:*",
-    "@types/mocha": "^10.0.10",
-    "chai": "^6.0.1",
-    "chai-as-promised": "^8.0.2",
-    "chai-string": "^1.6.0",
-    "hardhat-dependency-compiler": "^1.2.1",
     "poseidon-lite": "^0.2.1",
-    "poseidon-solidity": "^0.0.5",
     "vitest": "^3.2.4"
   }
 }
