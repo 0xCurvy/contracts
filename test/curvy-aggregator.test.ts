@@ -1,4 +1,4 @@
-import { getContracts } from '../contracts';
+import { getContracts } from './contracts';
 import { beforeAll, expect, test } from "vitest";
 import { encodePacked, sha256 } from 'viem'
 import { poseidon3 } from 'poseidon-lite';
