@@ -3,8 +3,6 @@ import { network } from "hardhat";
 
 const { viem } = await network.connect({ network: "localhost" });
 
-const [senderClient] = await viem.getWalletClients();
-
 const deployedAddressesPath = "./ignition/deployments/chain-31337/deployed_addresses.json";
 const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
 
@@ -14,6 +12,6 @@ if (!metaERC20WrapperAddress) {
 }
 const metaERC20Wrapper = await viem.getContractAt("MetaERC20Wrapper", metaERC20WrapperAddress);
 
-const balance = await metaERC20Wrapper.read.balanceOf(["0xa945718274f825b3C795e3712dabf042233B39e9", 2n]);
+const balance = await metaERC20Wrapper.read.balanceOf(["0x9F6be45a159CEac2dD843ed14aaF3FA4D0423E87", 1n]);
 
 console.dir(balance);

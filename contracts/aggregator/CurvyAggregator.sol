@@ -281,7 +281,6 @@ contract CurvyAggregator is IERC1155TokenReceiver
         return nullifiersTreeRoot;
     }
 
-    // TODO: remove this function before mainnet deployment
     function reset(uint256 newNotesTreeRoot, uint256 newNullifiersTreeRoot) public onlyOperator {
         notesTreeRoot = newNotesTreeRoot;
         nullifiersTreeRoot = newNullifiersTreeRoot;

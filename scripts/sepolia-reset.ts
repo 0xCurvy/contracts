@@ -15,3 +15,5 @@ if (!curvyAggregatorAddress) {
 const curvyAggregator = await viem.getContractAt("CurvyAggregator", curvyAggregatorAddress);
 
 const reset = await curvyAggregator.write.reset([0n, 0n], { account: senderClient.account});
+
+console.log("Reset is done in transaction: ", reset);
