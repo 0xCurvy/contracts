@@ -29,11 +29,11 @@ contract CurvyAggregator is IERC1155TokenReceiver
         operator = msg.sender;
         feeCollector = msg.sender;
     }
-    
+
     function _authorizeUpgrade(address _newImplementation) internal {}
 
     function updateConfig(CurvyAggregator_Types.ConfigurationUpdate memory _update)
-    public
+    public onlyOperator
     returns (bool _success)
     {
         if (_update.insertionVerifier != address(0)) {
@@ -51,12 +51,14 @@ contract CurvyAggregator is IERC1155TokenReceiver
         if (_update.feeCollector != address(0)) {
             feeCollector = _update.feeCollector;
         }
+        if (_update.tokenWrapper != address(0)) {
+            tokenWrapper = _update.tokenWrapper;
+        }
 
         return true;
     }
 
     event DepositedNote(uint256 noteId);
-    event DepositedNotesHash(uint256 notesHash);
 
     // depositNotes function from the CSUC (wrap)
     //     sa kojeg walleta se prebacuje i koliko i koji ownerHash se prebacuje
@@ -65,7 +67,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
     function depositNote(
         address fromAddress,
         CurvyAggregator_Types.Note memory note
-        // bytes memory signature
+    // bytes memory signature
     ) public {
         tokenWrapper.safeTransferFrom(
             fromAddress,
@@ -82,7 +84,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
 
         emit DepositedNote(noteId);
     }
-    
+
     // commitDepositBatch function
     //     receive proof
     //     calculate hash of notes from array
