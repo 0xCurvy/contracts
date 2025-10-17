@@ -98,7 +98,7 @@ contract MetaERC20Wrapper is ERC1155Meta, ERC1155MintBurn {
       IERC20(_token).transferFrom(msg.sender, address(this), _value);
       require(checkSuccess(), "MetaERC20Wrapper#deposit: TRANSFER_FAILED");
 
-      require(addressToID[_token] != 0, "MetaERC20Wrapper#deposit: TOKE_IS_NOT_REGISTERED");
+      require(addressToID[_token] != 0, "MetaERC20Wrapper#deposit: TOKEN_IS_NOT_REGISTERED");
 
       id = addressToID[_token];
     } else {
