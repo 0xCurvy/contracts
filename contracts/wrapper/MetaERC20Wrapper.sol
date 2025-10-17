@@ -64,6 +64,18 @@ contract MetaERC20Wrapper is ERC1155Meta, ERC1155MintBurn {
     return aggregatorContractAddress;
   }
 
+  function registerToken(address _token) public onlyOperator {
+    require(addressToID[_token] == 0, "MetaERC20Wrapper#registerToken: TOKEN_ALREADY_REGISTERED");
+
+    // Register ID
+    nTokens += 1;             // Increment number of tokens registered
+    IDtoAddress[nTokens] = _token; // Map id to token address
+    addressToID[_token] = nTokens; // Register token
+
+    // Emit registration event
+    emit TokenRegistration(_token, nTokens);
+  }
+
   /**
    * @dev Deposit ERC20 tokens or ETH in this contract to receive wrapped ERC20s
    * @param _token     The addess of the token to deposit in this contract
@@ -81,29 +93,14 @@ contract MetaERC20Wrapper is ERC1155Meta, ERC1155MintBurn {
 
     // Deposit ERC-20 tokens or ETH
     if (_token != ETH_ADDRESS) {
-
       // Check if transfer passes
       require(msg.value == 0, "MetaERC20Wrapper#deposit: NON_NULL_MSG_VALUE");
       IERC20(_token).transferFrom(msg.sender, address(this), _value);
       require(checkSuccess(), "MetaERC20Wrapper#deposit: TRANSFER_FAILED");
 
-      // Load address token ID
-      uint256 addressId = addressToID[_token];
+      require(addressToID[_token] != 0, "MetaERC20Wrapper#deposit: TOKE_IS_NOT_REGISTERED");
 
-      // Register ID if not already done
-      if (addressId == 0) {
-        nTokens += 1;             // Increment number of tokens registered
-        id = nTokens;             // id of token is the current # of tokens
-        IDtoAddress[id] = _token; // Map id to token address
-        addressToID[_token] = id; // Register token
-
-        // Emit registration event
-        emit TokenRegistration(_token, id);
-
-      } else {
-        id = addressId;
-      }
-
+      id = addressToID[_token];
     } else {
       require(_value == msg.value, "MetaERC20Wrapper#deposit: INCORRECT_MSG_VALUE");
       id = ETH_ID;
