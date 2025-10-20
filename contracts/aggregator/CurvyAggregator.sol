@@ -4,7 +4,6 @@ pragma solidity ^0.8.28;
 import {PoseidonT4} from "./utils/PoseidonT4.sol";
 
 import {MetaERC20Wrapper} from "../wrapper/MetaERC20Wrapper.sol";
-import {IERC1155TokenReceiver} from "../interfaces/IERC1155TokenReceiver.sol";
 
 import {
 ICurvyInsertionVerifier,
@@ -20,8 +19,7 @@ import {CurvyAggregator_Constants} from "./utils/_Constants.sol";
  * @author Curvy Protocol (https://curvy.box)
  * @dev Curvy's Aggregator contract.
  */
-/// @custom:oz-upgrades-from CurvyAggregator_NoAssetTransfer
-contract CurvyAggregator is IERC1155TokenReceiver
+contract CurvyAggregator
 {
     /// @notice Link to wrapper contract
     constructor(address payable tokenWrapperAddress) {
@@ -64,16 +62,16 @@ contract CurvyAggregator is IERC1155TokenReceiver
 
     function depositNote(
         address fromAddress,
-        CurvyAggregator_Types.Note memory note
-        // bytes memory signature
+        CurvyAggregator_Types.Note memory note,
+        bytes memory signature
     ) public {
-        tokenWrapper.safeTransferFrom(
+        tokenWrapper.metaSafeTransferFrom(
             fromAddress,
             address(this),
             note.token,
             note.amount,
-            // TODO: Dodati potpis da verifikumemo za metaSafeTransaferFrom
-            new bytes(0) // signature
+            true,
+            signature
         );
 
         uint256 noteId = PoseidonT4.hash([note.ownerHash, note.amount, note.token]);
@@ -82,7 +80,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
 
         emit DepositedNote(noteId);
     }
-    
+
     // commitDepositBatch function
     //     receive proof
     //     calculate hash of notes from array
@@ -323,25 +321,5 @@ contract CurvyAggregator is IERC1155TokenReceiver
     modifier onlyOperator() {
         require(msg.sender == operator, "CurvyAggregator: only operator can call this function!");
         _;
-    }
-
-    function onERC1155Received(
-        address _operator,
-        address _from,
-        uint256 _id,
-        uint256 _amount,
-        bytes calldata _data
-    ) external pure returns (bytes4) {
-        return CurvyAggregator_Constants.ERC1155_RECEIVED_VALUE;
-    }
-
-    function onERC1155BatchReceived(
-        address _operator,
-        address _from,
-        uint256[] calldata _ids,
-        uint256[] calldata _amounts,
-        bytes calldata _data
-    ) external pure returns (bytes4) {
-        return CurvyAggregator_Constants.ERC1155_BATCH_RECEIVED_VALUE;
     }
 }

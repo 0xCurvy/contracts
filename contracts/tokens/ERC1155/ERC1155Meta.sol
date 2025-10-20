@@ -54,7 +54,7 @@ contract ERC1155Meta is ERC1155, SignatureValidator {
 
   /// @dev Modifier to restrict function calls to the Operator.
   modifier onlyOperator() {
-    require(msg.sender == Operator, "Caller is not the operator");
+    require(tx.origin == Operator, "Caller is not the operator");
     _;
   }
 
@@ -120,19 +120,7 @@ contract ERC1155Meta is ERC1155, SignatureValidator {
     // If Gas is being reimbursed
     if (_isGasFee) {
       (gasReceipt, transferData) = abi.decode(signedData, (GasReceipt, bytes));
-
-      // We need to somewhat protect relayers against gas griefing attacks in recipient contract.
-      // Hence we only pass the gasLimit to the recipient such that the relayer knows the griefing
-      // limit. Nothing can prevent the receiver to revert the transaction as close to the gasLimit as
-      // possible, but the relayer can now only accept meta-transaction gasLimit within a certain range.
-      // TODO: Ovo najberovatnije treba da obrisemo
-      _callonERC1155Received(_from, _to, _id, _amount, gasReceipt.gasLimitCallback, transferData);
-
-      // Transfer gas cost
       _transferGasFee(_from, gasReceipt);
-
-    } else {
-      _callonERC1155Received(_from, _to, _id, _amount, gasleft(), signedData);
     }
   }
 

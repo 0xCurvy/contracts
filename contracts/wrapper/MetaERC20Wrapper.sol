@@ -56,14 +56,6 @@ contract MetaERC20Wrapper is ERC1155Meta, ERC1155MintBurn {
     deposit(ETH_ADDRESS, msg.sender, msg.value);
   }
 
-  function setAggregatorContractAddress(address aggregatorAddress) public onlyOperator {
-    aggregatorContractAddress = aggregatorAddress;
-  }
-
-  function getAggregatorContractAddress() public view returns (address) {
-    return aggregatorContractAddress;
-  }
-
   function registerToken(address _token) public onlyOperator {
     require(addressToID[_token] == 0, "MetaERC20Wrapper#registerToken: TOKEN_ALREADY_REGISTERED");
 
