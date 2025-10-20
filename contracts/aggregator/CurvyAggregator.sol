@@ -33,7 +33,7 @@ contract CurvyAggregator is IERC1155TokenReceiver
     function _authorizeUpgrade(address _newImplementation) internal {}
 
     function updateConfig(CurvyAggregator_Types.ConfigurationUpdate memory _update)
-    public
+    public onlyOperator
     returns (bool _success)
     {
         if (_update.insertionVerifier != address(0)) {
