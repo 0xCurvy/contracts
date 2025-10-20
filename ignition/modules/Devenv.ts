@@ -29,6 +29,7 @@ export default buildModule("Devenv", (m) => {
 
   const registerERC20Mock = m.call(metaERC20Wrapper, "registerToken", [erc20Mock], {
     after: [approval],
+    id: "registerERC20Mock",
   });
 
   m.call(metaERC20Wrapper, "deposit", [erc20Mock, deployer, DEPOSIT_AMOUNT / 2n], {
