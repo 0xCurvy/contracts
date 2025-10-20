@@ -21,8 +21,9 @@ export default buildModule("CurvyAggregator", (m) => {
       insertionVerifier: curvyInsertionVerifier,
       aggregationVerifier: curvyAggregationVerifier,
       withdrawVerifier: curvyWithdrawVerifier,
-      operator: "0x0000000000000000000000000000000000000000", // TODO use or delete
-      feeCollector: "0x0000000000000000000000000000000000000000", // TODO use or delete
+      // When 0x0 is passed, it's not changed
+      operator: "0x0000000000000000000000000000000000000000",
+      feeCollector: "0x0000000000000000000000000000000000000000",
     },
   ]);
 
