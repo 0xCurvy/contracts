@@ -20,4 +20,4 @@
 /coverage
 
 # Deployments for all chains
-ignition/deployments/
+ignition/deployments/chain-31337
