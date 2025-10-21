@@ -1,8 +1,0 @@
-{
-  "CurvyAggregator#CurvyAggregationVerifier": "0xA24EbdD439C0bf6780b7743438F77A5426f6fc89",
-  "CurvyAggregator#CurvyInsertionVerifier": "0x6AF1EEAE1c3ce9ab93Ede694C6Bb4c321AA564e3",
-  "CurvyAggregator#CurvyWithdrawVerifier": "0xCF89e3dd1498dfF27b94668870Dc3A692B606e57",
-  "CurvyAggregator#MetaERC20Wrapper": "0x5BB76EC69Ef4D80D5c3d8Dc3B9Cb4335a0aCd01C",
-  "CurvyAggregator#PoseidonT4": "0xF6F0e4AD7D2436C117A1dfA12b10e6A03E71C09B",
-  "CurvyAggregator#CurvyAggregator": "0x93Ba25BE3E2d81818F5FE163aD15912aF1AbD41b"
-}
