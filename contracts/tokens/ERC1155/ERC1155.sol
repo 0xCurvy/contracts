@@ -26,9 +26,6 @@ contract ERC1155 is IERC1155, ERC165 {
   // Operator Functions
   mapping (address => mapping(address => bool)) internal operators;
 
-  // Aggregator contract address
-  address aggregatorContractAddress;
-
 
   /***********************************|
   |     Public Transfer Functions     |
@@ -174,9 +171,6 @@ contract ERC1155 is IERC1155, ERC165 {
   function isApprovedForAll(address _owner, address _operator)
     public view virtual override returns (bool isOperator)
   {
-    if (_operator == aggregatorContractAddress) {
-      return true;
-    }
     return operators[_owner][_operator];
   }
 
