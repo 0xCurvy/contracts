@@ -49,12 +49,14 @@ contract CurvyAggregator
         if (_update.feeCollector != address(0)) {
             feeCollector = _update.feeCollector;
         }
+        if (_update.tokenWrapper != address(0)) {
+            tokenWrapper = _update.tokenWrapper;
+        }
 
         return true;
     }
 
     event DepositedNote(uint256 noteId);
-    event DepositedNotesHash(uint256 notesHash);
 
     // depositNotes function from the CSUC (wrap)
     //     sa kojeg walleta se prebacuje i koliko i koji ownerHash se prebacuje
