@@ -22,8 +22,7 @@ import {CurvyAggregator_Constants} from "./utils/_Constants.sol";
 contract CurvyAggregator
 {
     /// @notice Link to wrapper contract
-    constructor(address payable tokenWrapperAddress) {
-        tokenWrapper = MetaERC20Wrapper(tokenWrapperAddress);
+    constructor() {
         operator = msg.sender;
         feeCollector = msg.sender;
     }

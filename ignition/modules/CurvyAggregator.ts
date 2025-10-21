@@ -9,7 +9,7 @@ export default buildModule("CurvyAggregator", (m) => {
 
   const metaERC20Wrapper = m.contract("MetaERC20Wrapper");
 
-  const curvyAggregator = m.contract("CurvyAggregator", [metaERC20Wrapper], {
+  const curvyAggregator = m.contract("CurvyAggregator", [], {
     libraries: {
       PoseidonT4: poseidonT4,
     },
@@ -17,6 +17,7 @@ export default buildModule("CurvyAggregator", (m) => {
 
   const updateConfig = m.call(curvyAggregator, "updateConfig", [
     {
+      tokenWrapper: metaERC20Wrapper,
       insertionVerifier: curvyInsertionVerifier,
       aggregationVerifier: curvyAggregationVerifier,
       withdrawVerifier: curvyWithdrawVerifier,
