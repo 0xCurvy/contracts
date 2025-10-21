@@ -50,7 +50,7 @@ contract CurvyAggregator
             feeCollector = _update.feeCollector;
         }
         if (_update.tokenWrapper != address(0)) {
-            tokenWrapper = _update.tokenWrapper;
+            tokenWrapper = MetaERC20Wrapper(_update.tokenWrapper);
         }
 
         return true;

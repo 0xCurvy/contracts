@@ -4,8 +4,6 @@
   "type": "module",
   "scripts": {
     "build": "hardhat compile",
-    "deploy:verifiers:dev": "pnpm hardhat clean && pnpm hardhat ignition deploy --network localhost ./ignition/modules/Verifiers.ts",
-    "deploy:verifiers:sepolia": "pnpm hardhat clean && pnpm hardhat ignition deploy --network sepolia ./ignition/modules/Verifiers.ts",
     "dev": "pnpm hardhat clean && pnpm hardhat ignition deploy --network localhost ./ignition/modules/Devenv.ts",
     "test": "pnpm run dev && vitest run",
     "start:hardhat": "pnpm hardhat node --network hardhat"
