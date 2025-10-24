@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 
 import { ICurvyInsertionVerifier, ICurvyAggregationVerifier,  ICurvyWithdrawVerifier } from "./verifiers/ICurvyVerifiers.sol";
 
-import "../privacy-vault/CurvyVault.sol";
+import "../vault/CurvyVault.sol";
 import {PoseidonT4} from "./utils/PoseidonT4.sol";
 
 /**
@@ -37,7 +37,7 @@ contract CurvyAggregator
     
     function _authorizeUpgrade(address _newImplementation) internal {}
 
-    function updateConfig(CurvyAggregator_Types.ConfigurationUpdate memory _update)
+    function updateConfig(ConfigurationUpdate memory _update)
     public onlyOperator
     returns (bool _success)
     {
@@ -71,7 +71,7 @@ contract CurvyAggregator
 
     function depositNote(
         address from,
-        CurvyAggregator_Types.Note memory note,
+        CurvyAggregator.Note memory note,
         bytes memory signature
     ) public {
         // TODO: Gas fee
@@ -252,23 +252,28 @@ contract CurvyAggregator
             uint256 amount = publicInputs[4 + i];
             address destinationAddress = address(uint160(publicInputs[6 + i]));
             if (amount != 0) {
-                curvyVault.safeTransferFrom(
-                    address(this),
-                    destinationAddress,
-                    publicInputs[9],
-                    amount,
-                    new bytes(0)
+                curvyVault.transfer(
+                    CurvyMetaTransaction(
+                        address(this),
+                        destinationAddress,
+                        publicInputs[9],
+                        amount,
+                        0,
+                        CurvyMetaTransactionType.Withdraw
+                    )
                 );
             }
         }
 
-        // Transfer fee
-        curvyVault.safeTransferFrom(
-            address(this),
-            feeCollector,
-            publicInputs[9],
-            publicInputs[1],
-            new bytes(0)
+        curvyVault.transfer(
+            CurvyMetaTransaction(
+                address(this),
+                feeCollector,
+                publicInputs[9],
+                publicInputs[1],
+                0,
+                CurvyMetaTransactionType.Withdraw
+            )
         );
 
         return true;

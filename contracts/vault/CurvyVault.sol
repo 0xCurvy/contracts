@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.8.28;
+
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -84,7 +88,7 @@ contract CurvyVault is Initializable, EIP712Upgradeable {
         emit Transfer(from, address(0x0), tokenId, amount);
     }
 
-    function _validateSignature(CurvyMetaTransaction metaTransaction, bytes memory signature) internal {
+    function _validateSignature(CurvyMetaTransaction calldata metaTransaction, bytes memory signature) internal {
         bytes32 structHash = keccak256(
             abi.encode(
                 CURVY_META_TRANSACTION_TYPE_HASH,
@@ -109,7 +113,7 @@ contract CurvyVault is Initializable, EIP712Upgradeable {
         emit NonceChange(signer, _nonces[signer]);
     }
 
-    function _transfer(CurvyMetaTransaction metaTransaction) private {
+    function _transfer(CurvyMetaTransaction calldata metaTransaction) private {
         require(metaTransaction.to != address(0), "Invalid recipient for transfer");
 
         _balances[metaTransaction.from][metaTransaction.tokenId] -= metaTransaction.amount;
@@ -131,7 +135,7 @@ contract CurvyVault is Initializable, EIP712Upgradeable {
         emit Transfer(metaTransaction.from, metaTransaction.to, metaTransaction.tokenId, metaTransaction.amount);
     }
 
-    function _withdraw(CurvyMetaTransaction metaTransaction) private {
+    function _withdraw(CurvyMetaTransaction calldata metaTransaction) private {
         require(metaTransaction.to != address(0), "Invalid withdraw recipient");
 
         // Burn wrapped tokens
@@ -228,14 +232,14 @@ contract CurvyVault is Initializable, EIP712Upgradeable {
         emit Transfer(address(0x0), to, tokenId, amount);
     }
 
-    function transfer(CurvyMetaTransaction metaTransaction) external {
+    function transfer(CurvyMetaTransaction calldata metaTransaction) external {
         require(msg.sender == metaTransaction.from, "Invalid msg.sender");
         require(metaTransaction.gasFee == 0, "gasFee must be 0 when not relaying metaTransaction for others");
 
         _transfer(metaTransaction);
     }
 
-    function transfer(CurvyMetaTransaction metaTransaction, bytes memory signature) external {
+    function transfer(CurvyMetaTransaction calldata metaTransaction, bytes memory signature) external {
         require(metaTransaction.metaTransactionType == CurvyMetaTransactionType.Withdraw, "Wrong type for meta transaction");
 
         _validateSignature(metaTransaction, signature);
@@ -243,14 +247,14 @@ contract CurvyVault is Initializable, EIP712Upgradeable {
         _transfer(metaTransaction);
     }
 
-    function withdraw(CurvyMetaTransaction metaTransaction) external {
+    function withdraw(CurvyMetaTransaction calldata metaTransaction) external {
         require(msg.sender == metaTransaction.from, "Invalid msg.sender");
         require(metaTransaction.gasFee == 0, "gasFee must be 0 when not relaying metaTransaction for others");
 
         _withdraw(metaTransaction);
     }
 
-    function withdraw(CurvyMetaTransaction metaTransaction, bytes memory signature) external {
+    function withdraw(CurvyMetaTransaction calldata metaTransaction, bytes memory signature) external {
         require(metaTransaction.metaTransactionType == CurvyMetaTransactionType.Withdraw, "Wrong type for meta transaction");
         _validateSignature(metaTransaction, signature);
 
@@ -281,7 +285,7 @@ contract CurvyVault is Initializable, EIP712Upgradeable {
         return _balances[owner][tokenId];
     }
 
-    function balanceOfBatch(address[] memory owners, uint256[] memory tokenIds) external returns (uint256[] memory) {
+    function balanceOfBatch(address[] memory owners, uint256[] memory tokenIds) external view returns (uint256[] memory) {
         require(owners.length == tokenIds.length, "Invalid array length");
 
         // Variables
