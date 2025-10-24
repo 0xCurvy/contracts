@@ -1,18 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
 
+
+import { ICurvyInsertionVerifier, ICurvyAggregationVerifier,  ICurvyWithdrawVerifier } from "./verifiers/ICurvyVerifiers.sol";
+
+import "../privacy-vault/CurvyVault.sol";
 import {PoseidonT4} from "./utils/PoseidonT4.sol";
-
-import {MetaERC20Wrapper} from "../wrapper/MetaERC20Wrapper.sol";
-
-import {
-ICurvyInsertionVerifier,
-ICurvyAggregationVerifier,
-ICurvyWithdrawVerifier
-} from "../interfaces/ICurvyVerifiers.sol";
-
-import {CurvyAggregator_Types} from "./utils/_Types.sol";
-import {CurvyAggregator_Constants} from "./utils/_Constants.sol";
 
 /**
  * @title CurvyAggregator_NoAssetTransfer
@@ -21,6 +14,21 @@ import {CurvyAggregator_Constants} from "./utils/_Constants.sol";
  */
 contract CurvyAggregator
 {
+    struct ConfigurationUpdate {
+        address insertionVerifier;
+        address aggregationVerifier;
+        address withdrawVerifier;
+        address operator;
+        address feeCollector;
+        address payable curvyVault;
+    }
+
+    struct Note {
+        uint256 ownerHash;
+        uint256 token;
+        uint256 amount;
+    }
+
     /// @notice Link to wrapper contract
     constructor() {
         operator = msg.sender;
@@ -48,8 +56,8 @@ contract CurvyAggregator
         if (_update.feeCollector != address(0)) {
             feeCollector = _update.feeCollector;
         }
-        if (_update.tokenWrapper != address(0)) {
-            tokenWrapper = MetaERC20Wrapper(_update.tokenWrapper);
+        if (_update.curvyVault != address(0)) {
+            curvyVault = CurvyVault(_update.curvyVault);
         }
 
         return true;
@@ -62,18 +70,12 @@ contract CurvyAggregator
     //     ubacuje u niz noteova koji je pending queue
 
     function depositNote(
-        address fromAddress,
+        address from,
         CurvyAggregator_Types.Note memory note,
         bytes memory signature
     ) public {
-        tokenWrapper.metaSafeTransferFrom(
-            fromAddress,
-            address(this),
-            note.token,
-            note.amount,
-            true,
-            signature
-        );
+        // TODO: Gas fee
+        curvyVault.transfer(CurvyMetaTransaction(from, address(this), note.token, note.amount, 0, CurvyMetaTransactionType.Transfer), signature);
 
         uint256 noteId = PoseidonT4.hash([note.ownerHash, note.amount, note.token]);
 
@@ -250,7 +252,7 @@ contract CurvyAggregator
             uint256 amount = publicInputs[4 + i];
             address destinationAddress = address(uint160(publicInputs[6 + i]));
             if (amount != 0) {
-                tokenWrapper.safeTransferFrom(
+                curvyVault.safeTransferFrom(
                     address(this),
                     destinationAddress,
                     publicInputs[9],
@@ -261,7 +263,7 @@ contract CurvyAggregator
         }
 
         // Transfer fee
-        tokenWrapper.safeTransferFrom(
+        curvyVault.safeTransferFrom(
             address(this),
             feeCollector,
             publicInputs[9],
@@ -292,8 +294,7 @@ contract CurvyAggregator
     /// @notice Maximum number of withdrawals
     uint256 constant MAX_WITHDRAWALS = 2;
 
-    /// @notice Link to wrapper contract
-    MetaERC20Wrapper public tokenWrapper;
+    CurvyVault public curvyVault;
 
     /// @notice Queue of note ids waiting for deposit commitment
     mapping(uint256 => bool) public pendingIdsQueue;
