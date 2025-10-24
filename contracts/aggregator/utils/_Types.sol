@@ -22,6 +22,7 @@ library CurvyAggregator_Types {
         address withdrawVerifier;
         address operator;
         address feeCollector;
+        address payable tokenWrapper;
     }
 
     /**
