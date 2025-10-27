@@ -1,47 +1,97 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
 
+import { PoseidonT4} from "poseidon-solidity/PoseidonT4.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { EIP712Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 
+import { ICurvyVault } from "../vault/ICurvyVault.sol";
 import { ICurvyInsertionVerifier, ICurvyAggregationVerifier,  ICurvyWithdrawVerifier } from "./verifiers/ICurvyVerifiers.sol";
-
-// TODO: Extract types away from versioned vault
-import "../vault/CurvyVaultV1.sol";
-import {PoseidonT4} from "./utils/PoseidonT4.sol";
+import { CurvyTypes } from "../utils/Types.sol";
 
 /**
- * @title CurvyAggregator_NoAssetTransfer
+ * @title CurvyAggregator
  * @author Curvy Protocol (https://curvy.box)
  * @dev Curvy's Aggregator contract.
  */
-contract CurvyAggregator
-{
-    struct ConfigurationUpdate {
-        address insertionVerifier;
-        address aggregationVerifier;
-        address withdrawVerifier;
-        address operator;
-        address feeCollector;
-        address payable curvyVault;
+contract CurvyAggregator is Initializable, EIP712Upgradeable, UUPSUpgradeable {
+    //#region Events
+
+    event DepositedNote(uint256 noteId);
+
+    //#endregion
+
+    //#region State variables
+
+    // Maximum number of notes to commit in deposit
+    uint256 public maxNotesToCommitInDeposit;
+    // Maximum number of withdrawals
+    uint256 public maxWithdrawals;
+    // Maximum number of aggregations
+    uint256 public maxAggregations;
+
+    // Queue of note ids waiting for deposit commitment
+    mapping(uint256 => bool) private _pendingIdsQueue;
+
+    // Root of the tree containing all notes.
+    uint256 private _notesTreeRoot;
+    // Root of the tree contaiing all of the used nullifiers.
+    uint256 private _nullifiersTreeRoot;
+
+    // Curvy's vault contract
+    ICurvyVault public curvyVault;
+
+    //Curvy's insertion verifier.
+    ICurvyInsertionVerifier public insertionVerifier;
+    //Curvy's aggregation verifier.
+    ICurvyAggregationVerifier public aggregationVerifier;
+    //Curvy's withdraw verifier.
+    ICurvyWithdrawVerifier public withdrawVerifier;
+
+    // Admin is used for:
+    // - Updating config
+    // - Reseting trees
+    address public admin;
+
+    //#endregion
+
+    //#region Modifiers
+
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "CurvyAggregator: Only admin can call this function!");
+        _;
     }
 
-    struct Note {
-        uint256 ownerHash;
-        uint256 token;
-        uint256 amount;
-    }
+    //#endregion
 
-    /// @notice Link to wrapper contract
+    //#region Init functions
+
     constructor() {
-        operator = msg.sender;
-        feeCollector = msg.sender;
+        _disableInitializers();
     }
-    
-    function _authorizeUpgrade(address _newImplementation) internal {}
 
-    function updateConfig(ConfigurationUpdate memory _update)
-    public onlyOperator
-    returns (bool _success)
+    function initialize(address curvyVaultProxyAddress) public initializer {
+        __EIP712_init("Curvy Aggregator", "1.0");
+
+        maxNotesToCommitInDeposit = 2;
+        maxWithdrawals = 2;
+        maxAggregations = 2;
+
+        curvyVault = ICurvyVault(curvyVaultProxyAddress);
+    }
+
+    function _authorizeUpgrade(address) internal override onlyAdmin {}
+
+    //#endregion
+
+    //#region Admin functions
+
+    function updateConfig(CurvyTypes.AggregatorConfigurationUpdate memory _update) external onlyAdmin returns (bool)
     {
+        if (_update.admin != address(0)) {
+            admin = _update.admin;
+        }
         if (_update.insertionVerifier != address(0)) {
             insertionVerifier = ICurvyInsertionVerifier(_update.insertionVerifier);
         }
@@ -51,283 +101,161 @@ contract CurvyAggregator
         if (_update.withdrawVerifier != address(0)) {
             withdrawVerifier = ICurvyWithdrawVerifier(_update.withdrawVerifier);
         }
-        if (_update.operator != address(0)) {
-            operator = _update.operator;
-        }
-        if (_update.feeCollector != address(0)) {
-            feeCollector = _update.feeCollector;
-        }
         if (_update.curvyVault != address(0)) {
-            curvyVault = CurvyVaultV1(_update.curvyVault);
+            curvyVault = ICurvyVault(_update.curvyVault);
         }
 
         return true;
     }
 
-    event DepositedNote(uint256 noteId);
+    function reset(uint256 newNotesTreeRoot, uint256 newNullifiersTreeRoot) external onlyAdmin {
+        _notesTreeRoot = newNotesTreeRoot;
+        _nullifiersTreeRoot = newNullifiersTreeRoot;
+    }
 
-    // depositNotes function from the CSUC (wrap)
-    //     sa kojeg walleta se prebacuje i koliko i koji ownerHash se prebacuje
-    //     ubacuje u niz noteova koji je pending queue
+    //#endregions
+
+    //#region Public functions
 
     function depositNote(
         address from,
-        CurvyAggregator.Note memory note,
+        CurvyTypes.Note memory note,
         bytes memory signature
     ) public {
         // TODO: Gas fee
-        curvyVault.transfer(CurvyMetaTransaction(from, address(this), note.token, note.amount, 0, CurvyMetaTransactionType.Transfer), signature);
+        curvyVault.transfer(CurvyTypes.MetaTransaction(from, address(this), note.token, note.amount, 0, CurvyTypes.MetaTransactionType.Transfer), signature);
 
         uint256 noteId = PoseidonT4.hash([note.ownerHash, note.amount, note.token]);
 
-        pendingIdsQueue[noteId] = true;
+        _pendingIdsQueue[noteId] = true;
 
         emit DepositedNote(noteId);
     }
 
-    // commitDepositBatch function
-    //     receive proof
-    //     calculate hash of notes from array
-    //     check root
-    //     verify proof
-    //     update root (note)
-    //     clear pending queue
-
-    // circuit:
-    // ------------20-50---------------
-    // public inputs:
-    //      noteIds             idx = {0, 1, ..., 50}
-    //      oldNotesRoot        idx = 51
-    //      newNotesRoot        idx = 52
-    // ------------20-2----------------
-    // public inputs:
-    //      noteIds             idx = {0, 1}
-    //      oldNotesRoot        idx = 2
-    //      newNotesRoot        idx = 3
-    // ---------------------------------
     function commitDepositBatch(
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
         uint256[4] memory publicInputs
     ) public returns (bool success) {
-        for (uint256 i = 0; i < MAX_PENDING; i += 1) {
+        for (uint256 i = 0; i < maxNotesToCommitInDeposit; i += 1) {
             uint256 noteId = publicInputs[i];
             if (noteId != 0) {
-                require(pendingIdsQueue[noteId], "Note not scheduled for deposit!");
-                delete pendingIdsQueue[noteId];
+                require(_pendingIdsQueue[noteId], "CurvyAggregator#commitDepositBatch: Note not scheduled for deposit!");
+                delete _pendingIdsQueue[noteId];
             }
         }
 
         uint256 numPublicInputs = publicInputs.length;
 
         require(
-            notesTreeRoot == publicInputs[numPublicInputs - 2],
-            "Invalid notes root"
+            _notesTreeRoot == publicInputs[numPublicInputs - 2],
+            "CurvyAggregator#commitDepositBatch: Invalid notes root!"
         );
 
         require(
             insertionVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),
-            "CurvyAggregator: invalid insertion proof!"
+            "CurvyAggregator#commitDepositBatch: Invalid proof!"
         );
 
-        notesTreeRoot = publicInputs[numPublicInputs - 1];
+        _notesTreeRoot = publicInputs[numPublicInputs - 1];
 
         return true;
     }
-
-    // commitAggregationBatch function
-    //     receive proof
-    //     calculate hash of nullifiers
-    //     check roots
-    //     verify proof
-    //     update roots
-
-    // circuit:
-    // ------------10-10-2---------------
-    // outputs:
-    //      outputNoteIds       idx = {0, 1, ..., 20}
-    // public inputs:
-    //      oldNullifiersRoot   idx = 21
-    //      newNullifiersRoot   idx = 22
-    //      oldNotesRoot        idx = 23
-    //      newNotesRoot        idx = 24
-    //      ephemeralKeys       idx = {25, 26, ..., 44}
-    //      nullifiersHash      idx = 45
-    // ------------2-2-2----------------
-    // outputs:
-    //      outputNoteIds       idx = {0, 1, 2, 3, 4}
-    // public inputs:
-    //      oldNullifiersRoot   idx = 5
-    //      newNullifiersRoot   idx = 6
-    //      oldNotesRoot        idx = 7
-    //      newNotesRoot        idx = 8
-    //      ephemeralKeys       idx = {9, 10, 11, 12}
-    //      nullifiersHash      idx = 13
-    // ---------------------------------
 
     function commitAggregationBatch(
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
         uint256[14] memory publicInputs
-    ) public returns (bool success) {
-        // uint256 oldNullifiersTreeRoot = publicInputs[21];
-        // uint256 newNullifiersTreeRoot = publicInputs[22];
-        // uint256 oldNotesTreeRoot = publicInputs[23];
-        // uint256 newNotesTreeRoot = publicInputs[24];
+    ) public returns (bool) {
+        uint256 oldNullifiersTreeRoot = publicInputs[2 * maxAggregations + 1];
+        uint256 newNullifiersTreeRoot = publicInputs[2 * maxAggregations + 2];
+        uint256 oldNotesTreeRoot = publicInputs[2 * maxAggregations + 3];
+        uint256 newNotesTreeRoot = publicInputs[2 * maxAggregations + 4];
 
-        uint256 oldNullifiersTreeRoot = publicInputs[5];
-        uint256 newNullifiersTreeRoot = publicInputs[6];
-        uint256 oldNotesTreeRoot = publicInputs[7];
-        uint256 newNotesTreeRoot = publicInputs[8];
-
-        require(notesTreeRoot == oldNotesTreeRoot, "CurvyAggregator: current note tree root mismatch!");
-        require(nullifiersTreeRoot == oldNullifiersTreeRoot, "CurvyAggregator: current nullifier tree root mismatch!");
+        require(_notesTreeRoot == oldNotesTreeRoot, "CurvyAggregator#commitAggregationBatch: Current note tree root mismatch!");
+        require(_nullifiersTreeRoot == oldNullifiersTreeRoot, "CurvyAggregator#commitAggregationBatch: Current nullifier tree root mismatch!");
 
         require(
             aggregationVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),
-            "CurvyAggregator: invalid aggregation proof!"
+            "CurvyAggregator#commitAggregationBatch: Invalid proof!"
         );
 
         // Update the roots of the trees
-        notesTreeRoot = newNotesTreeRoot;
-        nullifiersTreeRoot = newNullifiersTreeRoot;
+        _notesTreeRoot = newNotesTreeRoot;
+        _nullifiersTreeRoot = newNullifiersTreeRoot;
 
         return true;
     }
-
-    // commitWithdrawBatch function
-    //     receive proof
-    //     calculate hash of nullifiers
-    //     check roots
-    //     verify proof
-    //     update root (nullifier)
-    //     execute transfers in batch
-
-    // circuit:
-    // ------------10-10-20---------------
-    // outputs:
-    //      newNullifierRoot    idx = 0
-    //      feeAmount           idx = 1
-    // public inputs:
-    //      notesTreeRoot       idx = 2
-    //      oldNullifiersRoot   idx = 3
-    //      withdrawnAmounts    idx = {4, 5, ..., 13}
-    //      destinationAddress  idx = {14, 15, ..., 23}
-    //      nullifiersHash      idx = 24
-    //      token               idx = 25
-    // ------------2-2-20---------------
-    // outputs:
-    //      newNullifierRoot    idx = 0
-    //      feeAmount           idx = 1
-    // public inputs:
-    //      notesTreeRoot       idx = 2
-    //      oldNullifiersRoot   idx = 3
-    //      withdrawnAmounts    idx = {4, 5}
-    //      destinationAddress  idx = {6, 7}
-    //      nullifiersHash      idx = 8
-    //      token               idx = 9
-    // ---------------------------------
 
     function commitWithdrawalBatch(
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
         uint256[10] memory publicInputs
-    ) public returns (bool success) {
+    ) public returns (bool) {
 
-        require(publicInputs[3] == nullifiersTreeRoot, "CurvyAggregator: current nullifier tree root mismatch!");
-        require(publicInputs[2] == notesTreeRoot, "CurvyAggregator: current note tree root mismatch!");
+        require(publicInputs[3] == _nullifiersTreeRoot, "CurvyAggregator#commitWithdrawalBatch: Current nullifier tree root mismatch!");
+        require(publicInputs[2] == _notesTreeRoot, "CurvyAggregator#commitWithdrawalBatch: Current note tree root mismatch!");
 
         require(
             withdrawVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),
-            "CurvyAggregator: invalid withdraw proof!"
+            "CurvyAggregator#commitWithdrawalBatch: Invalid withdraw proof!"
         );
 
         // Update the root of the nullifier tree
-        nullifiersTreeRoot = publicInputs[0];
+        _nullifiersTreeRoot = publicInputs[0];
+
+        uint256 numPublicInputs = publicInputs.length;
 
         // Transfer withdrawals
-        for (uint256 i = 0; i < MAX_WITHDRAWALS; i += 1) {
+        for (uint256 i = 0; i < maxWithdrawals; i += 1) {
             uint256 amount = publicInputs[4 + i];
-            address destinationAddress = address(uint160(publicInputs[6 + i]));
+            address destinationAddress = address(uint160(publicInputs[4 + maxWithdrawals + i]));
             if (amount != 0) {
                 curvyVault.transfer(
-                    CurvyMetaTransaction(
+                    CurvyTypes.MetaTransaction(
                         address(this),
                         destinationAddress,
-                        publicInputs[9],
+                        publicInputs[numPublicInputs - 1],
                         amount,
                         0,
-                        CurvyMetaTransactionType.Withdraw
+                        CurvyTypes.MetaTransactionType.Withdraw
                     )
                 );
             }
         }
 
         curvyVault.transfer(
-            CurvyMetaTransaction(
+            CurvyTypes.MetaTransaction(
                 address(this),
-                feeCollector,
-                publicInputs[9],
+                admin,
+                publicInputs[numPublicInputs - 1],
                 publicInputs[1],
                 0,
-                CurvyMetaTransactionType.Withdraw
+                CurvyTypes.MetaTransactionType.Withdraw
             )
         );
 
         return true;
     }
 
-    function noteTree() public view returns (uint256 _root) {
-        return notesTreeRoot;
+    //#endregion
+
+    //#region View functions
+
+    function getNoteTreeRoot() external view returns (uint256) {
+        return _notesTreeRoot;
     }
 
-    function nullifierTree() public view returns (uint256 _root) {
-        return nullifiersTreeRoot;
+    function getNullifierTreeRoot() external view returns (uint256) {
+        return _nullifiersTreeRoot;
     }
 
-    function reset(uint256 newNotesTreeRoot, uint256 newNullifiersTreeRoot) public onlyOperator {
-        notesTreeRoot = newNotesTreeRoot;
-        nullifiersTreeRoot = newNullifiersTreeRoot;
+    function noteInQueue(uint256 noteId) external view returns (bool) {
+        return _pendingIdsQueue[noteId];
     }
 
-    // ------------------------------------------------------------------ Storage
-    /// @notice Maximum number of pending notes
-    uint256 constant MAX_PENDING = 2;
-
-    /// @notice Maximum number of withdrawals
-    uint256 constant MAX_WITHDRAWALS = 2;
-
-    CurvyVaultV1 public curvyVault;
-
-    /// @notice Queue of note ids waiting for deposit commitment
-    mapping(uint256 => bool) public pendingIdsQueue;
-
-    /// @notice Root of the tree containing all notes.
-    uint256 notesTreeRoot;
-    /// @notice Root of the tree contaiing all of the used nullifiers.
-    uint256 nullifiersTreeRoot;
-
-    /// @notice Curvy's insertion verifier.
-    ICurvyInsertionVerifier public insertionVerifier;
-
-    /// @notice Curvy's aggregation verifier.
-    ICurvyAggregationVerifier public aggregationVerifier;
-
-    /// @notice Curvy's withdraw verifier.
-    ICurvyWithdrawVerifier public withdrawVerifier;
-
-    /// @notice Curvy Operator
-    address public operator;
-
-    /// @notice Curvy Fee Collector
-    address public feeCollector;
-
-    /// @notice Modifier to ensure that the function can be called only by the Curvy Operator.
-    modifier onlyOperator() {
-        require(msg.sender == operator, "CurvyAggregator: only operator can call this function!");
-        _;
-    }
+    //#endregion
 }
