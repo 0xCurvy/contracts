@@ -2,6 +2,7 @@
 pragma solidity ^0.8.28;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -17,7 +18,7 @@ struct CurvyMetaTransaction {
     CurvyMetaTransactionType metaTransactionType;
 }
 
-contract CurvyVault is Initializable, EIP712Upgradeable {
+contract CurvyVaultV1 is Initializable, EIP712Upgradeable, UUPSUpgradeable {
     using SafeERC20 for IERC20;
 
     //#region Events
@@ -41,7 +42,7 @@ contract CurvyVault is Initializable, EIP712Upgradeable {
     mapping(address => uint256) private _nonces;
 
     // Number of ERC-20 tokens registered
-    uint256 private _numberOfTokens = 1;
+    uint256 private _numberOfTokens;
     // Maps the ERC-20 contract addresses to their tokenId
     mapping(address => uint256) private _tokenAddressToTokenId;
     // Maps the ERC-20 contract addresses to their tokenId
@@ -66,10 +67,17 @@ contract CurvyVault is Initializable, EIP712Upgradeable {
     //#endregion
 
     //#region Init functions
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize() public initializer {
         // Set native currency (ETH) in the token mappings
         _tokenAddressToTokenId[ETH_ADDRESS] = ETH_ID;
         _tokenIdToTokenAddress[ETH_ID] = ETH_ADDRESS;
+        _numberOfTokens = 1;
 
         __EIP712_init("Curvy Privacy Vault", "1.0");
 
@@ -77,6 +85,9 @@ contract CurvyVault is Initializable, EIP712Upgradeable {
         transferFee = 0; // Transfer fee is 0 because we are doing the fee collection for Agg dep/wit on CurvyAggregator.sol
         withdrawalFee = 20;
     }
+
+    function _authorizeUpgrade(address) internal override onlyAdmin {}
+
     //#endregion
 
     //#region Private functions
@@ -265,16 +276,16 @@ contract CurvyVault is Initializable, EIP712Upgradeable {
 
     //#region View functions
 
-    function getTokenAddress(uint256 _id) public view returns (address token) {
-        token = _tokenIdToTokenAddress[_id];
-        require(token != address(0x0), "MetaERC20Wrapper#getIdAddress: UNREGISTERED_TOKEN");
-        return token;
+    function getTokenAddress(uint256 tokenId) public view returns (address tokenAddress) {
+        tokenAddress = _tokenIdToTokenAddress[tokenId];
+        require(tokenAddress != address(0x0), "MetaERC20Wrapper#getIdAddress: UNREGISTERED_TOKEN");
+        return tokenAddress;
     }
 
-    function getTokenID(address tokenId) public view returns (uint256 tokenID) {
-        tokenID = _tokenAddressToTokenId[tokenId];
-        require(tokenID != 0, "MetaERC20Wrapper#getTokenID: UNREGISTERED_TOKEN");
-        return tokenID;
+    function getTokenId(address tokenAddress) public view returns (uint256 tokenId) {
+        tokenId = _tokenAddressToTokenId[tokenAddress];
+        require(tokenId != 0, "MetaERC20Wrapper#getTokenID: UNREGISTERED_TOKEN");
+        return tokenId;
     }
 
     function getNumberOfTokens() external view returns (uint256) {

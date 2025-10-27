@@ -4,7 +4,8 @@ pragma solidity ^0.8.28;
 
 import { ICurvyInsertionVerifier, ICurvyAggregationVerifier,  ICurvyWithdrawVerifier } from "./verifiers/ICurvyVerifiers.sol";
 
-import "../vault/CurvyVault.sol";
+// TODO: Extract types away from versioned vault
+import "../vault/CurvyVaultV1.sol";
 import {PoseidonT4} from "./utils/PoseidonT4.sol";
 
 /**
@@ -57,7 +58,7 @@ contract CurvyAggregator
             feeCollector = _update.feeCollector;
         }
         if (_update.curvyVault != address(0)) {
-            curvyVault = CurvyVault(_update.curvyVault);
+            curvyVault = CurvyVaultV1(_update.curvyVault);
         }
 
         return true;
@@ -299,7 +300,7 @@ contract CurvyAggregator
     /// @notice Maximum number of withdrawals
     uint256 constant MAX_WITHDRAWALS = 2;
 
-    CurvyVault public curvyVault;
+    CurvyVaultV1 public curvyVault;
 
     /// @notice Queue of note ids waiting for deposit commitment
     mapping(uint256 => bool) public pendingIdsQueue;
