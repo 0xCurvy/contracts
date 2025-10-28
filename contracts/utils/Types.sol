@@ -14,11 +14,13 @@ library CurvyTypes {
     }
 
     struct AggregatorConfigurationUpdate {
-        address admin;
         address insertionVerifier;
         address aggregationVerifier;
         address withdrawVerifier;
         address curvyVault;
+        uint256 maxNotesToCommitInDeposit;
+        uint256 maxWithdrawals;
+        uint256 maxAggregations;
     }
 
     struct Note {

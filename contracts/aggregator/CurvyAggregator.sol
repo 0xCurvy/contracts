@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 import { PoseidonT4} from "poseidon-solidity/PoseidonT4.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import { EIP712Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import { ICurvyVault } from "../vault/ICurvyVault.sol";
 import { ICurvyInsertionVerifier, ICurvyAggregationVerifier,  ICurvyWithdrawVerifier } from "./verifiers/ICurvyVerifiers.sol";
@@ -15,7 +15,7 @@ import { CurvyTypes } from "../utils/Types.sol";
  * @author Curvy Protocol (https://curvy.box)
  * @dev Curvy's Aggregator contract.
  */
-contract CurvyAggregator is Initializable, EIP712Upgradeable, UUPSUpgradeable {
+contract CurvyAggregatorV1 is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     //#region Events
 
     event DepositedNote(uint256 noteId);
@@ -26,10 +26,10 @@ contract CurvyAggregator is Initializable, EIP712Upgradeable, UUPSUpgradeable {
 
     // Maximum number of notes to commit in deposit
     uint256 public maxNotesToCommitInDeposit;
-    // Maximum number of withdrawals
-    uint256 public maxWithdrawals;
     // Maximum number of aggregations
     uint256 public maxAggregations;
+    // Maximum number of withdrawals
+    uint256 public maxWithdrawals;
 
     // Queue of note ids waiting for deposit commitment
     mapping(uint256 => bool) private _pendingIdsQueue;
@@ -49,49 +49,32 @@ contract CurvyAggregator is Initializable, EIP712Upgradeable, UUPSUpgradeable {
     //Curvy's withdraw verifier.
     ICurvyWithdrawVerifier public withdrawVerifier;
 
-    // Admin is used for:
-    // - Updating config
-    // - Reseting trees
-    address public admin;
-
-    //#endregion
-
-    //#region Modifiers
-
-    modifier onlyAdmin() {
-        require(msg.sender == admin, "CurvyAggregator: Only admin can call this function!");
-        _;
-    }
-
     //#endregion
 
     //#region Init functions
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
 
-    function initialize(address curvyVaultProxyAddress) public initializer {
-        __EIP712_init("Curvy Aggregator", "1.0");
-
+    function initialize(address initialOwner, address curvyVaultProxyAddress) public initializer {
         maxNotesToCommitInDeposit = 2;
         maxWithdrawals = 2;
         maxAggregations = 2;
 
+        __Ownable_init(initialOwner);
         curvyVault = ICurvyVault(curvyVaultProxyAddress);
     }
 
-    function _authorizeUpgrade(address) internal override onlyAdmin {}
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     //#endregion
 
-    //#region Admin functions
+    //#region Owner functions
 
-    function updateConfig(CurvyTypes.AggregatorConfigurationUpdate memory _update) external onlyAdmin returns (bool)
+    function updateConfig(CurvyTypes.AggregatorConfigurationUpdate memory _update) external onlyOwner returns (bool)
     {
-        if (_update.admin != address(0)) {
-            admin = _update.admin;
-        }
         if (_update.insertionVerifier != address(0)) {
             insertionVerifier = ICurvyInsertionVerifier(_update.insertionVerifier);
         }
@@ -104,11 +87,20 @@ contract CurvyAggregator is Initializable, EIP712Upgradeable, UUPSUpgradeable {
         if (_update.curvyVault != address(0)) {
             curvyVault = ICurvyVault(_update.curvyVault);
         }
+        if (_update.maxNotesToCommitInDeposit != 0) {
+            maxNotesToCommitInDeposit = _update.maxNotesToCommitInDeposit;
+        }
+        if (_update.maxAggregations != 0) {
+            maxAggregations = _update.maxAggregations;
+        }
+        if (_update.maxWithdrawals != 0) {
+            maxWithdrawals = _update.maxWithdrawals;
+        }
 
         return true;
     }
 
-    function reset(uint256 newNotesTreeRoot, uint256 newNullifiersTreeRoot) external onlyAdmin {
+    function reset(uint256 newNotesTreeRoot, uint256 newNullifiersTreeRoot) external onlyOwner {
         _notesTreeRoot = newNotesTreeRoot;
         _nullifiersTreeRoot = newNullifiersTreeRoot;
     }
@@ -230,7 +222,7 @@ contract CurvyAggregator is Initializable, EIP712Upgradeable, UUPSUpgradeable {
         curvyVault.transfer(
             CurvyTypes.MetaTransaction(
                 address(this),
-                admin,
+                owner(),
                 publicInputs[numPublicInputs - 1],
                 publicInputs[1],
                 0,
