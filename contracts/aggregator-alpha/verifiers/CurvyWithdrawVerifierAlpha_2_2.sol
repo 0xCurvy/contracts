@@ -161,7 +161,7 @@ library Pairing {
         return pairing(p1, p2);
     }
 }
-contract CurvyWithdrawVerifier {
+contract CurvyWithdrawVerifierV1_2_2 {
     using Pairing for *;
     struct VerifyingKey {
         Pairing.G1Point alfa1;

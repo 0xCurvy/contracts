@@ -7,7 +7,7 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import { ICurvyVault } from "../vault/ICurvyVault.sol";
-import { ICurvyInsertionVerifier, ICurvyAggregationVerifier,  ICurvyWithdrawVerifier } from "./verifiers/ICurvyVerifiers.sol";
+import { ICurvyInsertionVerifier, ICurvyAggregationVerifier,  ICurvyWithdrawVerifier } from "./verifiers/ICurvyVerifiersV1.sol";
 import { CurvyTypes } from "../utils/Types.sol";
 
 /**
@@ -15,7 +15,7 @@ import { CurvyTypes } from "../utils/Types.sol";
  * @author Curvy Protocol (https://curvy.box)
  * @dev Curvy's Aggregator contract.
  */
-contract CurvyAggregatorV1 is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract CurvyAggregatorAlphaV1 is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     //#region Events
 
     event DepositedNote(uint256 noteId);
@@ -25,7 +25,7 @@ contract CurvyAggregatorV1 is Initializable, UUPSUpgradeable, OwnableUpgradeable
     //#region State variables
 
     // Maximum number of notes to commit in deposit
-    uint256 public maxNotesToCommitInDeposit;
+    uint256 public maxDeposits;
     // Maximum number of aggregations
     uint256 public maxAggregations;
     // Maximum number of withdrawals
@@ -59,7 +59,7 @@ contract CurvyAggregatorV1 is Initializable, UUPSUpgradeable, OwnableUpgradeable
     }
 
     function initialize(address initialOwner, address curvyVaultProxyAddress) public initializer {
-        maxNotesToCommitInDeposit = 2;
+        maxDeposits = 2;
         maxWithdrawals = 2;
         maxAggregations = 2;
 
@@ -84,11 +84,12 @@ contract CurvyAggregatorV1 is Initializable, UUPSUpgradeable, OwnableUpgradeable
         if (_update.withdrawVerifier != address(0)) {
             withdrawVerifier = ICurvyWithdrawVerifier(_update.withdrawVerifier);
         }
+        // TODO: We probably don't need this.
         if (_update.curvyVault != address(0)) {
             curvyVault = ICurvyVault(_update.curvyVault);
         }
-        if (_update.maxNotesToCommitInDeposit != 0) {
-            maxNotesToCommitInDeposit = _update.maxNotesToCommitInDeposit;
+        if (_update.maxDeposits != 0) {
+            maxDeposits = _update.maxDeposits;
         }
         if (_update.maxAggregations != 0) {
             maxAggregations = _update.maxAggregations;
@@ -130,7 +131,7 @@ contract CurvyAggregatorV1 is Initializable, UUPSUpgradeable, OwnableUpgradeable
         uint256[2] memory proof_c,
         uint256[4] memory publicInputs
     ) public returns (bool success) {
-        for (uint256 i = 0; i < maxNotesToCommitInDeposit; i += 1) {
+        for (uint256 i = 0; i < maxDeposits; i += 1) {
             uint256 noteId = publicInputs[i];
             if (noteId != 0) {
                 require(_pendingIdsQueue[noteId], "CurvyAggregator#commitDepositBatch: Note not scheduled for deposit!");
