@@ -18,7 +18,7 @@ library CurvyTypes {
         address aggregationVerifier;
         address withdrawVerifier;
         address curvyVault;
-        uint256 maxNotesToCommitInDeposit;
+        uint256 maxDeposits;
         uint256 maxWithdrawals;
         uint256 maxAggregations;
     }

@@ -7,7 +7,7 @@ export default buildModule("CurvyVaultV2", (m) => {
 
   const implementation = m.contract("CurvyVaultV2", [], { id: "CurvyVaultV2Implementation" });
 
-  m.call(oldCurvyVault, "upgradeToAndCall", [implementation, "0x"]);
+  m.call(oldCurvyVault, "upgradeToAndCall", [implementation, m.encodeFunctionCall(implementation, "initializeV2", [])]);
 
   const curvyVault = m.contractAt("CurvyVaultV2", proxy);
 

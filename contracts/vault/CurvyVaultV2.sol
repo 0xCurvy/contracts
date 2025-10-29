@@ -11,7 +11,7 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./ICurvyVault.sol";
 import { CurvyTypes } from "../utils/Types.sol";
 
-contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgradeable, OwnableUpgradeable {
+contract CurvyVaultV2 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
 
     //#region Constants
@@ -50,18 +50,8 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
         _disableInitializers();
     }
 
-    function initialize(address initialOwner) public initializer {
-        // Set native currency (ETH) in the token mappings
-        _tokenAddressToTokenId[ETH_ADDRESS] = ETH_ID;
-        _tokenIdToTokenAddress[ETH_ID] = ETH_ADDRESS;
-        _numberOfTokens = 1;
-
+    function initializeV2() reinitializer(2) public {
         __EIP712_init("Curvy Privacy Vault", "2.0");
-        __Ownable_init(initialOwner);
-
-        depositFee = 10;
-        transferFee = 0; // Transfer fee is 0 because we are doing the fee collection for Agg dep/wit on CurvyAggregator.sol
-        withdrawalFee = 20;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}

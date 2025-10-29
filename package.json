@@ -24,7 +24,6 @@
     "@openzeppelin/contracts": "^5.4.0",
     "@openzeppelin/contracts-upgradeable": "^5.4.0",
     "poseidon-lite": "^0.2.1",
-    "poseidon-solidity": "^0.0.5",
     "vitest": "^3.2.4"
   }
 }

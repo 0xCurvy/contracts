@@ -1,12 +1,7 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
 export default buildModule("CurvyVault", (m) => {
-  const version = process.env["CURVY_VAULT_VERSION"];
-  if (!version) {
-    throw new Error("CURVY_VAULT_VERSION env variable is not set");
-  }
-
-  const implementation = m.contract(`CurvyVaultV${version}`, []);
+  const implementation = m.contract("CurvyVaultV1", [], { id: "CurvyVaultV1Implementation" });
 
   const owner = m.getAccount(0);
 
@@ -15,7 +10,7 @@ export default buildModule("CurvyVault", (m) => {
     m.encodeFunctionCall(implementation, "initialize", [owner]),
   ]);
 
-  const curvyVault = m.contractAt(`CurvyVaultV${version}`, proxy, { id: "CurvyVault" });
+  const curvyVault = m.contractAt("CurvyVaultV1", proxy);
 
   return { implementation, proxy, curvyVault };
 });

@@ -1,12 +1,12 @@
 import fs from "node:fs";
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import CurvyAggregator from "./CurvyAggregator";
+import CurvyAggregatorAlphaModule from "./CurvyAggregatorAlpha";
 
 const DEPOSIT_AMOUNT = 1000n * 10n ** 18n;
 
 export default buildModule("Devenv", (m) => {
-  // Deploy aggregator and ERC1155
-  const { metaERC20Wrapper } = m.useModule(CurvyAggregator);
+  // Deploy aggregator and Vault
+  m.useModule(CurvyAggregatorAlphaModule);
 
   // Deploy multicall
   const multicall3 = m.contract("Multicall3");
@@ -15,27 +15,6 @@ export default buildModule("Devenv", (m) => {
   const erc20Mock = m.contract("ERC20Mock");
 
   const deployer = m.getAccount(0);
-
-  m.call(metaERC20Wrapper, "deposit", ["0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", deployer, DEPOSIT_AMOUNT / 2n], {
-    value: DEPOSIT_AMOUNT / 2n,
-    id: "depositETH",
-  });
-
-  const mintErc20 = m.call(erc20Mock, "mockMint", [deployer, DEPOSIT_AMOUNT]);
-
-  const approval = m.call(erc20Mock, "approve", [metaERC20Wrapper, DEPOSIT_AMOUNT], {
-    after: [mintErc20],
-  });
-
-  const registerERC20Mock = m.call(metaERC20Wrapper, "registerToken", [erc20Mock], {
-    after: [approval],
-    id: "registerERC20Mock",
-  });
-
-  m.call(metaERC20Wrapper, "deposit", [erc20Mock, deployer, DEPOSIT_AMOUNT / 2n], {
-    after: [registerERC20Mock],
-    id: "depositERC20Mock",
-  });
 
   const addresses = JSON.parse(fs.readFileSync("../devenv/addresses.json", "utf-8"));
   for (const userAddresses of addresses) {
