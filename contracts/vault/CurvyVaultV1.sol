@@ -21,7 +21,7 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
 
     uint96 constant private FEE_DENOMINATOR = 10000;
 
-    bytes32 private constant CURVY_META_TRANSACTION_TYPE_HASH = keccak256("CurvyMetaTransaction(address from, address to, uint256 tokenId, uint256 amount, uint256 gasFee, uint8 metaTransactionType)");
+    bytes32 private constant CURVY_META_TRANSACTION_TYPE_HASH = keccak256("CurvyMetaTransaction(uint256 nonce, address from, address to, uint256 tokenId, uint256 amount, uint256 gasFee, uint8 metaTransactionType)");
 
     //#endregion
 
@@ -78,7 +78,7 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
         emit Transfer(from, address(0x0), tokenId, amount);
     }
 
-    function _validateSignature(CurvyTypes.MetaTransaction calldata metaTransaction, bytes memory signature) internal {
+    function _validateSignature(CurvyTypes.MetaTransaction calldata metaTransaction, bytes memory signature) private {
         bytes32 structHash = keccak256(
             abi.encode(
                 CURVY_META_TRANSACTION_TYPE_HASH,
@@ -87,7 +87,8 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
                 metaTransaction.to,
                 metaTransaction.tokenId,
                 metaTransaction.amount,
-                metaTransaction.gasFee
+                metaTransaction.gasFee,
+                metaTransaction.metaTransactionType
             )
         );
 
@@ -232,7 +233,7 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
     }
 
     function transfer(CurvyTypes.MetaTransaction calldata metaTransaction, bytes memory signature) external {
-        require(metaTransaction.metaTransactionType == CurvyTypes.MetaTransactionType.Withdraw, "CurvyVault#transfer: Wrong type for meta transaction!");
+        require(metaTransaction.metaTransactionType == CurvyTypes.MetaTransactionType.Transfer, "CurvyVault#transfer: Wrong type for meta transaction!");
 
         _validateSignature(metaTransaction, signature);
 
@@ -289,6 +290,11 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
         }
 
         return batchBalances;
+    }
+
+    function getNonce(address _signer) external view returns (uint256 nonce)
+    {
+        return _nonces[_signer];
     }
 
     //#endregion

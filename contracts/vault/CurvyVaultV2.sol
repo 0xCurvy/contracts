@@ -222,7 +222,7 @@ contract CurvyVaultV2 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
     }
 
     function transfer(CurvyTypes.MetaTransaction calldata metaTransaction, bytes memory signature) external {
-        require(metaTransaction.metaTransactionType == CurvyTypes.MetaTransactionType.Withdraw, "CurvyVault#transfer: Wrong type for meta transaction!");
+        require(metaTransaction.metaTransactionType == CurvyTypes.MetaTransactionType.Transfer, "CurvyVault#transfer: Wrong type for meta transaction!");
 
         _validateSignature(metaTransaction, signature);
 

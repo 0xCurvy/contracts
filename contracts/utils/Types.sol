@@ -5,6 +5,7 @@ library CurvyTypes {
     enum MetaTransactionType {Withdraw, Transfer, Deposit}
 
     struct MetaTransaction {
+        // + nonce when signing
         address from;
         address to;
         uint256 tokenId;
