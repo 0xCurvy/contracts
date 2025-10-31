@@ -1,8 +1,8 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-import CurvyVaultModule from "./CurvyVault";
+import CurvyVaultModule from "../CurvyVault";
 
-export default buildModule("CurvyVaultV2", (m) => {
+export default buildModule("CurvyVaultV2Mock", (m) => {
   const { proxy, curvyVault: oldCurvyVault } = m.useModule(CurvyVaultModule);
 
   const implementation = m.contract("CurvyVaultV2", [], { id: "CurvyVaultV2Implementation" });
