@@ -7,7 +7,6 @@ import { EIP712Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/cry
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-
 import "./ICurvyVault.sol";
 import { CurvyTypes } from "../utils/Types.sol";
 
@@ -21,14 +20,14 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
 
     uint96 constant private FEE_DENOMINATOR = 10000;
 
-    bytes32 private constant CURVY_META_TRANSACTION_TYPE_HASH = keccak256("CurvyMetaTransaction(uint256 nonce, address from, address to, uint256 tokenId, uint256 amount, uint256 gasFee, uint8 metaTransactionType)");
+    bytes32 private constant CURVY_META_TRANSACTION_TYPE_HASH = keccak256("CurvyMetaTransaction(uint256 nonce,address from,address to,uint256 tokenId,uint256 amount,uint256 gasFee,uint8 metaTransactionType)");
 
     //#endregion
 
     //#region State variables
 
     mapping(address => mapping(uint256 => uint256)) private _balances;
-    mapping(address => uint256) private _nonces;
+    mapping(address => uint256) internal _nonces;
 
     // Number of ERC-20 tokens registered
     uint256 private _numberOfTokens;
@@ -78,7 +77,7 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
         emit Transfer(from, address(0x0), tokenId, amount);
     }
 
-    function _validateSignature(CurvyTypes.MetaTransaction calldata metaTransaction, bytes memory signature) private {
+    function _validateSignature(CurvyTypes.MetaTransaction calldata metaTransaction, bytes memory signature) internal {
         bytes32 structHash = keccak256(
             abi.encode(
                 CURVY_META_TRANSACTION_TYPE_HASH,

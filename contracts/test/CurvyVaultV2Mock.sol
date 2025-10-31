@@ -8,7 +8,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-import "./ICurvyVault.sol";
+import "../vault/ICurvyVault.sol";
 import { CurvyTypes } from "../utils/Types.sol";
 
 contract CurvyVaultV2Mock is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgradeable, OwnableUpgradeable {
