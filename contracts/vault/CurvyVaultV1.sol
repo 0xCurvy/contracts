@@ -69,14 +69,6 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
 
     //#region Private functions
 
-    function _burn(address from, uint256 tokenId, uint256 amount) private {
-        // Subtract _amount
-        _balances[from][tokenId] -= amount;
-
-        // Emit event
-        emit Transfer(from, address(0x0), tokenId, amount);
-    }
-
     function _validateSignature(CurvyTypes.MetaTransaction calldata metaTransaction, bytes memory signature) internal {
         bytes32 structHash = keccak256(
             abi.encode(
@@ -105,6 +97,7 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
 
     function _transfer(CurvyTypes.MetaTransaction calldata metaTransaction) private {
         require(metaTransaction.to != address(0), "CurvyVault#_transfer: Invalid recipient for transfer!");
+        require(metaTransaction.metaTransactionType == CurvyTypes.MetaTransactionType.Transfer, "CurvyVault#transfer: Wrong type for meta transaction!");
 
         _balances[metaTransaction.from][metaTransaction.tokenId] -= metaTransaction.amount;
         _balances[metaTransaction.to][metaTransaction.tokenId] += metaTransaction.amount;
@@ -127,6 +120,7 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
 
     function _withdraw(CurvyTypes.MetaTransaction calldata metaTransaction) private {
         require(metaTransaction.to != address(0), "CurvyVault#_withdraw: Invalid withdraw recipient!");
+        require(metaTransaction.metaTransactionType == CurvyTypes.MetaTransactionType.Withdraw, "CurvyVault#withdraw: Wrong type for meta transaction!");
 
         // Burn wrapped tokens
         _balances[metaTransaction.from][metaTransaction.tokenId] -= metaTransaction.amount;
@@ -232,8 +226,6 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
     }
 
     function transfer(CurvyTypes.MetaTransaction calldata metaTransaction, bytes memory signature) external {
-        require(metaTransaction.metaTransactionType == CurvyTypes.MetaTransactionType.Transfer, "CurvyVault#transfer: Wrong type for meta transaction!");
-
         _validateSignature(metaTransaction, signature);
 
         _transfer(metaTransaction);
@@ -247,7 +239,6 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
     }
 
     function withdraw(CurvyTypes.MetaTransaction calldata metaTransaction, bytes memory signature) external {
-        require(metaTransaction.metaTransactionType == CurvyTypes.MetaTransactionType.Withdraw, "CurvyVault#withdraw: Wrong type for meta transaction!");
         _validateSignature(metaTransaction, signature);
 
         _withdraw(metaTransaction);

@@ -479,7 +479,7 @@ library PoseidonT4 {
                 0x2162754db0baa030bf7de5bb797364dce8c77aa017ee1d7bf65f21c4d4e5df8f,
                 0x12c7553698c4bf6f3ceb250ae00c58c2a9f9291efbde4c8421bef44741752ec6,
                 0x292643e3ba2026affcb8c5279313bd51a733c93353e9d9c79cb723136526508e,
-                0x00ccf13e0cb6f9d81d52951bea990bd5b6c07c5d98e66f71db6e74d5b87d158
+                0x00ccf13e0cb6f9d81d52951bea990bd5b6c07c5d98e66ff71db6e74d5b87d158
             )
 
             pRound(
