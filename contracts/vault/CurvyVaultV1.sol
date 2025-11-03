@@ -106,8 +106,6 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
         if (metaTransaction.gasFee != 0) {
             _balances[metaTransaction.to][metaTransaction.tokenId] -= metaTransaction.gasFee;
             _balances[tx.origin][metaTransaction.tokenId] += metaTransaction.gasFee;
-
-            emit GasRefunded(metaTransaction.gasFee);
         }
 
         // Collect fees if they are set
@@ -115,8 +113,6 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
             uint256 feeAmount = (metaTransaction.amount * transferFee) / FEE_DENOMINATOR;
             _balances[metaTransaction.from][metaTransaction.tokenId] -= feeAmount;
             _balances[owner()][metaTransaction.tokenId] += feeAmount;
-
-            emit FeeCollected(feeAmount);
         }
 
         emit Transfer(metaTransaction.from, metaTransaction.to, metaTransaction.tokenId, metaTransaction.amount);
@@ -133,8 +129,6 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
         if (metaTransaction.gasFee != 0) {
             _balances[metaTransaction.from][metaTransaction.tokenId] -= metaTransaction.gasFee;
             _balances[tx.origin][metaTransaction.tokenId] += metaTransaction.gasFee;
-
-            emit GasRefunded(metaTransaction.gasFee);
         }
 
         // Collect fees if they are set
@@ -142,8 +136,6 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
             uint256 feeAmount = (metaTransaction.amount * withdrawalFee) / FEE_DENOMINATOR;
             _balances[metaTransaction.from][metaTransaction.tokenId] -= feeAmount;
             _balances[owner()][metaTransaction.tokenId] += feeAmount;
-
-            emit FeeCollected(feeAmount);
         }
 
         // Withdraw
@@ -196,7 +188,7 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
         deposit(ETH_ADDRESS, msg.sender, msg.value, 0);
     }
 
-    function deposit(address tokenAddress, address to, uint256 amount, uint256 gasFee) public payable {
+    function deposit(address tokenAddress, address to, uint256 amount, uint256 gasSponsorshipAmount) public payable {
         require(to != address(0x0), "CurvyVault#deposit: Invalid recipient for deposit!");
 
         uint256 tokenId;
@@ -221,16 +213,12 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
             uint256 feeAmount = (amount * depositFee) / FEE_DENOMINATOR;
             _balances[to][tokenId] -= feeAmount;
             _balances[owner()][tokenId] += feeAmount;
-
-            emit FeeCollected(feeAmount);
         }
 
         // Collect gas fee when we sponsored by sending you ETH for a primitive gas sponsorship (DEPRECATED)
-        if (gasFee != 0) {
-            _balances[to][tokenId] -= gasFee;
-            _balances[tx.origin][tokenId] += gasFee;
-
-            emit GasRefunded(gasFee);
+        if (gasSponsorshipAmount != 0) {
+            _balances[to][tokenId] -= gasSponsorshipAmount;
+            _balances[owner()][tokenId] += gasSponsorshipAmount;
         }
 
         emit Transfer(address(0x0), to, tokenId, amount);
