@@ -42,5 +42,5 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
     },
   ]);
 
-  return { implementation, proxy, curvyAggregatorAlpha };
+  return { implementation, proxy, curvyAggregatorAlpha, curvyVault };
 });

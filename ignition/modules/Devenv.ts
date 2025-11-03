@@ -6,7 +6,7 @@ const DEPOSIT_AMOUNT = 1000n * 10n ** 18n;
 
 export default buildModule("Devenv", (m) => {
   // Deploy aggregator and Vault
-  m.useModule(CurvyAggregatorAlphaModule);
+  const { curvyVault } = m.useModule(CurvyAggregatorAlphaModule);
 
   // Deploy multicall
   const multicall3 = m.contract("Multicall3");
@@ -26,5 +26,8 @@ export default buildModule("Devenv", (m) => {
 
     // Third gets nothing
   }
+
+  m.call(curvyVault, "registerToken", [erc20Mock], { id: "Register_MockERC20" });
+
   return { erc20Mock, multicall3 };
 });
