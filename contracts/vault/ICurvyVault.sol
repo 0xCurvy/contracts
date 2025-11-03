@@ -6,8 +6,6 @@ import { CurvyTypes } from "../utils/Types.sol";
 interface ICurvyVault {
     //#region Events
 
-    event FeeCollected(uint256 amount);
-    event GasRefunded(uint256 amount);
     event Transfer(address indexed from, address indexed to, uint256 token_id, uint256 amount);
     event TokenRegistration(address token_address, uint256 token_id);
     event NonceChange(address indexed signer, uint256 newNonce);
