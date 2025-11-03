@@ -6,12 +6,12 @@ const { viem } = await network.connect({ network: "localhost" });
 const deployedAddressesPath = "./ignition/deployments/chain-31337/deployed_addresses.json";
 const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
 
-const metaERC20WrapperAddress = deployedAddresses["CurvyAggregator#MetaERC20Wrapper"];
-if (!metaERC20WrapperAddress) {
+const vaultAddress = deployedAddresses["CurvyVault#CurvyVaultV1"];
+if (!vaultAddress) {
   throw new Error("MetaERC20Wrapper address not found for chain-31337");
 }
-const metaERC20Wrapper = await viem.getContractAt("MetaERC20Wrapper", metaERC20WrapperAddress);
+const vault = await viem.getContractAt("CurvyVaultV1", vaultAddress);
 
-const balance = await metaERC20Wrapper.read.balanceOf(["0x9F6be45a159CEac2dD843ed14aaF3FA4D0423E87", 1n]);
+const balance = await vault.read.balanceOf(["0x9C6477175e15964f6Eb133da2b6d86fBe513de4a", 2n]);
 
 console.dir(balance);
