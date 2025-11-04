@@ -1,12 +1,14 @@
 {
-  "CurvyAggregator#CurvyAggregationVerifier": "0x573310Fc7e17EaBa39Dd75De40F3Bd698106FC1C",
-  "CurvyAggregator#CurvyInsertionVerifier": "0xcDAdafC05FFa93483C2CB6736A9c93E76CeF0799",
-  "CurvyAggregator#CurvyWithdrawVerifier": "0xCC2D66faBB1CDD3eb0A1922BEACD74A96589b57E",
-  "CurvyAggregator#MetaERC20Wrapper": "0x417Cde7a96b97adf42931e9795baaE6E626360F0",
-  "CurvyAggregator#PoseidonT4": "0xb540D8F60E1670169cf36bCf687030cBDCC8c480",
-  "CurvyAggregator#CurvyAggregator": "0x3fC7f950170F785b8Ad642d5f5fB1fd9ccdDA982",
-  "Verifiers#CurvyAggregationVerifier": "0xc64f4E239D1f63451306DF88Da54beB344f101cc",
-  "Verifiers#CurvyInsertionVerifier": "0xAF7b8C7Ac94C22429c10053B3c05AE69941f2294",
-  "Verifiers#CurvyWithdrawVerifier": "0xA783e3C543923C55b794F6352B70dC6aca8e4c01",
-  "Verifiers#PoseidonT4": "0xE903A203891B528468F68535B7E7078064eD7B81"
+  "CurvyAggregatorAlpha#CurvyAggregationVerifierAlpha_2_2_2": "0x28bb166eDA13d8cc6B9049c281676841A9BAF9c1",
+  "CurvyAggregatorAlpha#CurvyInsertionVerifierAlpha_2_2": "0xA982c87268BE6E6F0b7EB5c58d6DE46713fFA71a",
+  "CurvyAggregatorAlpha#CurvyWithdrawVerifierAlpha_2_2": "0x41bF9d780fcc2365f35F20D6A8EA7232F1d7c9A8",
+  "CurvyAggregatorAlpha#PoseidonT4": "0x3f4D81532C2F76d03c1930DC170Ef4264B9D71B1",
+  "CurvyVault#CurvyVaultV1Implementation": "0x8817e5E1312072e6aBb32a417856DaD7cd3c4f1e",
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV1Implementation": "0xd0d71b5B00aB9Ab862e38CC1DC6fB57BD1C2C30f",
+  "CurvyVault#ERC1967Proxy": "0xa85772c59D2c1c59a1df356f19C6bf1a57c791db",
+  "CurvyVault#CurvyVaultV1": "0xa85772c59D2c1c59a1df356f19C6bf1a57c791db",
+  "CurvyAggregatorAlpha#ERC1967Proxy": "0xD35E24B0AB6f63C08bE756c8fafF3609ff8A5ce1",
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV1": "0xD35E24B0AB6f63C08bE756c8fafF3609ff8A5ce1",
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV2": "0xD35E24B0AB6f63C08bE756c8fafF3609ff8A5ce1",
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV2Implementation": "0xefa47Ffb732c16e4c4bd39e3463da3c40a666972"
 }

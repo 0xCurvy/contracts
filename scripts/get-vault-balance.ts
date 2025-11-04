@@ -1,7 +1,10 @@
 import * as fs from "node:fs";
 import { network } from "hardhat";
+import { chooseDeployment } from "./common";
 
-const { viem } = await network.connect({ network: "localhost" });
+const { environment, networkName } = await chooseDeployment();
+
+const { viem } = await network.connect({ network: networkName });
 
 const deployedAddressesPath = "./ignition/deployments/chain-31337/deployed_addresses.json";
 const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));

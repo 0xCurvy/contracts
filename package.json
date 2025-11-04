@@ -8,7 +8,9 @@
     "test": "pnpm run dev && vitest run",
     "start:hardhat": "pnpm hardhat node --network hardhat",
     "deploy:staging:sepolia": "hardhat ignition deploy --deployment-id staging_ethereum-sepolia --verify --network sepolia ignition/modules/CurvyAggregatorAlpha.ts",
-    "deploy:staging:arbitrum": "hardhat ignition deploy --deployment-id staging_arbitrum --verify --network arbitrum ignition/modules/CurvyAggregatorAlpha.ts"
+    "deploy:staging:arbitrum": "hardhat ignition deploy --deployment-id staging_arbitrum --verify --network arbitrum ignition/modules/CurvyAggregatorAlpha.ts",
+    "deploy:production:sepolia": "hardhat ignition deploy --deployment-id production_ethereum-sepolia --verify --network sepolia ignition/modules/CurvyAggregatorAlpha.ts",
+    "deploy:production:arbitrum": "hardhat ignition deploy --deployment-id production_arbitrum --verify --network arbitrum ignition/modules/CurvyAggregatorAlpha.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.0.3",

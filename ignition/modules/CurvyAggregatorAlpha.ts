@@ -42,5 +42,17 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
     },
   ]);
 
-  return { implementation, proxy, curvyAggregatorAlpha, curvyVault };
+  // This implementation fixes the commitWithdrawalBatch to invoke meta tx with type transfer instead of withdraw
+  const implementationV2 = m.contract("CurvyAggregatorAlphaV2", [], {
+    id: "CurvyAggregatorAlphaV2Implementation",
+    libraries: {
+      PoseidonT4: poseidonT4,
+    },
+  });
+
+  m.call(curvyAggregatorAlpha, "upgradeToAndCall", [implementationV2, "0x"]);
+
+  const curvyAggregatorAlphaV2 = m.contractAt("CurvyAggregatorAlphaV2", proxy);
+
+  return { implementation, proxy, curvyAggregatorAlphaV2, curvyVault };
 });

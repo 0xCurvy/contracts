@@ -8,5 +8,7 @@
   "CurvyVault#ERC1967Proxy": "0x23BAaCd2494A3423bf1b274F43f8D2a2BfB1C6Dc",
   "CurvyVault#CurvyVaultV1": "0x23BAaCd2494A3423bf1b274F43f8D2a2BfB1C6Dc",
   "CurvyAggregatorAlpha#ERC1967Proxy": "0x035c5E0443a8B6AB3c1E4677E5EEa60856B258CC",
-  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV1": "0x035c5E0443a8B6AB3c1E4677E5EEa60856B258CC"
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV1": "0x035c5E0443a8B6AB3c1E4677E5EEa60856B258CC",
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV2": "0x035c5E0443a8B6AB3c1E4677E5EEa60856B258CC",
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV2Implementation": "0x1F773e78FD449E36dEb72527d8cf16b4B509eD0f"
 }
