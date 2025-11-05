@@ -1,0 +1,14 @@
+{
+  "CurvyAggregatorAlpha#CurvyWithdrawVerifierAlpha_2_2": "0xCCC9f64Cc517369770AdB91fa6aC2A51219863e5",
+  "CurvyAggregatorAlpha#CurvyAggregationVerifierAlpha_2_2_2": "0xF4336fB0F060446090F0366f298D5a9134959bE6",
+  "CurvyAggregatorAlpha#CurvyInsertionVerifierAlpha_2_2": "0xA20f049D76009EC792524EE87a46D20088418Ff5",
+  "CurvyAggregatorAlpha#PoseidonT4": "0xe5d7A03b2343F7d8155Dd70F45744644a7Fbf5Eb",
+  "CurvyVault#CurvyVaultV1Implementation": "0x7a993b1ba44E2339d210a5f77edFeEBb3615509d",
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV1Implementation": "0xE3A856Ede4a9AbB40792Ea02F871689162Fd1892",
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV2Implementation": "0xF90c85193FEECeB4591357cEbE6F1f767132196C",
+  "CurvyVault#ERC1967Proxy": "0xB4BA872fBa00Bc4268067D5DE4223240cEc4B6d5",
+  "CurvyVault#CurvyVaultV1": "0xB4BA872fBa00Bc4268067D5DE4223240cEc4B6d5",
+  "CurvyAggregatorAlpha#ERC1967Proxy": "0x9c07E1Ff4f1B96ae609331BAc327FcC2d8563224",
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV1": "0x9c07E1Ff4f1B96ae609331BAc327FcC2d8563224",
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV2": "0x9c07E1Ff4f1B96ae609331BAc327FcC2d8563224"
+}
