@@ -19,6 +19,7 @@ const erc20Addresses = [
   "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
   "0x6491c05A82219b8D1479057361ff1654749b876b",
   "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f",
+  "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
 ];
 
 export default buildModule("RegisterVaultTokens", (m) => {
