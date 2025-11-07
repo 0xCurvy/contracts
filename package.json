@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "clean": "pnpm hardhat clean && rimraf artifacts cache .turbo",
     "build": "hardhat compile",
     "dev": "pnpm hardhat clean && pnpm hardhat ignition deploy --network localhost ./ignition/modules/Devenv.ts",
     "test": "pnpm run dev && vitest run",
@@ -18,6 +19,7 @@
     "@types/node": "^22.18.0",
     "forge-std": "github:foundry-rs/forge-std#v1.9.4",
     "hardhat": "^3.0.6",
+    "rimraf": "^6.0.1",
     "typescript": "~5.8.3",
     "viem": "^2.36.0"
   },
