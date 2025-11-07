@@ -24,6 +24,10 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
+    anvil: {
+      url: "http://127.0.0.1:8545",
+      type: "http",
+    },
     hardhat: {
       type: "edr-simulated",
       chainType: "l1",
