@@ -17,6 +17,7 @@ interface ICurvyVault {
 
     function transfer(CurvyTypes.MetaTransaction calldata metaTransaction) external;
     function transfer(CurvyTypes.MetaTransaction calldata metaTransaction, bytes memory signature) external;
+    function deposit(address tokenAddress, address to, uint256 amount, uint256 gasSponsorshipAmount) external payable;
 
     //#endregion
 }
