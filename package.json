@@ -5,9 +5,10 @@
   "scripts": {
     "clean": "pnpm hardhat clean && rimraf artifacts cache .turbo",
     "build": "hardhat compile",
-    "dev": "pnpm hardhat clean && pnpm hardhat ignition deploy --network localhost ./ignition/modules/Devenv.ts",
     "test": "pnpm run dev && vitest run",
     "start:hardhat": "pnpm hardhat node --network hardhat",
+    "start:anvil": "anvil -b 1 --load-state ./cache/anvil_state.json",
+    "deploy:anvil": "node ./scripts/deploy-and-dump.js",
     "deploy:staging:sepolia": "hardhat ignition deploy --deployment-id staging_ethereum-sepolia --verify --network sepolia ignition/modules/CurvyAggregatorAlpha.ts",
     "deploy:staging:arbitrum": "hardhat ignition deploy --deployment-id staging_arbitrum --verify --network arbitrum ignition/modules/CurvyAggregatorAlpha.ts",
     "deploy:production:sepolia": "hardhat ignition deploy --deployment-id production_ethereum-sepolia --verify --network sepolia ignition/modules/CurvyAggregatorAlpha.ts",
@@ -15,6 +16,7 @@
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.0.3",
+    "@nomicfoundation/hardhat-network-helpers": "^3.0.2",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
     "@types/node": "^22.18.0",
     "forge-std": "github:foundry-rs/forge-std#v1.9.4",
