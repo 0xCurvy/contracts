@@ -27,7 +27,7 @@ test("eip-7702", async () => {
   const publicClient = await viem.getPublicClient();
 
   // User signs the authorization
-  const authorization = await userClient.signAuthorization({
+  const signedAuthorization = await userClient.signAuthorization({
     account: user,
     contractAddress: tokenMover.address,
   });
@@ -47,7 +47,7 @@ test("eip-7702", async () => {
   // Send the authorization transaction from
   const receipt = await deployerClient
     .sendTransaction({
-      authorizationList: [authorization],
+      authorizationList: [signedAuthorization],
       data: encodeFunctionData({
         abi: [
           {
