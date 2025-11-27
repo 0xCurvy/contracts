@@ -1,0 +1,5 @@
+{
+  "Verifiers#CurvyAggregationVerifier": "0x8aB3Eac44236f84aa4A283bD85cd76d56A55Ae6c",
+  "Verifiers#CurvyInsertionVerifier": "0x26bEd14cCc348f853103Dc6Be777b8D13728d632",
+  "Verifiers#CurvyWithdrawVerifier": "0xe472cdfBe3f6a05973e3f9D259A695d448468e25"
+}
