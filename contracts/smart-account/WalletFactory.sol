@@ -30,10 +30,10 @@ contract WalletFactory {
         assembly {
             // Deploy using CREATE2: value in wei, data pointer, data length, salt
             addr := create2(
-                callvalue(),                  // value to send
+                callvalue(),                     // value to send
                 add(creationCodeWithArgs, 0x20), // pointer to start of bytecode
-                mload(creationCodeWithArgs),  // length of bytecode
-                salt                          // the salt
+                mload(creationCodeWithArgs),     // length of bytecode
+                salt                             // the salt
             )
         }
         require(addr != address(0), "Deployment failed");

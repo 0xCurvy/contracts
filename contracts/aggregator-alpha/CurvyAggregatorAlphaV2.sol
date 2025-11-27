@@ -6,6 +6,7 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { PoseidonT4} from "./utils/PoseidonT4.sol";
 
+import { ICurvyAggregatorAlpha } from "./ICurvyAggregatorAlpha.sol";
 import { ICurvyVault } from "../vault/ICurvyVault.sol";
 import { ICurvyInsertionVerifier, ICurvyAggregationVerifier,  ICurvyWithdrawVerifier } from "./verifiers/ICurvyVerifiersAlpha.sol";
 import { CurvyTypes } from "../utils/Types.sol";
@@ -15,7 +16,7 @@ import { CurvyTypes } from "../utils/Types.sol";
  * @author Curvy Protocol (https://curvy.box)
  * @dev Curvy's Aggregator contract.
  */
-contract CurvyAggregatorAlphaV2 is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract CurvyAggregatorAlphaV2 is ICurvyAggregationVerifier, Initializable, UUPSUpgradeable, OwnableUpgradeable {
     //#region Events
 
     event DepositedNote(uint256 noteId);
@@ -109,6 +110,20 @@ contract CurvyAggregatorAlphaV2 is Initializable, UUPSUpgradeable, OwnableUpgrad
     //#endregions
 
     //#region Public functions
+
+    function depositNote(
+        address from,
+        CurvyTypes.Note memory note
+    ) public {
+        // TODO: Gas fee
+        curvyVault.transfer(CurvyTypes.MetaTransaction(from, address(this), note.token, note.amount, 0, CurvyTypes.MetaTransactionType.Transfer));
+
+        uint256 noteId = PoseidonT4.hash([note.ownerHash, note.amount, note.token]);
+
+        _pendingIdsQueue[noteId] = true;
+
+        emit DepositedNote(noteId);
+    }
 
     function depositNote(
         address from,

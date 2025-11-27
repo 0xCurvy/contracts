@@ -1,8 +1,12 @@
 pragma solidity 0.8.30;
 
+import { CurvyTypes } from "../utils/Types.sol";
+import {ICurvyAggregatorAlpha} from "../aggregator-alpha/ICurvyAggregatorAlpha.sol";
+
 contract WalletDummy {
-    uint256 noteHash;
-    address owner;
+    address public owner;
+
+    ICurvyAggregatorAlpha public curvyAggregator;
 
     modifier onlyOwner() {
         require(msg.sender == owner);
@@ -11,13 +15,16 @@ contract WalletDummy {
 
     event Transfer(address recipient, uint256 amount);
 
-    constructor(uint256 _noteHash, address _owner) {
-        noteHash = _noteHash;
-        owner = _owner;
-    }
-
-    function getNoteHash() public view returns(uint256) {
-        return noteHash;
+    constructor(CurvyTypes.Note memory note) {
+        owner = note.ownerHash;
+        // ownerHash da se proveri (hardcoded)
+        // dodati fee za deployment
+        // uraditi deposit note na aggregator
+        curvyAggregator.depositNote(address(this), CurvyTypes.Note({
+            ownerHash: note.ownerHash,
+            amount: note.amount,
+            token: note.token
+        }), "0x0");
     }
 
     function transfer(address recipient, uint256 amount) public onlyOwner {
