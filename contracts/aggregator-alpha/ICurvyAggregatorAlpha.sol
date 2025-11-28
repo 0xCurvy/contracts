@@ -10,7 +10,7 @@ interface ICurvyAggregatorAlpha {
 
     //#region Public functions
 
-    function depositNote(address from, CurvyTypes.Note memory note) public;
+    function autoShield(CurvyTypes.Note memory note) external;
 
     //#endregion
 }

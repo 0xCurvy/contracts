@@ -10,13 +10,17 @@ import { ICurvyAggregatorAlpha } from "./ICurvyAggregatorAlpha.sol";
 import { ICurvyVault } from "../vault/ICurvyVault.sol";
 import { ICurvyInsertionVerifier, ICurvyAggregationVerifier,  ICurvyWithdrawVerifier } from "./verifiers/ICurvyVerifiersAlpha.sol";
 import { CurvyTypes } from "../utils/Types.sol";
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+import "hardhat/console.sol";
 
 /**
  * @title CurvyAggregator
  * @author Curvy Protocol (https://curvy.box)
  * @dev Curvy's Aggregator contract.
  */
-contract CurvyAggregatorAlphaV2 is ICurvyAggregationVerifier, Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract CurvyAggregatorAlphaV2 is ICurvyAggregatorAlpha, Initializable, UUPSUpgradeable, OwnableUpgradeable {
+    using SafeERC20 for IERC20;
     //#region Events
 
     event DepositedNote(uint256 noteId);
@@ -111,12 +115,15 @@ contract CurvyAggregatorAlphaV2 is ICurvyAggregationVerifier, Initializable, UUP
 
     //#region Public functions
 
-    function depositNote(
-        address from,
+    function autoShield(
         CurvyTypes.Note memory note
-    ) public {
-        // TODO: Gas fee
-        curvyVault.transfer(CurvyTypes.MetaTransaction(from, address(this), note.token, note.amount, 0, CurvyTypes.MetaTransactionType.Transfer));
+    ) external {
+        address tokenAddress = curvyVault.getTokenAddress(note.token);
+
+        IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), note.amount);
+
+        IERC20(tokenAddress).approve(address(curvyVault), note.amount);
+        curvyVault.deposit(tokenAddress, address(this), note.amount, 0);
 
         uint256 noteId = PoseidonT4.hash([note.ownerHash, note.amount, note.token]);
 

@@ -1,22 +1,30 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import CurvyAggregatorAlphaModule from "./CurvyAggregatorAlpha";
 
-export default buildModule("AutomaticShielding", (m) => {
-  const ownerHash = "0x123";
-  const token = "1";
-  const amount = "100";
+const DEPOSIT_AMOUNT = 1000n * 10n ** 18n;
 
-  const salt = "0x1230000000000000000000000000000012300000000000000000000000000000";
+export default buildModule("AutomaticShieldingModule", (m) => {
+  const ownerHash = 702705117071108858750548073842146797693190729490869702449519502701872077655n;
+  const token = 2n;
+  const amount = 2797004n;
+  const salt = "0x1230000000000000000000000000000012300000000000000000000000000001";
 
-  //  Resolve stealth address
-  const sa = "0x0eeCE19240e3A8826d92da5f4D31581a1DC97779";
+  const noteDeployerFactory = m.contract("NoteDeployerFactory", []);
 
-  const walletFactory = m.contract("WalletFactory");
+  const { curvyAggregatorAlphaV2, curvyVault } = m.useModule(CurvyAggregatorAlphaModule);
 
-  const deployTx = m.call(walletFactory, "deploy", [{ ownerHash, token, amount }, salt], { id: "DeployWalletTx" });
+  const erc20Mock = m.contract("ERC20Mock");
 
-  const predictedAddress = m.staticCall(walletFactory, "getContractAddress", [{ ownerHash, token, amount }, salt]);
+  const predictedAddress = m.staticCall(noteDeployerFactory, "getContractAddress", [
+    { ownerHash, token, amount },
+    curvyAggregatorAlphaV2,
+    curvyVault,
+    salt,
+  ]);
 
-  const walletDummy = m.contractAt("WalletDummy", predictedAddress, { id: "DummyWalletInstance", after: [deployTx] });
+  m.call(erc20Mock, "mockMint", [predictedAddress, DEPOSIT_AMOUNT], { id: `Mint_ERC20` });
 
-  return { walletDummy };
+  m.call(curvyVault, "registerToken", [erc20Mock], { id: "Register_MockERC20" });
+
+  return { noteDeployerFactory, curvyVault, curvyAggregatorAlphaV2, erc20Mock };
 });

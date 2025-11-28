@@ -33,4 +33,10 @@ interface ICurvyVault {
     function deposit(address tokenAddress, address to, uint256 amount, uint256 gasSponsorshipAmount) external payable;
 
     //#endregion
+
+    //#region View functions
+
+    function getTokenAddress(uint256 tokenId) external view returns (address);
+
+    //#endregion
 }

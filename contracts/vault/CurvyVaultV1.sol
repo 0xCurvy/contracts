@@ -10,6 +10,8 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./ICurvyVault.sol";
 import {CurvyTypes} from "../utils/Types.sol";
 
+import "hardhat/console.sol";
+
 contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
 
@@ -58,7 +60,7 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
         __EIP712_init("Curvy Privacy Vault", "1.0");
         __Ownable_init(initialOwner);
 
-        depositFee = 10;
+        depositFee = 0;
         transferFee = 0; // Transfer fee is 0 because we are doing the fee collection for Agg dep/wit on CurvyAggregator.sol
         withdrawalFee = 20;
     }
@@ -293,6 +295,9 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
     }
 
     function transfer(CurvyTypes.MetaTransaction calldata metaTransaction) external {
+        console.log("sender", msg.sender);
+        console.log("from", metaTransaction.from);
+        console.log("fee", metaTransaction.gasFee);
         if (msg.sender != metaTransaction.from) revert InvalidSender();
         if (metaTransaction.gasFee != 0) revert InvalidGasSponsorship();
 
