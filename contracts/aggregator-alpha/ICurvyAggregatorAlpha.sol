@@ -10,11 +10,7 @@ interface ICurvyAggregatorAlpha {
 
     //#region Public functions
 
-    function depositNote(address from, CurvyTypes.Note memory note, bytes memory signature) public;
-
-    function transfer(CurvyTypes.MetaTransaction calldata metaTransaction) external;
-    function transfer(CurvyTypes.MetaTransaction calldata metaTransaction, bytes memory signature) external;
-    function deposit(address tokenAddress, address to, uint256 amount, uint256 gasSponsorshipAmount) external payable;
+    function depositNote(address from, CurvyTypes.Note memory note) public;
 
     //#endregion
 }
