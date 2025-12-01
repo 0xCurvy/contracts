@@ -1,18 +1,30 @@
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
+
+import { INoteDeployer } from "./INoteDeployer.sol";
 import { NoteDeployer } from "./NoteDeployer.sol";
 import { CurvyTypes } from "../utils/Types.sol";
 
-// Salt: 0x1230000000000000000000000000000012300000000000000000000000000000
-
 contract NoteDeployerFactory {
-    function getCreationCode(CurvyTypes.Note memory note, address curvyAggregatorAlphaProxyAddress, address curvyVaultProxyAddress) public pure returns (bytes memory) {
+
+    INoteDeployer public noteDeployer;
+
+    address private _curvyVaultProxyAddress;
+    address private _curvyAggregatorAlphaProxyAddress;
+
+    constructor (address curvyAggregatorAlphaProxyAddress, address curvyVaultProxyAddress) {
+        _curvyAggregatorAlphaProxyAddress = curvyAggregatorAlphaProxyAddress;
+        _curvyVaultProxyAddress = curvyVaultProxyAddress;
+    }
+
+    function getCreationCode(uint256 ownerHash) public pure returns (bytes memory) {
         bytes memory bytecode = type(NoteDeployer).creationCode;
-        bytes memory encodedArgs = abi.encode(note.ownerHash, note.token, note.amount, curvyAggregatorAlphaProxyAddress, curvyVaultProxyAddress);
+        bytes memory encodedArgs = abi.encode(ownerHash);
         return abi.encodePacked(bytecode, encodedArgs); 
     }
 
-    function getContractAddress(CurvyTypes.Note memory note, address curvyAggregatorAlphaProxyAddress, address  curvyVaultProxyAddress, bytes32 salt) public view returns (address) {
-        bytes memory code = getCreationCode(note, curvyAggregatorAlphaProxyAddress, curvyVaultProxyAddress);
+    function getContractAddress(uint256 ownerHash, bytes32 salt) public view returns (address) {
+        bytes memory code = getCreationCode(ownerHash);
         bytes32 hash = keccak256(
             abi.encodePacked(
                 bytes1(0xff), 
@@ -24,19 +36,22 @@ contract NoteDeployerFactory {
         return address(uint160(uint256(hash)));
     }
 
-    function deploy(CurvyTypes.Note memory note, address curvyAggregatorAlphaProxyAddress, address curvyVaultProxyAddress, bytes32 salt) public payable {
-        bytes memory creationCodeWithArgs = getCreationCode(note, curvyAggregatorAlphaProxyAddress, curvyVaultProxyAddress);
-        address addr;
+    function deploy(CurvyTypes.Note memory note, bytes32 salt) public payable {
+        bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash);
+        address noteDeployerAddress;
 
         assembly {
             // Deploy using CREATE2: value in wei, data pointer, data length, salt
-            addr := create2(
+            noteDeployerAddress := create2(
                 callvalue(),                     // value to send
                 add(creationCodeWithArgs, 0x20), // pointer to start of bytecode
                 mload(creationCodeWithArgs),     // length of bytecode
                 salt                             // the salt
             )
         }
-        require(addr != address(0), "Deployment failed");
+        require(noteDeployerAddress != address(0), "Deployment failed");
+
+        noteDeployer = INoteDeployer(noteDeployerAddress);
+        noteDeployer.shield(note, _curvyAggregatorAlphaProxyAddress, _curvyVaultProxyAddress);
     }
 }

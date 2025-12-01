@@ -1,4 +1,5 @@
 import { network } from "hardhat";
+import { privateKeyToAccount } from "viem/accounts";
 import { expect, test } from "vitest";
 import AutomaticShieldingModule from "../ignition/modules/AutomaticShielding";
 
@@ -14,27 +15,62 @@ test("automatic-shielding", async () => {
   const { noteDeployerFactory, curvyVault, curvyAggregatorAlphaV2, erc20Mock } =
     await ignition.deploy(AutomaticShieldingModule);
 
-  const noteDeployerAddress = await noteDeployerFactory.read.getContractAddress([
-    {
-      ownerHash,
-      token,
-      amount,
-    },
-    curvyAggregatorAlphaV2.address,
-    curvyVault.address,
-    salt,
-  ]);
-
-  const depositedAmount = 2797004n;
-
   const tokenIdOfErc20Mock = await curvyVault.read.getTokenId([erc20Mock.address]);
   expect(tokenIdOfErc20Mock).toBe(2n);
 
-  const vaultErc20MockBalanceBeforeDeposit = await curvyVault.read.balanceOf([noteDeployerAddress, tokenIdOfErc20Mock]);
-  expect(vaultErc20MockBalanceBeforeDeposit).toBe(0n);
-
   const tokenAddress = await curvyVault.read.getTokenAddress([token]);
   expect(tokenAddress).toBe(erc20Mock.address);
+
+  // User's wallet, random generated - this is the account: 0x0eeCE19240e3A8826d92da5f4D31581a1DC97779
+  const user = privateKeyToAccount("0x49593edf99c94e11b7e1e6f98387af4b5bb996ee76723f0ab5a658ba643d1058");
+  const userClient = await viem.getWalletClient(user.address);
+
+  // For general RPC reads
+  const publicClient = await viem.getPublicClient();
+
+  const noteDeployerAddress = await noteDeployerFactory.read.getContractAddress([ownerHash, salt]);
+
+  // Opcionalno ali preporučeno: Simulacija pre slanja (Gas estimation & error check)
+  const { request } = await publicClient.simulateContract({
+    account: user,
+    address: tokenAddress,
+    abi: [
+      {
+        inputs: [
+          {
+            internalType: "address",
+            name: "to",
+            type: "address",
+          },
+          {
+            internalType: "uint256",
+            name: "value",
+            type: "uint256",
+          },
+        ],
+        name: "transfer",
+        outputs: [
+          {
+            internalType: "bool",
+            name: "",
+            type: "bool",
+          },
+        ],
+        stateMutability: "nonpayable",
+        type: "function",
+      },
+    ],
+    functionName: "transfer",
+    args: [noteDeployerAddress, amount],
+  });
+
+  const hash = await userClient.writeContract(request);
+
+  console.log(`Transakcija poslata! Hash: ${hash}`);
+
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+  console.log(`Transakcija potvrđena u bloku: ${receipt.blockNumber}`);
 
   await noteDeployerFactory.write.deploy([
     {
@@ -42,21 +78,19 @@ test("automatic-shielding", async () => {
       token,
       amount,
     },
-    curvyAggregatorAlphaV2.address,
-    curvyVault.address,
     salt,
   ]);
 
   // check balances after deposit
 
-  const vaultErc20MockBalanceAfterDeposit = await curvyVault.read.balanceOf([noteDeployerAddress, tokenIdOfErc20Mock]);
-  expect(vaultErc20MockBalanceAfterDeposit).toBe(0n);
+  const depositFee = await curvyVault.read.depositFee();
+  const expectedAmountMinusFees = amount - (amount * depositFee) / 10000n;
 
   const vaultErc20MockBalanceOfAggregator = await curvyVault.read.balanceOf([
     curvyAggregatorAlphaV2.address,
     tokenIdOfErc20Mock,
   ]);
-  expect(vaultErc20MockBalanceOfAggregator).toBe(depositedAmount);
+  expect(vaultErc20MockBalanceOfAggregator).toBe(expectedAmountMinusFees);
 
   // check if note is deposited
 

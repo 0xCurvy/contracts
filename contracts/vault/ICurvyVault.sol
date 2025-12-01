@@ -4,6 +4,7 @@ pragma solidity ^0.8.10;
 import { CurvyTypes } from "../utils/Types.sol";
 
 interface ICurvyVault {
+
     //#region Events
 
     event Transfer(address indexed from, address indexed to, uint256 token_id, uint256 amount);
@@ -37,6 +38,7 @@ interface ICurvyVault {
     //#region View functions
 
     function getTokenAddress(uint256 tokenId) external view returns (address);
+    function getDepositFee() external view returns (uint96);
 
     //#endregion
 }

@@ -12,8 +12,6 @@ import { ICurvyInsertionVerifier, ICurvyAggregationVerifier,  ICurvyWithdrawVeri
 import { CurvyTypes } from "../utils/Types.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @title CurvyAggregator
  * @author Curvy Protocol (https://curvy.box)

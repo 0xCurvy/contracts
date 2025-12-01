@@ -4,25 +4,21 @@ import CurvyAggregatorAlphaModule from "./CurvyAggregatorAlpha";
 const DEPOSIT_AMOUNT = 1000n * 10n ** 18n;
 
 export default buildModule("AutomaticShieldingModule", (m) => {
-  const ownerHash = 702705117071108858750548073842146797693190729490869702449519502701872077655n;
-  const token = 2n;
-  const amount = 2797004n;
-  const salt = "0x1230000000000000000000000000000012300000000000000000000000000001";
+  // Deploy aggregator and Vault
+  const { curvyVault, curvyAggregatorAlphaV2 } = m.useModule(CurvyAggregatorAlphaModule);
 
-  const noteDeployerFactory = m.contract("NoteDeployerFactory", []);
+  const noteDeployerFactory = m.contract("NoteDeployerFactory", [curvyAggregatorAlphaV2, curvyVault], {});
 
-  const { curvyAggregatorAlphaV2, curvyVault } = m.useModule(CurvyAggregatorAlphaModule);
-
+  // Deploy mock erc20
   const erc20Mock = m.contract("ERC20Mock");
 
-  const predictedAddress = m.staticCall(noteDeployerFactory, "getContractAddress", [
-    { ownerHash, token, amount },
-    curvyAggregatorAlphaV2,
-    curvyVault,
-    salt,
-  ]);
+  const deployer = m.getAccount(0);
 
-  m.call(erc20Mock, "mockMint", [predictedAddress, DEPOSIT_AMOUNT], { id: `Mint_ERC20` });
+  const userAddress = "0x0eeCE19240e3A8826d92da5f4D31581a1DC97779";
+
+  m.send(`Send_ETH`, userAddress, DEPOSIT_AMOUNT, undefined, { from: deployer });
+
+  m.call(erc20Mock, "mockMint", [userAddress, DEPOSIT_AMOUNT], { id: `Mint_ERC20` });
 
   m.call(curvyVault, "registerToken", [erc20Mock], { id: "Register_MockERC20" });
 
