@@ -12,6 +12,6 @@ if (!vaultAddress) {
 }
 const vault = await viem.getContractAt("CurvyVaultV1", vaultAddress);
 
-const balance = await vault.read.balanceOf(["0x2b4f14ab7D932A2Cf164980168CD7A9D6eAfED95", 1n]);
+const nonce = await vault.read.getNonce(["0xE1c608bE16cA3aEe2DBCDDcB5Abd8A029ab78F54"]);
 
-console.dir(balance);
+console.dir(nonce);
