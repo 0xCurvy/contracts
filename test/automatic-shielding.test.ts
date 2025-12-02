@@ -8,7 +8,6 @@ test("automatic-shielding", async () => {
   const token = 2n;
   const amount = 2797004n;
   const noteId = 14967077268631546162044198053248993673186354912497893587694799228971941136645n;
-  const salt = "0x1230000000000000000000000000000012300000000000000000000000000001";
 
   const { ignition, viem } = await network.connect();
 
@@ -25,12 +24,10 @@ test("automatic-shielding", async () => {
   const user = privateKeyToAccount("0x49593edf99c94e11b7e1e6f98387af4b5bb996ee76723f0ab5a658ba643d1058");
   const userClient = await viem.getWalletClient(user.address);
 
-  // For general RPC reads
   const publicClient = await viem.getPublicClient();
 
-  const noteDeployerAddress = await noteDeployerFactory.read.getContractAddress([ownerHash, salt]);
+  const noteDeployerAddress = await noteDeployerFactory.read.getContractAddress([ownerHash]);
 
-  // Opcionalno ali preporučeno: Simulacija pre slanja (Gas estimation & error check)
   const { request } = await publicClient.simulateContract({
     account: user,
     address: tokenAddress,
@@ -66,11 +63,9 @@ test("automatic-shielding", async () => {
 
   const hash = await userClient.writeContract(request);
 
-  console.log(`Transakcija poslata! Hash: ${hash}`);
-
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
-  console.log(`Transakcija potvrđena u bloku: ${receipt.blockNumber}`);
+  expect(receipt).toBeDefined();
 
   await noteDeployerFactory.write.deploy([
     {
@@ -78,7 +73,6 @@ test("automatic-shielding", async () => {
       token,
       amount,
     },
-    salt,
   ]);
 
   // check balances after deposit
@@ -96,6 +90,4 @@ test("automatic-shielding", async () => {
 
   const noteDeposited = await curvyAggregatorAlphaV2.read.noteInQueue([noteId]);
   expect(noteDeposited).toBe(true);
-
-  //   commit deposit batch
-}, 600000);
+});

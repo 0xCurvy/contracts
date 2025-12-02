@@ -6,6 +6,7 @@ import { NoteDeployer } from "./NoteDeployer.sol";
 import { CurvyTypes } from "../utils/Types.sol";
 
 contract NoteDeployerFactory {
+    bytes32 private _salt = keccak256(abi.encodePacked("curvy-note-deployer-factory-salt"));
 
     INoteDeployer public noteDeployer;
 
@@ -23,22 +24,24 @@ contract NoteDeployerFactory {
         return abi.encodePacked(bytecode, encodedArgs); 
     }
 
-    function getContractAddress(uint256 ownerHash, bytes32 salt) public view returns (address) {
+    function getContractAddress(uint256 ownerHash) public view returns (address) {
         bytes memory code = getCreationCode(ownerHash);
         bytes32 hash = keccak256(
             abi.encodePacked(
                 bytes1(0xff), 
                 address(this), 
-                salt, 
+                _salt,
                 keccak256(code)
             )
         );
         return address(uint160(uint256(hash)));
     }
 
-    function deploy(CurvyTypes.Note memory note, bytes32 salt) public payable {
+    function deploy(CurvyTypes.Note memory note) public payable {
         bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash);
         address noteDeployerAddress;
+
+        bytes32 salt = _salt;
 
         assembly {
             // Deploy using CREATE2: value in wei, data pointer, data length, salt
