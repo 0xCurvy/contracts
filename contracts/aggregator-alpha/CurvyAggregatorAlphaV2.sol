@@ -6,16 +6,19 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { PoseidonT4} from "./utils/PoseidonT4.sol";
 
+import { ICurvyAggregatorAlpha } from "./ICurvyAggregatorAlpha.sol";
 import { ICurvyVault } from "../vault/ICurvyVault.sol";
 import { ICurvyInsertionVerifier, ICurvyAggregationVerifier,  ICurvyWithdrawVerifier } from "./verifiers/ICurvyVerifiersAlpha.sol";
 import { CurvyTypes } from "../utils/Types.sol";
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title CurvyAggregator
  * @author Curvy Protocol (https://curvy.box)
  * @dev Curvy's Aggregator contract.
  */
-contract CurvyAggregatorAlphaV2 is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract CurvyAggregatorAlphaV2 is ICurvyAggregatorAlpha, Initializable, UUPSUpgradeable, OwnableUpgradeable {
+    using SafeERC20 for IERC20;
     //#region Events
 
     event DepositedNote(uint256 noteId);
@@ -109,6 +112,23 @@ contract CurvyAggregatorAlphaV2 is Initializable, UUPSUpgradeable, OwnableUpgrad
     //#endregions
 
     //#region Public functions
+
+    function autoShield(
+        CurvyTypes.Note memory note
+    ) external {
+        address tokenAddress = curvyVault.getTokenAddress(note.token);
+
+        IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), note.amount);
+
+        IERC20(tokenAddress).approve(address(curvyVault), note.amount);
+        curvyVault.deposit(tokenAddress, address(this), note.amount, 0);
+
+        uint256 noteId = PoseidonT4.hash([note.ownerHash, note.amount, note.token]);
+
+        _pendingIdsQueue[noteId] = true;
+
+        emit DepositedNote(noteId);
+    }
 
     function depositNote(
         address from,

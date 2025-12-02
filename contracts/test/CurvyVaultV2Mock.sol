@@ -291,5 +291,9 @@ contract CurvyVaultV2Mock is ICurvyVault, Initializable, EIP712Upgradeable, UUPS
         return batchBalances;
     }
 
+    function getDepositFee() external view returns (uint96) {
+        return depositFee;
+    }
+
     //#endregion
 }

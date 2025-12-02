@@ -295,5 +295,9 @@ contract CurvyVaultV1 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
         return _nonces[_signer];
     }
 
+    function getDepositFee() external view returns (uint96) {
+        return depositFee;
+    }
+
     //#endregion
 }
