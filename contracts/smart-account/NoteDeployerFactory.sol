@@ -11,10 +11,13 @@ contract NoteDeployerFactory {
 
     address private _curvyVaultProxyAddress;
     address private _curvyAggregatorAlphaProxyAddress;
+    address private _lifiDiamondAddress;
 
-    constructor (address curvyAggregatorAlphaProxyAddress, address curvyVaultProxyAddress) {
+
+    constructor (address curvyAggregatorAlphaProxyAddress, address curvyVaultProxyAddress, address lifiDiamondAddress) {
         _curvyAggregatorAlphaProxyAddress = curvyAggregatorAlphaProxyAddress;
         _curvyVaultProxyAddress = curvyVaultProxyAddress;
+        _lifiDiamondAddress = lifiDiamondAddress;
     }
 
     function getCreationCode(uint256 ownerHash) public pure returns (bytes memory) {
@@ -52,6 +55,29 @@ contract NoteDeployerFactory {
         require(noteDeployerAddress != address(0), "Deployment failed");
 
         noteDeployer = INoteDeployer(noteDeployerAddress);
+
         noteDeployer.shield(note, _curvyAggregatorAlphaProxyAddress, _curvyVaultProxyAddress);
+    }
+
+    function bridgeAndDeploy(bytes calldata _bridgeData,
+        address _token,
+        uint256 _amount) public payable {
+        bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash);
+        address noteDeployerAddress;
+
+        assembly {
+            // Deploy using CREATE2: value in wei, data pointer, data length, salt
+            noteDeployerAddress := create2(
+                callvalue(),                     // value to send
+                add(creationCodeWithArgs, 0x20), // pointer to start of bytecode
+                mload(creationCodeWithArgs),     // length of bytecode
+                salt                             // the salt
+            )
+        }
+        require(noteDeployerAddress != address(0), "Deployment failed");
+
+        noteDeployer = INoteDeployer(noteDeployerAddress);
+
+        noteDeployer.bridge(_lifiDiamondAddress, _bridgeData, _token, _amount);
     }
 }
