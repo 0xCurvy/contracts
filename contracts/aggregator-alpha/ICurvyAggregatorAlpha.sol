@@ -10,7 +10,7 @@ interface ICurvyAggregatorAlpha {
 
     //#region Public functions
 
-    function autoShield(CurvyTypes.Note memory note) external;
+    function autoShield(CurvyTypes.Note memory note) external payable;
 
     //#endregion
 }

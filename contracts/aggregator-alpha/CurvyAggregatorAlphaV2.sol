@@ -25,6 +25,9 @@ contract CurvyAggregatorAlphaV2 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
 
     //#endregion
 
+    address constant NATIVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+
     //#region State variables
 
     // Maximum number of notes to commit in deposit
@@ -115,13 +118,15 @@ contract CurvyAggregatorAlphaV2 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
 
     function autoShield(
         CurvyTypes.Note memory note
-    ) external {
+    ) external payable {
         address tokenAddress = curvyVault.getTokenAddress(note.token);
 
-        IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), note.amount);
+        if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
+            IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), note.amount);
+            IERC20(tokenAddress).forceApprove(address(curvyVault), note.amount);
+        }
 
-        IERC20(tokenAddress).approve(address(curvyVault), note.amount);
-        curvyVault.deposit(tokenAddress, address(this), note.amount, 0);
+        curvyVault.deposit{value:msg.value}(tokenAddress, address(this), note.amount, 0);
 
         uint256 noteId = PoseidonT4.hash([note.ownerHash, note.amount, note.token]);
 

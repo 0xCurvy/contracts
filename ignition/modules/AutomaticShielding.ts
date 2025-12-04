@@ -7,7 +7,11 @@ export default buildModule("AutomaticShieldingModule", (m) => {
   // Deploy aggregator and Vault
   const { curvyVault, curvyAggregatorAlphaV2 } = m.useModule(CurvyAggregatorAlphaModule);
 
-  const noteDeployerFactory = m.contract("NoteDeployerFactory", [curvyAggregatorAlphaV2, curvyVault], {});
+  const noteDeployerFactory = m.contract(
+    "NoteDeployerFactory",
+    [curvyAggregatorAlphaV2, curvyVault, "0x0000000000000000000000000000000000000000"],
+    {},
+  );
 
   // Deploy mock erc20
   const erc20Mock = m.contract("ERC20Mock");

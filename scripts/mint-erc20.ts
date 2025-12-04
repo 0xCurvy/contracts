@@ -6,14 +6,10 @@ const { viem } = await network.connect({ network: "anvil" });
 const deployedAddressesPath = "./ignition/deployments/anvil/deployed_addresses.json";
 const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
 
-const vaultAddress = deployedAddresses["CurvyVault#CurvyVaultV1"];
-if (!vaultAddress) {
+const erc20MockAddress = deployedAddresses["Devenv#ERC20Mock"];
+if (!erc20MockAddress) {
   throw new Error("MetaERC20Wrapper address not found for anvil");
 }
-const vault = await viem.getContractAt("CurvyVaultV1", vaultAddress);
+const erc20Mock = await viem.getContractAt("ERC20Mock", erc20MockAddress);
 
-// const balance = await vault.read.balanceOf(["0x2b4f14ab7D932A2Cf164980168CD7A9D6eAfED95", 1n]);
-
-const address = await vault.read.getTokenAddress([1n]);
-
-console.log(address);
+erc20Mock.write.mockMint(["0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266", 5000n * 10n ** 18n]);

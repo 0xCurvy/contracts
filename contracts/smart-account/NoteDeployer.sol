@@ -19,6 +19,7 @@ contract NoteDeployer is INoteDeployer {
     uint256 public constant MAX_SLIPPAGE_BPS = 100; // 1%
     uint256 private ARBITRUM_CHAIN_ID = 42161;
     uint256 private SEPOLIA_CHAIN_ID = 11155111;
+    address constant NATIVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     //#region Errors
 
@@ -36,15 +37,7 @@ contract NoteDeployer is INoteDeployer {
         address curvyAggregatorAlphaProxyAddress,
         address curvyVaultProxyAddress
     ) external {
-        if (
-            block.chainid != ARBITRUM_CHAIN_ID &&
-            block.chainid != SEPOLIA_CHAIN_ID
-        ) {
-            revert("NoteDeployer: Shielding not supported on this chain");
-        }
-
         require(note.ownerHash == _ownerHash, "Invalid owner hash");
-        if (note.ownerHash != _ownerHash) revert InvalidOwnerHash();
 
         curvyAggregator = ICurvyAggregatorAlpha(
             curvyAggregatorAlphaProxyAddress
@@ -53,9 +46,12 @@ contract NoteDeployer is INoteDeployer {
 
         address tokenAddress = curvyVault.getTokenAddress(note.token);
 
-        IERC20(tokenAddress).approve(address(curvyAggregator), note.amount);
-
-        curvyAggregator.autoShield(note);
+        if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
+            IERC20(tokenAddress).forceApprove(address(curvyAggregator), note.amount);
+            curvyAggregator.autoShield(note);
+        } else {
+            curvyAggregator.autoShield{value:note.amount}(note);
+        }
     }
 
     function bridge(
@@ -63,12 +59,7 @@ contract NoteDeployer is INoteDeployer {
         bytes calldata _bridgeData,
         CurvyTypes.Note memory note
     ) external payable {
-        if (
-            block.chainid == ARBITRUM_CHAIN_ID ||
-            block.chainid == SEPOLIA_CHAIN_ID
-        ) {
-            revert("NoteDeployer: Bridging not supported on this chain");
-        }
+
 
         address tokenAddress = curvyVault.getTokenAddress(note.token);
 
@@ -106,7 +97,7 @@ contract NoteDeployer is INoteDeployer {
             }
         }
 
-        if (tokenAddress != address(0)) {
+        if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
             IERC20(tokenAddress).forceApprove(_lifiDiamondAddress, note.amount);
         } else {
             require(msg.value >= note.amount, "Insufficient ETH sent");

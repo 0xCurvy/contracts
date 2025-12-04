@@ -1,12 +1,12 @@
 import fs from "node:fs";
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import CurvyAggregatorAlphaModule from "./CurvyAggregatorAlpha";
+import AutomaticShielding from "./AutomaticShielding";
 
 const DEPOSIT_AMOUNT = 1000n * 10n ** 18n;
 
 export default buildModule("Devenv", (m) => {
   // Deploy aggregator and Vault
-  const { curvyVault } = m.useModule(CurvyAggregatorAlphaModule);
+  const { curvyVault } = m.useModule(AutomaticShielding);
 
   // Deploy multicall
   const multicall3 = m.contract("Multicall3");
