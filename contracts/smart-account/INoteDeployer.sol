@@ -29,13 +29,17 @@ interface INoteDeployer {
 
     //#region Public functions
 
-    function shield(CurvyTypes.Note memory note, address curvyAgrgegatorAlphaProxyAddress, address curvyVaultProxyAddress) external;
+    function shield(
+        CurvyTypes.Note memory note,
+        address curvyAgrgegatorAlphaProxyAddress,
+        address curvyVaultProxyAddress
+    ) external;
 
     function bridge(
         address _lifiDiamondAddress,
         bytes calldata _bridgeData,
-        address _token,
-        uint256 _amount) external;
+        CurvyTypes.Note memory note
+    ) external payable;
 
     //#endregion
 }

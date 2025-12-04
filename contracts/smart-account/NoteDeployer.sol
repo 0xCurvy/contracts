@@ -2,9 +2,14 @@
 pragma solidity ^0.8.28;
 
 import {CurvyTypes} from "../utils/Types.sol";
-import {ICurvyAggregatorAlpha} from "../aggregator-alpha/ICurvyAggregatorAlpha.sol";
+import {
+    ICurvyAggregatorAlpha
+} from "../aggregator-alpha/ICurvyAggregatorAlpha.sol";
 import {ICurvyVault} from "../vault/ICurvyVault.sol";
-import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {
+    SafeERC20,
+    IERC20
+} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {INoteDeployer} from "./INoteDeployer.sol";
 
 contract NoteDeployer is INoteDeployer {
@@ -15,7 +20,7 @@ contract NoteDeployer is INoteDeployer {
     uint256 private ARBITRUM_CHAIN_ID = 42161;
     uint256 private SEPOLIA_CHAIN_ID = 11155111;
 
-     //#region Errors
+    //#region Errors
 
     ICurvyAggregatorAlpha public curvyAggregator;
     ICurvyVault public curvyVault;
@@ -26,15 +31,24 @@ contract NoteDeployer is INoteDeployer {
         _ownerHash = ownerHash;
     }
 
-    function shield(CurvyTypes.Note memory note, address curvyAggregatorAlphaProxyAddress, address curvyVaultProxyAddress) external {
-        if (block.chainid != ARBITRUM_CHAIN_ID && block.chainid != SEPOLIA_CHAIN_ID) {
+    function shield(
+        CurvyTypes.Note memory note,
+        address curvyAggregatorAlphaProxyAddress,
+        address curvyVaultProxyAddress
+    ) external {
+        if (
+            block.chainid != ARBITRUM_CHAIN_ID &&
+            block.chainid != SEPOLIA_CHAIN_ID
+        ) {
             revert("NoteDeployer: Shielding not supported on this chain");
         }
 
         require(note.ownerHash == _ownerHash, "Invalid owner hash");
         if (note.ownerHash != _ownerHash) revert InvalidOwnerHash();
 
-        curvyAggregator = ICurvyAggregatorAlpha(curvyAggregatorAlphaProxyAddress);
+        curvyAggregator = ICurvyAggregatorAlpha(
+            curvyAggregatorAlphaProxyAddress
+        );
         curvyVault = ICurvyVault(curvyVaultProxyAddress);
 
         address tokenAddress = curvyVault.getTokenAddress(note.token);
@@ -44,16 +58,19 @@ contract NoteDeployer is INoteDeployer {
         curvyAggregator.autoShield(note);
     }
 
-    function bridge(address _lifiDiamondAddress,
+    function bridge(
+        address _lifiDiamondAddress,
         bytes calldata _bridgeData,
-        uint256 _token,
-        uint256 _amount) external {
-
-        if (block.chainid == ARBITRUM_CHAIN_ID || block.chainid == SEPOLIA_CHAIN_ID) {
+        CurvyTypes.Note memory note
+    ) external payable {
+        if (
+            block.chainid == ARBITRUM_CHAIN_ID ||
+            block.chainid == SEPOLIA_CHAIN_ID
+        ) {
             revert("NoteDeployer: Bridging not supported on this chain");
         }
 
-        address tokenAddress = curvyVault.getTokenAddress(_token);
+        address tokenAddress = curvyVault.getTokenAddress(note.token);
 
         if (_lifiDiamondAddress == address(0)) {
             revert("NoteDeployer: Invalid LI.FI address");
@@ -80,8 +97,9 @@ contract NoteDeployer is INoteDeployer {
         }
 
         if (tokenAddress != address(0)) {
-            if (bData.minAmount < _amount) {
-                uint256 slippage = ((_amount - bData.minAmount) * 10000) / _amount;
+            if (bData.minAmount < note.amount) {
+                uint256 slippage = ((note.amount - bData.minAmount) * 10000) /
+                    note.amount;
                 if (slippage > MAX_SLIPPAGE_BPS) {
                     revert("NoteDeployer: Slippage too high");
                 }
@@ -89,16 +107,16 @@ contract NoteDeployer is INoteDeployer {
         }
 
         if (tokenAddress != address(0)) {
-            IERC20(tokenAddress).forceApprove(_lifiDiamondAddress, _amount);
+            IERC20(tokenAddress).forceApprove(_lifiDiamondAddress, note.amount);
         } else {
-            require(msg.value >= _amount, "Insufficient ETH sent");
+            require(msg.value >= note.amount, "Insufficient ETH sent");
         }
 
-        (bool success, bytes memory returnData) = _lifiDiamondAddress.call{value: msg.value}(_bridgeData);
+        (bool success, ) = _lifiDiamondAddress.call{value: msg.value}(
+            _bridgeData
+        );
         if (!success) {
             revert("NoteDeployer: Bridge call failed");
         }
     }
-
 }
-

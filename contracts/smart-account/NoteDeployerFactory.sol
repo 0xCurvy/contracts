@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
 
-import { INoteDeployer } from "./INoteDeployer.sol";
-import { NoteDeployer } from "./NoteDeployer.sol";
-import { CurvyTypes } from "../utils/Types.sol";
+import {INoteDeployer} from "./INoteDeployer.sol";
+import {NoteDeployer} from "./NoteDeployer.sol";
+import {CurvyTypes} from "../utils/Types.sol";
 
 contract NoteDeployerFactory {
-    bytes32 private _salt = keccak256(abi.encodePacked("curvy-note-deployer-factory-salt"));
+    bytes32 private _salt =
+        keccak256(abi.encodePacked("curvy-note-deployer-factory-salt"));
 
     INoteDeployer public noteDeployer;
 
@@ -14,25 +15,32 @@ contract NoteDeployerFactory {
     address private _curvyAggregatorAlphaProxyAddress;
     address private _lifiDiamondAddress;
 
-
-    constructor (address curvyAggregatorAlphaProxyAddress, address curvyVaultProxyAddress, address lifiDiamondAddress) {
+    constructor(
+        address curvyAggregatorAlphaProxyAddress,
+        address curvyVaultProxyAddress,
+        address lifiDiamondAddress
+    ) {
         _curvyAggregatorAlphaProxyAddress = curvyAggregatorAlphaProxyAddress;
         _curvyVaultProxyAddress = curvyVaultProxyAddress;
         _lifiDiamondAddress = lifiDiamondAddress;
     }
 
-    function getCreationCode(uint256 ownerHash) public pure returns (bytes memory) {
+    function getCreationCode(
+        uint256 ownerHash
+    ) public pure returns (bytes memory) {
         bytes memory bytecode = type(NoteDeployer).creationCode;
         bytes memory encodedArgs = abi.encode(ownerHash);
-        return abi.encodePacked(bytecode, encodedArgs); 
+        return abi.encodePacked(bytecode, encodedArgs);
     }
 
-    function getContractAddress(uint256 ownerHash) public view returns (address) {
+    function getContractAddress(
+        uint256 ownerHash
+    ) public view returns (address) {
         bytes memory code = getCreationCode(ownerHash);
         bytes32 hash = keccak256(
             abi.encodePacked(
-                bytes1(0xff), 
-                address(this), 
+                bytes1(0xff),
+                address(this),
                 _salt,
                 keccak256(code)
             )
@@ -49,38 +57,45 @@ contract NoteDeployerFactory {
         assembly {
             // Deploy using CREATE2: value in wei, data pointer, data length, salt
             noteDeployerAddress := create2(
-                callvalue(),                     // value to send
+                callvalue(), // value to send
                 add(creationCodeWithArgs, 0x20), // pointer to start of bytecode
-                mload(creationCodeWithArgs),     // length of bytecode
-                salt                             // the salt
+                mload(creationCodeWithArgs), // length of bytecode
+                salt // the salt
             )
         }
         require(noteDeployerAddress != address(0), "Deployment failed");
 
         noteDeployer = INoteDeployer(noteDeployerAddress);
 
-        noteDeployer.shield(note, _curvyAggregatorAlphaProxyAddress, _curvyVaultProxyAddress);
+        noteDeployer.shield(
+            note,
+            _curvyAggregatorAlphaProxyAddress,
+            _curvyVaultProxyAddress
+        );
     }
 
-    function bridgeAndDeploy(bytes calldata _bridgeData,
-        address _token,
-        uint256 _amount) public payable {
+    function bridgeAndDeploy(
+        bytes calldata _bridgeData,
+        CurvyTypes.Note memory note
+    ) public payable {
         bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash);
         address noteDeployerAddress;
+
+        bytes32 salt = _salt;
 
         assembly {
             // Deploy using CREATE2: value in wei, data pointer, data length, salt
             noteDeployerAddress := create2(
-                callvalue(),                     // value to send
+                callvalue(), // value to send
                 add(creationCodeWithArgs, 0x20), // pointer to start of bytecode
-                mload(creationCodeWithArgs),     // length of bytecode
-                salt                             // the salt
+                mload(creationCodeWithArgs), // length of bytecode
+                salt // the salt
             )
         }
         require(noteDeployerAddress != address(0), "Deployment failed");
 
         noteDeployer = INoteDeployer(noteDeployerAddress);
 
-        noteDeployer.bridge(_lifiDiamondAddress, _bridgeData, _token, _amount);
+        noteDeployer.bridge(_lifiDiamondAddress, _bridgeData, note);
     }
 }
