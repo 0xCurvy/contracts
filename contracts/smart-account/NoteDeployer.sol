@@ -39,13 +39,6 @@ contract NoteDeployer is INoteDeployer {
 
         address tokenAddress = curvyVault.getTokenAddress(note.token);
 
-//        uint96 depositFee = curvyVault.getDepositFee();
-//        uint256 finalAmount = note.amount;
-//        if (depositFee != 0) {
-//            uint256 feeAmount = (note.amount * depositFee) / 10000;
-//            finalAmount -= feeAmount;
-//        }
-
         IERC20(tokenAddress).approve(address(curvyAggregator), note.amount);
 
         curvyAggregator.autoShield(note);
