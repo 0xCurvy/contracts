@@ -1,12 +1,17 @@
 import fs from "node:fs";
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import AutomaticShielding from "./AutomaticShielding";
+// import AutomaticShieldingModule from "./AutomaticShielding";
+import CurvyAggregatorAlphaModule from "./CurvyAggregatorAlpha";
 
 const DEPOSIT_AMOUNT = 1000n * 10n ** 18n;
 
 export default buildModule("Devenv", (m) => {
   // Deploy aggregator and Vault
-  const { curvyVault } = m.useModule(AutomaticShielding);
+  const { curvyVault, curvyAggregatorAlphaV2 } = m.useModule(CurvyAggregatorAlphaModule);
+
+  // const { noteDeployerFactory } = m.useModule(AutomaticShieldingModule);
+  // const lifiDiamond = "0x0000000000000000000000000000000000000000";
+  // m.call(noteDeployerFactory, "updateConfig", [curvyVault, curvyAggregatorAlphaV2, lifiDiamond]);
 
   // Deploy multicall
   const multicall3 = m.contract("Multicall3");

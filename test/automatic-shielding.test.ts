@@ -1,7 +1,9 @@
+import fs from "node:fs";
 import { network } from "hardhat";
 import { privateKeyToAccount } from "viem/accounts";
 import { expect, test } from "vitest";
-import AutomaticShieldingModule from "../ignition/modules/AutomaticShielding";
+
+// import AutomaticShieldingModule from "../ignition/modules/AutomaticShielding";
 
 test("automatic-shielding", async () => {
   const ownerHash = 702705117071108858750548073842146797693190729490869702449519502701872077655n;
@@ -9,10 +11,43 @@ test("automatic-shielding", async () => {
   const amount = 2797004n;
   const noteId = 14967077268631546162044198053248993673186354912497893587694799228971941136645n;
 
-  const { ignition, viem } = await network.connect();
+  const networkObj = await network.connect({ network: "anvil" });
 
-  const { noteDeployerFactory, curvyVault, curvyAggregatorAlphaV2, erc20Mock } =
-    await ignition.deploy(AutomaticShieldingModule);
+  // Deploy and run tests
+  // const { ignition, viem } = networkObj
+  // const { noteDeployerFactory, curvyVault, curvyAggregatorAlphaV2, erc20Mock } =
+  //   await ignition.deploy(AutomaticShieldingModule);
+
+  //#region Load deployed contracts
+
+  const { viem } = networkObj;
+  const deployedAddressesPath = "./ignition/deployments/anvil/deployed_addresses.json";
+  const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
+
+  const vaultAddress = deployedAddresses["CurvyVault#CurvyVaultV1"];
+  if (!vaultAddress) {
+    throw new Error("MetaERC20Wrapper address not found for anvil");
+  }
+  const noteDeployerFactoryAddress = deployedAddresses["AutomaticShieldingModule#NoteDeployerFactory"];
+  if (!noteDeployerFactoryAddress) {
+    throw new Error("NoteDeployerFactory address not found for anvil");
+  }
+  const curvyAggregatorAlphaV2Address = deployedAddresses["CurvyAggregatorAlpha#CurvyAggregatorAlphaV2"];
+  if (!curvyAggregatorAlphaV2Address) {
+    throw new Error("CurvyAggregatorAlphaV2 address not found for anvil");
+  }
+
+  const erc20MockAddress = deployedAddresses["AutomaticShieldingModule#ERC20Mock"];
+  if (!erc20MockAddress) {
+    throw new Error("ERC20Mock address not found for anvil");
+  }
+
+  const curvyVault = await viem.getContractAt("CurvyVaultV1", vaultAddress);
+  const noteDeployerFactory = await viem.getContractAt("NoteDeployerFactory", noteDeployerFactoryAddress);
+  const curvyAggregatorAlphaV2 = await viem.getContractAt("CurvyAggregatorAlphaV2", curvyAggregatorAlphaV2Address);
+  const erc20Mock = await viem.getContractAt("ERC20Mock", erc20MockAddress);
+
+  //#endregion
 
   const tokenIdOfErc20Mock = await curvyVault.read.getTokenId([erc20Mock.address]);
   expect(tokenIdOfErc20Mock).toBe(2n);
@@ -67,7 +102,7 @@ test("automatic-shielding", async () => {
 
   expect(receipt).toBeDefined();
 
-  await noteDeployerFactory.write.deploy([
+  const deployHash = await noteDeployerFactory.write.deploy([
     {
       ownerHash,
       token,
@@ -75,13 +110,17 @@ test("automatic-shielding", async () => {
     },
   ]);
 
+  const deployReceipt = await publicClient.waitForTransactionReceipt({ hash: deployHash });
+
+  expect(deployReceipt).toBeDefined();
+
   // check balances after deposit
 
   const depositFee = await curvyVault.read.depositFee();
   const expectedAmountMinusFees = amount - (amount * depositFee) / 10000n;
 
   const vaultErc20MockBalanceOfAggregator = await curvyVault.read.balanceOf([
-    curvyAggregatorAlphaV2.address,
+    curvyAggregatorAlphaV2Address,
     tokenIdOfErc20Mock,
   ]);
   expect(vaultErc20MockBalanceOfAggregator).toBe(expectedAmountMinusFees);

@@ -8,7 +8,7 @@
     "test": "pnpm run dev && vitest run",
     "start:hardhat": "pnpm hardhat node --network hardhat",
     "start:anvil": "anvil -b 1 --load-state ./cache/anvil_state.json",
-    "deploy:anvil": "node ./scripts/deploy-and-dump.js",
+    "deploy:anvil": "pnpm build && node ./scripts/deploy-and-dump.js",
     "deploy:staging:sepolia": "hardhat ignition deploy --deployment-id staging_ethereum-sepolia --verify --network sepolia ignition/modules/CurvyAggregatorAlpha.ts",
     "deploy:staging:arbitrum": "hardhat ignition deploy --deployment-id staging_arbitrum --verify --network arbitrum ignition/modules/CurvyAggregatorAlpha.ts",
     "deploy:production:sepolia": "hardhat ignition deploy --deployment-id production_ethereum-sepolia --verify --network sepolia ignition/modules/CurvyAggregatorAlpha.ts",

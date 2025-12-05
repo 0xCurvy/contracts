@@ -12,8 +12,6 @@ if (!vaultAddress) {
 }
 const vault = await viem.getContractAt("CurvyVaultV1", vaultAddress);
 
-// const balance = await vault.read.balanceOf(["0x2b4f14ab7D932A2Cf164980168CD7A9D6eAfED95", 1n]);
+const balance = await vault.read.balanceOf(["0x59b670e9fA9D0A427751Af201D676719a970857b", 2n]);
 
-const address = await vault.read.getTokenAddress([1n]);
-
-console.log(address);
+console.log(balance);
