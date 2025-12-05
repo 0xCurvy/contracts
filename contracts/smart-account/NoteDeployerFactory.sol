@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
 
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
 import {INoteDeployer} from "./INoteDeployer.sol";
 import {NoteDeployer} from "./NoteDeployer.sol";
 import {CurvyTypes} from "../utils/Types.sol";
 
-contract NoteDeployerFactory {
+contract NoteDeployerFactory is Ownable {
     bytes32 private _salt =
         keccak256(abi.encodePacked("curvy-note-deployer-factory-salt"));
 
@@ -15,14 +17,23 @@ contract NoteDeployerFactory {
     address private _curvyAggregatorAlphaProxyAddress;
     address private _lifiDiamondAddress;
 
-    constructor(
-        address curvyAggregatorAlphaProxyAddress,
-        address curvyVaultProxyAddress,
-        address lifiDiamondAddress
-    ) {
-        _curvyAggregatorAlphaProxyAddress = curvyAggregatorAlphaProxyAddress;
-        _curvyVaultProxyAddress = curvyVaultProxyAddress;
-        _lifiDiamondAddress = lifiDiamondAddress;
+    constructor(address initialOwner) Ownable(initialOwner) {}
+
+    function updateConfig(
+        CurvyTypes.NoteDeployerFactoryConfigurationUpdate memory _update
+    ) external onlyOwner returns (bool) {
+        if (_update.curvyVaultProxyAddress != address(0)) {
+            _curvyVaultProxyAddress = _update.curvyVaultProxyAddress;
+        }
+        if (_update.curvyAggregatorAlphaProxyAddress != address(0)) {
+            _curvyAggregatorAlphaProxyAddress = _update
+                .curvyAggregatorAlphaProxyAddress;
+        }
+        if (_update.lifiDiamondAddress != address(0)) {
+            _lifiDiamondAddress = _update.lifiDiamondAddress;
+        }
+
+        return true;
     }
 
     function getCreationCode(

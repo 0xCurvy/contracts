@@ -54,5 +54,15 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
 
   const curvyAggregatorAlphaV2 = m.contractAt("CurvyAggregatorAlphaV2", proxy);
 
-  return { implementation, proxy, curvyAggregatorAlphaV2, curvyVault };
+  const noteDeployerFactory = m.contract("NoteDeployerFactory");
+
+  m.call(noteDeployerFactory, "updateConfig", [
+    {
+      curvyAggregatorAlphaProxyAddress: curvyAggregatorAlphaV2,
+      curvyVaultProxyAddress: curvyVault,
+      lifiDiamondAddress: "0x0000000000000000000000000000000000000000",
+    },
+  ]);
+
+  return { implementation, proxy, curvyAggregatorAlphaV2, curvyVault, noteDeployerFactory };
 });

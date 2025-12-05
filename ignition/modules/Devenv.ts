@@ -9,9 +9,15 @@ export default buildModule("Devenv", (m) => {
   // Deploy aggregator and Vault
   const { curvyVault, curvyAggregatorAlphaV2 } = m.useModule(CurvyAggregatorAlphaModule);
 
-  // const { noteDeployerFactory } = m.useModule(AutomaticShieldingModule);
-  // const lifiDiamond = "0x0000000000000000000000000000000000000000";
-  // m.call(noteDeployerFactory, "updateConfig", [curvyVault, curvyAggregatorAlphaV2, lifiDiamond]);
+  const noteDeployerFactory = m.contract("NoteDeployerFactory");
+
+  m.call(noteDeployerFactory, "updateConfig", [
+    {
+      curvyVaultProxyAddress: curvyVault,
+      curvyAggregatorAlphaProxyAddress: curvyAggregatorAlphaV2,
+      lifiDiamondAddress: "0x0000000000000000000000000000000000000000",
+    },
+  ]);
 
   // Deploy multicall
   const multicall3 = m.contract("Multicall3");
