@@ -1,23 +1,41 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
 
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import { PoseidonT4} from "./utils/PoseidonT4.sol";
+import {
+    Initializable
+} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {
+    UUPSUpgradeable
+} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {
+    OwnableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {PoseidonT4} from "./utils/PoseidonT4.sol";
 
-import { ICurvyAggregatorAlpha } from "./ICurvyAggregatorAlpha.sol";
-import { ICurvyVault } from "../vault/ICurvyVault.sol";
-import { ICurvyInsertionVerifier, ICurvyAggregationVerifier,  ICurvyWithdrawVerifier } from "./verifiers/ICurvyVerifiersAlpha.sol";
-import { CurvyTypes } from "../utils/Types.sol";
-import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ICurvyAggregatorAlpha} from "./ICurvyAggregatorAlpha.sol";
+import {ICurvyVault} from "../vault/ICurvyVault.sol";
+import {
+    ICurvyInsertionVerifier,
+    ICurvyAggregationVerifier,
+    ICurvyWithdrawVerifier
+} from "./verifiers/ICurvyVerifiersAlpha.sol";
+import {CurvyTypes} from "../utils/Types.sol";
+import {
+    SafeERC20,
+    IERC20
+} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title CurvyAggregator
  * @author Curvy Protocol (https://curvy.box)
  * @dev Curvy's Aggregator contract.
  */
-contract CurvyAggregatorAlphaV2 is ICurvyAggregatorAlpha, Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract CurvyAggregatorAlphaV2 is
+    ICurvyAggregatorAlpha,
+    Initializable,
+    UUPSUpgradeable,
+    OwnableUpgradeable
+{
     using SafeERC20 for IERC20;
     //#region Events
 
@@ -26,7 +44,6 @@ contract CurvyAggregatorAlphaV2 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
     //#endregion
 
     address constant NATIVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
 
     //#region State variables
 
@@ -64,7 +81,10 @@ contract CurvyAggregatorAlphaV2 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         _disableInitializers();
     }
 
-    function initialize(address initialOwner, address curvyVaultProxyAddress) public initializer {
+    function initialize(
+        address initialOwner,
+        address curvyVaultProxyAddress
+    ) public initializer {
         maxDeposits = 2;
         maxWithdrawals = 2;
         maxAggregations = 2;
@@ -79,13 +99,18 @@ contract CurvyAggregatorAlphaV2 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
 
     //#region Owner functions
 
-    function updateConfig(CurvyTypes.AggregatorConfigurationUpdate memory _update) external onlyOwner returns (bool)
-    {
+    function updateConfig(
+        CurvyTypes.AggregatorConfigurationUpdate memory _update
+    ) external onlyOwner returns (bool) {
         if (_update.insertionVerifier != address(0)) {
-            insertionVerifier = ICurvyInsertionVerifier(_update.insertionVerifier);
+            insertionVerifier = ICurvyInsertionVerifier(
+                _update.insertionVerifier
+            );
         }
         if (_update.aggregationVerifier != address(0)) {
-            aggregationVerifier = ICurvyAggregationVerifier(_update.aggregationVerifier);
+            aggregationVerifier = ICurvyAggregationVerifier(
+                _update.aggregationVerifier
+            );
         }
         if (_update.withdrawVerifier != address(0)) {
             withdrawVerifier = ICurvyWithdrawVerifier(_update.withdrawVerifier);
@@ -107,7 +132,10 @@ contract CurvyAggregatorAlphaV2 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         return true;
     }
 
-    function reset(uint256 newNotesTreeRoot, uint256 newNullifiersTreeRoot) external onlyOwner {
+    function reset(
+        uint256 newNotesTreeRoot,
+        uint256 newNullifiersTreeRoot
+    ) external onlyOwner {
         _notesTreeRoot = newNotesTreeRoot;
         _nullifiersTreeRoot = newNullifiersTreeRoot;
     }
@@ -117,18 +145,28 @@ contract CurvyAggregatorAlphaV2 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
     //#region Public functions
 
     function autoShield(
-        CurvyTypes.Note memory note
+        CurvyTypes.Note memory note,
+        address tokenAddress
     ) external payable {
-        address tokenAddress = curvyVault.getTokenAddress(note.token);
-
         if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
-            IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), note.amount);
+            IERC20(tokenAddress).safeTransferFrom(
+                msg.sender,
+                address(this),
+                note.amount
+            );
             IERC20(tokenAddress).forceApprove(address(curvyVault), note.amount);
         }
 
-        curvyVault.deposit{value:msg.value}(tokenAddress, address(this), note.amount, 0);
+        curvyVault.deposit{value: msg.value}(
+            tokenAddress,
+            address(this),
+            note.amount,
+            0
+        );
 
-        uint256 noteId = PoseidonT4.hash([note.ownerHash, note.amount, note.token]);
+        uint256 noteId = PoseidonT4.hash(
+            [note.ownerHash, note.amount, note.token]
+        );
 
         _pendingIdsQueue[noteId] = true;
 
@@ -141,9 +179,21 @@ contract CurvyAggregatorAlphaV2 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         bytes memory signature
     ) public {
         // TODO: Gas fee
-        curvyVault.transfer(CurvyTypes.MetaTransaction(from, address(this), note.token, note.amount, 0, CurvyTypes.MetaTransactionType.Transfer), signature);
+        curvyVault.transfer(
+            CurvyTypes.MetaTransaction(
+                from,
+                address(this),
+                note.token,
+                note.amount,
+                0,
+                CurvyTypes.MetaTransactionType.Transfer
+            ),
+            signature
+        );
 
-        uint256 noteId = PoseidonT4.hash([note.ownerHash, note.amount, note.token]);
+        uint256 noteId = PoseidonT4.hash(
+            [note.ownerHash, note.amount, note.token]
+        );
 
         _pendingIdsQueue[noteId] = true;
 
@@ -159,7 +209,10 @@ contract CurvyAggregatorAlphaV2 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         for (uint256 i = 0; i < maxDeposits; i += 1) {
             uint256 noteId = publicInputs[i];
             if (noteId != 0) {
-                require(_pendingIdsQueue[noteId], "CurvyAggregator#commitDepositBatch: Note not scheduled for deposit!");
+                require(
+                    _pendingIdsQueue[noteId],
+                    "CurvyAggregator#commitDepositBatch: Note not scheduled for deposit!"
+                );
                 delete _pendingIdsQueue[noteId];
             }
         }
@@ -172,7 +225,12 @@ contract CurvyAggregatorAlphaV2 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         );
 
         require(
-            insertionVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),
+            insertionVerifier.verifyProof(
+                proof_a,
+                proof_b,
+                proof_c,
+                publicInputs
+            ),
             "CurvyAggregator#commitDepositBatch: Invalid proof!"
         );
 
@@ -192,11 +250,22 @@ contract CurvyAggregatorAlphaV2 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         uint256 oldNotesTreeRoot = publicInputs[2 * maxAggregations + 3];
         uint256 newNotesTreeRoot = publicInputs[2 * maxAggregations + 4];
 
-        require(_notesTreeRoot == oldNotesTreeRoot, "CurvyAggregator#commitAggregationBatch: Current note tree root mismatch!");
-        require(_nullifiersTreeRoot == oldNullifiersTreeRoot, "CurvyAggregator#commitAggregationBatch: Current nullifier tree root mismatch!");
+        require(
+            _notesTreeRoot == oldNotesTreeRoot,
+            "CurvyAggregator#commitAggregationBatch: Current note tree root mismatch!"
+        );
+        require(
+            _nullifiersTreeRoot == oldNullifiersTreeRoot,
+            "CurvyAggregator#commitAggregationBatch: Current nullifier tree root mismatch!"
+        );
 
         require(
-            aggregationVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),
+            aggregationVerifier.verifyProof(
+                proof_a,
+                proof_b,
+                proof_c,
+                publicInputs
+            ),
             "CurvyAggregator#commitAggregationBatch: Invalid proof!"
         );
 
@@ -213,12 +282,22 @@ contract CurvyAggregatorAlphaV2 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         uint256[2] memory proof_c,
         uint256[10] memory publicInputs
     ) public returns (bool) {
-
-        require(publicInputs[3] == _nullifiersTreeRoot, "CurvyAggregator#commitWithdrawalBatch: Current nullifier tree root mismatch!");
-        require(publicInputs[2] == _notesTreeRoot, "CurvyAggregator#commitWithdrawalBatch: Current note tree root mismatch!");
+        require(
+            publicInputs[3] == _nullifiersTreeRoot,
+            "CurvyAggregator#commitWithdrawalBatch: Current nullifier tree root mismatch!"
+        );
+        require(
+            publicInputs[2] == _notesTreeRoot,
+            "CurvyAggregator#commitWithdrawalBatch: Current note tree root mismatch!"
+        );
 
         require(
-            withdrawVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),
+            withdrawVerifier.verifyProof(
+                proof_a,
+                proof_b,
+                proof_c,
+                publicInputs
+            ),
             "CurvyAggregator#commitWithdrawalBatch: Invalid withdraw proof!"
         );
 
@@ -230,7 +309,9 @@ contract CurvyAggregatorAlphaV2 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         // Transfer withdrawals
         for (uint256 i = 0; i < maxWithdrawals; i += 1) {
             uint256 amount = publicInputs[4 + i];
-            address destinationAddress = address(uint160(publicInputs[4 + maxWithdrawals + i]));
+            address destinationAddress = address(
+                uint160(publicInputs[4 + maxWithdrawals + i])
+            );
             if (amount != 0) {
                 curvyVault.transfer(
                     CurvyTypes.MetaTransaction(

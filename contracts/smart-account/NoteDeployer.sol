@@ -47,10 +47,13 @@ contract NoteDeployer is INoteDeployer {
         address tokenAddress = curvyVault.getTokenAddress(note.token);
 
         if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
-            IERC20(tokenAddress).forceApprove(address(curvyAggregator), note.amount);
-            curvyAggregator.autoShield(note);
+            IERC20(tokenAddress).forceApprove(
+                address(curvyAggregator),
+                note.amount
+            );
+            curvyAggregator.autoShield(note, tokenAddress);
         } else {
-            curvyAggregator.autoShield{value:note.amount}(note);
+            curvyAggregator.autoShield{value: note.amount}(note, tokenAddress);
         }
     }
 
@@ -59,8 +62,6 @@ contract NoteDeployer is INoteDeployer {
         bytes calldata _bridgeData,
         CurvyTypes.Note memory note
     ) external payable {
-
-
         address tokenAddress = curvyVault.getTokenAddress(note.token);
 
         if (_lifiDiamondAddress == address(0)) {

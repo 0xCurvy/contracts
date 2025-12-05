@@ -7,17 +7,7 @@ const DEPOSIT_AMOUNT = 1000n * 10n ** 18n;
 
 export default buildModule("Devenv", (m) => {
   // Deploy aggregator and Vault
-  const { curvyVault, curvyAggregatorAlphaV2 } = m.useModule(CurvyAggregatorAlphaModule);
-
-  const noteDeployerFactory = m.contract("NoteDeployerFactory");
-
-  m.call(noteDeployerFactory, "updateConfig", [
-    {
-      curvyVaultProxyAddress: curvyVault,
-      curvyAggregatorAlphaProxyAddress: curvyAggregatorAlphaV2,
-      lifiDiamondAddress: "0x0000000000000000000000000000000000000000",
-    },
-  ]);
+  const { curvyVault } = m.useModule(CurvyAggregatorAlphaModule);
 
   // Deploy multicall
   const multicall3 = m.contract("Multicall3");
@@ -37,6 +27,11 @@ export default buildModule("Devenv", (m) => {
 
     // Third gets nothing
   }
+
+  const userAddressForAutomaticShielding = "0x0eeCE19240e3A8826d92da5f4D31581a1DC97779";
+
+  m.send(`Send_ETH_${userAddressForAutomaticShielding}`, userAddressForAutomaticShielding, DEPOSIT_AMOUNT, undefined, { from: deployer });
+  m.call(erc20Mock, "mockMint", [userAddressForAutomaticShielding, DEPOSIT_AMOUNT], { id: `Mint_ERC20_${userAddressForAutomaticShielding}` });
 
   m.call(curvyVault, "registerToken", [erc20Mock], { id: "Register_MockERC20" });
 

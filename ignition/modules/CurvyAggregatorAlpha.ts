@@ -54,7 +54,9 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
 
   const curvyAggregatorAlphaV2 = m.contractAt("CurvyAggregatorAlphaV2", proxy);
 
-  const noteDeployerFactory = m.contract("NoteDeployerFactory");
+  const noteDeployerFactory = m.contract("NoteDeployerFactory", [owner], {
+    id: "NoteDeployerFactory",
+  });
 
   m.call(noteDeployerFactory, "updateConfig", [
     {

@@ -28,7 +28,7 @@ test("automatic-shielding", async () => {
   if (!vaultAddress) {
     throw new Error("MetaERC20Wrapper address not found for anvil");
   }
-  const noteDeployerFactoryAddress = deployedAddresses["AutomaticShieldingModule#NoteDeployerFactory"];
+  const noteDeployerFactoryAddress = deployedAddresses["CurvyAggregatorAlpha#NoteDeployerFactory"];
   if (!noteDeployerFactoryAddress) {
     throw new Error("NoteDeployerFactory address not found for anvil");
   }
@@ -37,7 +37,7 @@ test("automatic-shielding", async () => {
     throw new Error("CurvyAggregatorAlphaV2 address not found for anvil");
   }
 
-  const erc20MockAddress = deployedAddresses["AutomaticShieldingModule#ERC20Mock"];
+  const erc20MockAddress = deployedAddresses["Devenv#ERC20Mock"];
   if (!erc20MockAddress) {
     throw new Error("ERC20Mock address not found for anvil");
   }
