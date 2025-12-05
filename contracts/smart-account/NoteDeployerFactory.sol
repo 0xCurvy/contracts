@@ -59,7 +59,11 @@ contract NoteDeployerFactory is Ownable {
         return address(uint160(uint256(hash)));
     }
 
-    function deploy(CurvyTypes.Note memory note) public payable {
+    function deployAndShield(CurvyTypes.Note memory note) public payable {
+        if (_curvyVaultProxyAddress == address(0) || _curvyAggregatorAlphaProxyAddress == address(0)) {
+            revert("Shielding not supported on this chain");
+        }
+
         bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash);
         address noteDeployerAddress;
 
@@ -85,10 +89,14 @@ contract NoteDeployerFactory is Ownable {
         );
     }
 
-    function bridgeAndDeploy(
+    function deployAndBridge(
         bytes calldata _bridgeData,
         CurvyTypes.Note memory note
     ) public payable {
+        if (_lifiDiamondAddress == address(0)) {
+            revert("Bridging not supported on this chain");
+        }
+
         bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash);
         address noteDeployerAddress;
 
