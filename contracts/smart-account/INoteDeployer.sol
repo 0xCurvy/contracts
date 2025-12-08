@@ -36,10 +36,11 @@ interface INoteDeployer {
     ) external;
 
     function bridge(
-        address _lifiDiamondAddress,
-        bytes calldata _bridgeData,
-        CurvyTypes.Note memory note
-    ) external payable;
+        address lifiDiamondAddress,
+        bytes calldata bridgeData,
+        CurvyTypes.Note memory note,
+        address tokenAddress
+    ) external;
 
     //#endregion
 }

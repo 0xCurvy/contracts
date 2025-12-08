@@ -12,7 +12,9 @@
     "deploy:staging:sepolia": "hardhat ignition deploy --deployment-id staging_ethereum-sepolia --verify --network sepolia ignition/modules/CurvyAggregatorAlpha.ts",
     "deploy:staging:arbitrum": "hardhat ignition deploy --deployment-id staging_arbitrum --verify --network arbitrum ignition/modules/CurvyAggregatorAlpha.ts",
     "deploy:production:sepolia": "hardhat ignition deploy --deployment-id production_ethereum-sepolia --verify --network sepolia ignition/modules/CurvyAggregatorAlpha.ts",
-    "deploy:production:arbitrum": "hardhat ignition deploy --deployment-id production_arbitrum --verify --network arbitrum ignition/modules/CurvyAggregatorAlpha.ts"
+    "deploy:production:arbitrum": "hardhat ignition deploy --deployment-id production_arbitrum --verify --network arbitrum ignition/modules/CurvyAggregatorAlpha.ts",
+    "deploy:portals": "hardhat ignition deploy --deployment-id portals-testing --verify --network arbitrum ignition/modules/CurvyAggregatorAlpha.ts",
+    "deploy:portal:ethereum": "hardhat ignition deploy --deployment-id portal_ethereum-testing --verify --network ethereum ignition/modules/AutomaticShielding.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.0.3",
