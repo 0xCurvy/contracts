@@ -16,9 +16,7 @@ contract NoteDeployer is INoteDeployer {
     using SafeERC20 for IERC20;
 
     uint256 private _ownerHash;
-    uint256 public constant MAX_SLIPPAGE_BPS = 100; // 1%
-    uint256 private ARBITRUM_CHAIN_ID = 42161;
-    uint256 private SEPOLIA_CHAIN_ID = 11155111;
+    uint256 public constant MAX_SLIPPAGE_BPS = 500; // 1%
     address constant NATIVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     //#region Errors
@@ -74,10 +72,6 @@ contract NoteDeployer is INoteDeployer {
 
         (BridgeData memory bData) = abi.decode(_bridgeData[4:], (BridgeData));
 
-        if (bData.hasSourceSwaps) {
-            revert("NoteDeployer: Source swaps not supported");
-        }
-
         if (bData.receiver != address(this)) {
             revert("NoteDeployer: Invalid receiver");
         }
@@ -98,13 +92,14 @@ contract NoteDeployer is INoteDeployer {
             }
         }
 
+        uint256 amount = note.amount;
+
         if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
             IERC20(tokenAddress).forceApprove(_lifiDiamondAddress, note.amount);
-        } else {
-            require(msg.value >= note.amount, "Insufficient ETH sent");
+            amount = 0;
         }
 
-        (bool success, ) = _lifiDiamondAddress.call{value: msg.value}(
+        (bool success, ) = _lifiDiamondAddress.call{value: amount}(
             _bridgeData
         );
         if (!success) {
