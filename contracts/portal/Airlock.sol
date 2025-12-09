@@ -10,21 +10,19 @@ import {
     SafeERC20,
     IERC20
 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {INoteDeployer} from "./INoteDeployer.sol";
+import {IAirlock} from "./IAirlock.sol";
 
-contract NoteDeployer is INoteDeployer {
+contract Airlock is IAirlock {
     using SafeERC20 for IERC20;
 
     uint256 private _ownerHash;
     address constant NATIVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    //#region Errors
-
     ICurvyAggregatorAlpha public curvyAggregator;
     ICurvyVault public curvyVault;
 
     constructor(uint256 ownerHash) {
-        // TODO: dodati fee za deployment
+        // TODO: add fee for deployment
 
         _ownerHash = ownerHash;
     }
@@ -34,7 +32,9 @@ contract NoteDeployer is INoteDeployer {
         address curvyAggregatorAlphaProxyAddress,
         address curvyVaultProxyAddress
     ) external {
-        require(note.ownerHash == _ownerHash, "Invalid owner hash");
+        if (note.ownerHash != _ownerHash) {
+            revert("Airlock: Invalid owner hash");
+        }
 
         curvyAggregator = ICurvyAggregatorAlpha(
             curvyAggregatorAlphaProxyAddress
@@ -61,7 +61,11 @@ contract NoteDeployer is INoteDeployer {
         address tokenAddress
     ) external {
         if (lifiDiamondAddress == address(0)) {
-            revert("NoteDeployer: Invalid LI.FI address");
+            revert("Airlock: Invalid LI.FI address");
+        }
+
+        if (note.ownerHash != _ownerHash) {
+            revert("Airlock: Invalid owner hash");
         }
 
         uint256 amount = note.amount;
@@ -73,7 +77,7 @@ contract NoteDeployer is INoteDeployer {
 
         (bool success, ) = lifiDiamondAddress.call{value: amount}(bridgeData);
         if (!success) {
-            revert("NoteDeployer: Bridge call failed");
+            revert("Airlock: Bridge call failed");
         }
     }
 }

@@ -13,8 +13,9 @@
     "deploy:staging:arbitrum": "hardhat ignition deploy --deployment-id staging_arbitrum --verify --network arbitrum ignition/modules/CurvyAggregatorAlpha.ts",
     "deploy:production:sepolia": "hardhat ignition deploy --deployment-id production_ethereum-sepolia --verify --network sepolia ignition/modules/CurvyAggregatorAlpha.ts",
     "deploy:production:arbitrum": "hardhat ignition deploy --deployment-id production_arbitrum --verify --network arbitrum ignition/modules/CurvyAggregatorAlpha.ts",
-    "deploy:portals": "hardhat ignition deploy --deployment-id portals-testing --verify --network arbitrum ignition/modules/CurvyAggregatorAlpha.ts",
-    "deploy:portal:ethereum": "hardhat ignition deploy --deployment-id portal_ethereum-testing --verify --network ethereum ignition/modules/AutomaticShielding.ts"
+    "deploy:portals:arbitrum": "hardhat ignition deploy --deployment-id portals-testing --verify --network arbitrum ignition/modules/CurvyAggregatorAlpha.ts",
+    "deploy:airlock-factory:ethereum": "hardhat ignition deploy --deployment-id airlock_factory_ethereum-testing --verify --network ethereum ignition/modules/AirlockFactory.ts",
+    "deploy:airlock-factory:arbitrum": "hardhat ignition deploy --deployment-id airlock_factory_arbitrum-testing --verify --network arbitrum ignition/modules/AirlockFactory.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.0.3",

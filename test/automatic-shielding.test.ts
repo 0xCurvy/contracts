@@ -15,7 +15,7 @@ test("automatic-shielding", async () => {
 
   // Deploy and run tests
   // const { ignition, viem } = networkObj
-  // const { noteDeployerFactory, curvyVault, curvyAggregatorAlphaV2, erc20Mock } =
+  // const { airlockFactory, curvyVault, curvyAggregatorAlphaV2, erc20Mock } =
   //   await ignition.deploy(AutomaticShieldingModule);
 
   //#region Load deployed contracts
@@ -28,9 +28,9 @@ test("automatic-shielding", async () => {
   if (!vaultAddress) {
     throw new Error("MetaERC20Wrapper address not found for anvil");
   }
-  const noteDeployerFactoryAddress = deployedAddresses["CurvyAggregatorAlpha#NoteDeployerFactory"];
-  if (!noteDeployerFactoryAddress) {
-    throw new Error("NoteDeployerFactory address not found for anvil");
+  const airlockFactoryAddress = deployedAddresses["CurvyAggregatorAlpha#AirlockFactory"];
+  if (!airlockFactoryAddress) {
+    throw new Error("AirlockFactory address not found for anvil");
   }
   const curvyAggregatorAlphaV2Address = deployedAddresses["CurvyAggregatorAlpha#CurvyAggregatorAlphaV2"];
   if (!curvyAggregatorAlphaV2Address) {
@@ -43,7 +43,7 @@ test("automatic-shielding", async () => {
   }
 
   const curvyVault = await viem.getContractAt("CurvyVaultV1", vaultAddress);
-  const noteDeployerFactory = await viem.getContractAt("NoteDeployerFactory", noteDeployerFactoryAddress);
+  const airlockFactory = await viem.getContractAt("AirlockFactory", airlockFactoryAddress);
   const curvyAggregatorAlphaV2 = await viem.getContractAt("CurvyAggregatorAlphaV2", curvyAggregatorAlphaV2Address);
   const erc20Mock = await viem.getContractAt("ERC20Mock", erc20MockAddress);
 
@@ -61,7 +61,7 @@ test("automatic-shielding", async () => {
 
   const publicClient = await viem.getPublicClient();
 
-  const noteDeployerAddress = await noteDeployerFactory.read.getContractAddress([ownerHash]);
+  const airlockAddress = await airlockFactory.read.getAirlockAddress([ownerHash]);
 
   const { request } = await publicClient.simulateContract({
     account: user,
@@ -93,7 +93,7 @@ test("automatic-shielding", async () => {
       },
     ],
     functionName: "transfer",
-    args: [noteDeployerAddress, amount],
+    args: [airlockAddress, amount],
   });
 
   const hash = await userClient.writeContract(request);
@@ -102,7 +102,7 @@ test("automatic-shielding", async () => {
 
   expect(receipt).toBeDefined();
 
-  const deployHash = await noteDeployerFactory.write.deploy([
+  const deployHash = await airlockFactory.write.deployAndShield([
     {
       ownerHash,
       token,

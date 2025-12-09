@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 
 import {CurvyTypes} from "../utils/Types.sol";
 
-interface INoteDeployer {
+interface IAirlock {
     //#region Errors
 
     error InvalidOwnerHash();

@@ -34,7 +34,7 @@ library CurvyTypes {
         uint256 amount;
     }
 
-    struct NoteDeployerFactoryConfigurationUpdate {
+    struct AirlockFactoryConfigurationUpdate {
         address curvyVaultProxyAddress;
         address curvyAggregatorAlphaProxyAddress;
         address lifiDiamondAddress;
