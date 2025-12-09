@@ -10,7 +10,14 @@ export default buildModule("CurvyVault", (m) => {
     m.encodeFunctionCall(implementation, "initialize", [owner]),
   ]);
 
-  const curvyVault = m.contractAt("CurvyVaultV1", proxy);
+  const curvyVaultV1 = m.contractAt("CurvyVaultV1", proxy);
+
+  // This version makes the fees for withdrawal inclusive adds nicer error messages
+  const implementationV2 = m.contract("CurvyVaultV2", [], { id: "CurvyVaultV2Implementation" });
+
+  m.call(curvyVaultV1, "upgradeToAndCall", [implementationV2, "0x"]);
+
+  const curvyVault = m.contractAt("CurvyVaultV2", proxy);
 
   return { implementation, proxy, curvyVault };
 });
