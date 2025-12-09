@@ -181,10 +181,14 @@ contract CurvyVaultV2Mock is ICurvyVault, Initializable, EIP712Upgradeable, UUPS
     //#region Public functions
 
     receive() external payable {
-        deposit(ETH_ADDRESS, msg.sender, msg.value);
+        deposit(ETH_ADDRESS, msg.sender, msg.value, 0);
     }
 
-    function deposit(address tokenAddress, address to, uint256 amount) public payable {
+    function deposit(address tokenAddress, address to, uint256 amount) external {
+        deposit(tokenAddress, to, amount, 0);
+    }
+
+    function deposit(address tokenAddress, address to, uint256 amount, uint256 gasSponsorshipAmount) public payable {
         require(to != address(0x0), "CurvyVault#deposit: Invalid recipient for deposit!");
 
         uint256 tokenId;
@@ -209,6 +213,12 @@ contract CurvyVaultV2Mock is ICurvyVault, Initializable, EIP712Upgradeable, UUPS
             uint256 feeAmount = (amount * depositFee) / FEE_DENOMINATOR;
             _balances[to][tokenId] -= feeAmount;
             _balances[owner()][tokenId] += feeAmount;
+        }
+
+        // Collect gas fee when we sponsored by sending you ETH for a primitive gas sponsorship (DEPRECATED)
+        if (gasSponsorshipAmount != 0) {
+            _balances[to][tokenId] -= gasSponsorshipAmount;
+            _balances[owner()][tokenId] += gasSponsorshipAmount;
         }
 
         emit Transfer(address(0x0), to, tokenId, amount);

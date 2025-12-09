@@ -13,10 +13,24 @@ interface ICurvyVault {
 
     //#endregion
 
+    //#region Errors
+
+    error InvalidRecipient();
+    error InvalidSender();
+    error InvalidTransactionType();
+    error InvalidGasSponsorship();
+    error TokenNotRegistered();
+    error InsufficientBalance(uint256 balance, uint256 required);
+    error InsufficientAmountForGas();
+    error ETHTransferFailed();
+
+    //#endregion
+
     //#region Public functions
 
     function transfer(CurvyTypes.MetaTransaction calldata metaTransaction) external;
     function transfer(CurvyTypes.MetaTransaction calldata metaTransaction, bytes memory signature) external;
+    function deposit(address tokenAddress, address to, uint256 amount, uint256 gasSponsorshipAmount) external payable;
 
     //#endregion
 }
