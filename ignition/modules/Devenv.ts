@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-// import AutomaticShieldingModule from "./AutomaticShielding";
 import CurvyAggregatorAlphaModule from "./CurvyAggregatorAlpha";
 
 const DEPOSIT_AMOUNT = 1000n * 10n ** 18n;
