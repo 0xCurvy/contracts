@@ -65,13 +65,13 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
 
   const curvyAggregatorAlpha = m.contractAt("CurvyAggregatorAlphaV3", proxy);
 
-  const airlockFactory = m.contract(
-    "AirlockFactory",
-    [owner, curvyAggregatorAlpha, curvyVault, "0x0000000000000000000000000000000000000000"],
-    {
-      id: "AirlockFactory",
-    },
-  );
+  const airlockFactory = m.contract("AirlockFactory", [owner], { id: "AirlockFactory" });
+
+  m.call(airlockFactory, "initializeConfig", [
+    curvyAggregatorAlpha,
+    curvyVault,
+    "0x0000000000000000000000000000000000000000",
+  ]);
 
   return { implementation, proxy, curvyAggregatorAlpha, curvyVault, airlockFactory };
 });

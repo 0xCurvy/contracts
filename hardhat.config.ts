@@ -65,6 +65,13 @@ const config: HardhatUserConfig = {
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
     },
   },
+  ignition: {
+    strategyConfig: {
+      create2: {
+        salt: "0x6d696861696c6f20616e642076616e6a6120637572767920706f776572000000",
+      },
+    },
+  },
   verify: {
     etherscan: {
       apiKey: configVariable("ETHERSCAN_API_KEY"),

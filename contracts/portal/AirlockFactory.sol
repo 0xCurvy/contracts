@@ -10,21 +10,21 @@ import { CurvyTypes } from "../utils/Types.sol";
 contract AirlockFactory is Ownable {
     bytes32 private _salt = keccak256(abi.encodePacked("curvy-airlock-factory-salt"));
 
-    IAirlock public airlock;
-
     address private _curvyVaultProxyAddress;
     address private _curvyAggregatorAlphaProxyAddress;
     address private _lifiDiamondAddress;
 
-    constructor(
-        address initialOwner,
+    constructor(address initialOwner) Ownable(initialOwner) {}
+
+    function initializeConfig(
         address curvyVaultProxyAddress,
         address curvyAggregatorAlphaProxyAddress,
         address lifiDiamondAddress
-    ) Ownable(initialOwner) {
+    ) external onlyOwner returns (bool) {
         _curvyVaultProxyAddress = curvyVaultProxyAddress;
         _curvyAggregatorAlphaProxyAddress = curvyAggregatorAlphaProxyAddress;
         _lifiDiamondAddress = lifiDiamondAddress;
+        return true;
     }
 
     function updateLifiDiamondAddress(address lifiDiamondAddress) external onlyOwner returns (bool) {
@@ -67,9 +67,7 @@ contract AirlockFactory is Ownable {
             revert("AirlockFactory: Deployment failed");
         }
 
-        airlock = IAirlock(airlockAddress);
-
-        airlock.shield(note, _curvyAggregatorAlphaProxyAddress, _curvyVaultProxyAddress);
+        IAirlock(airlockAddress).shield(note, _curvyAggregatorAlphaProxyAddress, _curvyVaultProxyAddress);
     }
 
     function deployAndBridge(bytes calldata bridgeData, CurvyTypes.Note memory note, address tokenAddress) public {
@@ -95,8 +93,6 @@ contract AirlockFactory is Ownable {
             revert("AirlockFactory: Deployment failed");
         }
 
-        airlock = IAirlock(airlockAddress);
-
-        airlock.bridge(_lifiDiamondAddress, bridgeData, note, tokenAddress);
+        IAirlock(airlockAddress).bridge(_lifiDiamondAddress, bridgeData, note, tokenAddress);
     }
 }
