@@ -19,7 +19,7 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
     m.encodeFunctionCall(implementation, "initialize", [owner, curvyVault]),
   ]);
 
-  const curvyAggregatorAlpha = m.contractAt(`CurvyAggregatorAlphaV1`, proxy);
+  const curvyAggregatorAlphaV1 = m.contractAt(`CurvyAggregatorAlphaV1`, proxy);
 
   const maxDeposits = 2;
   const maxAggregations = 2;
@@ -29,7 +29,7 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
   const aggregationVerifier = m.contract(`CurvyAggregationVerifierAlpha_${maxAggregations}_2_2`);
   const withdrawVerifier = m.contract(`CurvyWithdrawVerifierAlpha_${maxWithdrawals}_2`);
 
-  m.call(curvyAggregatorAlpha, "updateConfig", [
+  m.call(curvyAggregatorAlphaV1, "updateConfig", [
     {
       insertionVerifier,
       aggregationVerifier,
@@ -50,21 +50,28 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
     },
   });
 
-  m.call(curvyAggregatorAlpha, "upgradeToAndCall", [implementationV2, "0x"]);
+  m.call(curvyAggregatorAlphaV1, "upgradeToAndCall", [implementationV2, "0x"]);
 
   const curvyAggregatorAlphaV2 = m.contractAt("CurvyAggregatorAlphaV2", proxy);
 
-  const airlockFactory = m.contract("AirlockFactory", [owner], {
-    id: "AirlockFactory",
+  const implementationV3 = m.contract("CurvyAggregatorAlphaV3", [], {
+    id: "CurvyAggregatorAlphaV3Implementation",
+    libraries: {
+      PoseidonT4: poseidonT4,
+    },
   });
 
-  m.call(airlockFactory, "updateConfig", [
-    {
-      curvyAggregatorAlphaProxyAddress: curvyAggregatorAlphaV2,
-      curvyVaultProxyAddress: curvyVault,
-      lifiDiamondAddress: "0x0000000000000000000000000000000000000000",
-    },
-  ]);
+  m.call(curvyAggregatorAlphaV2, "upgradeToAndCall", [implementationV3, "0x"]);
 
-  return { implementation, proxy, curvyAggregatorAlphaV2, curvyVault, airlockFactory };
+  const curvyAggregatorAlpha = m.contractAt("CurvyAggregatorAlphaV3", proxy);
+
+  const airlockFactory = m.contract(
+    "AirlockFactory",
+    [owner, curvyAggregatorAlpha, curvyVault, "0x0000000000000000000000000000000000000000"],
+    {
+      id: "AirlockFactory",
+    },
+  );
+
+  return { implementation, proxy, curvyAggregatorAlpha, curvyVault, airlockFactory };
 });

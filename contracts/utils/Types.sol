@@ -33,10 +33,4 @@ library CurvyTypes {
         uint256 token;
         uint256 amount;
     }
-
-    struct AirlockFactoryConfigurationUpdate {
-        address curvyVaultProxyAddress;
-        address curvyAggregatorAlphaProxyAddress;
-        address lifiDiamondAddress;
-    }
 }

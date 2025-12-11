@@ -10,23 +10,6 @@ interface IAirlock {
 
     //#endregion
 
-    //#region Structs
-
-    struct BridgeData {
-        bytes32 transactionId;
-        string bridge;
-        string integrator;
-        address referrer;
-        address sendingAssetId;
-        address receiver;
-        uint256 minAmount;
-        uint256 destinationChainId;
-        bool hasSourceSwaps;
-        bool hasDestinationCall;
-    }
-
-    //#endregion
-
     //#region Public functions
 
     function shield(
