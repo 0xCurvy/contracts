@@ -3,15 +3,15 @@ import { network } from "hardhat";
 
 const { viem } = await network.connect({ network: "anvil" });
 
-const deployedAddressesPath = "./ignition/deployments/chain-31337/deployed_addresses.json";
+const deployedAddressesPath = "./ignition/deployments/anvil/deployed_addresses.json";
 const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
 
 const vaultAddress = deployedAddresses["CurvyVault#CurvyVaultV1"];
 if (!vaultAddress) {
-  throw new Error("MetaERC20Wrapper address not found for chain-31337");
+  throw new Error("MetaERC20Wrapper address not found for anvil");
 }
 const vault = await viem.getContractAt("CurvyVaultV1", vaultAddress);
 
-const balance = await vault.read.balanceOf(["0x2b4f14ab7D932A2Cf164980168CD7A9D6eAfED95", 1n]);
+const balance = await vault.read.balanceOf(["0x59b670e9fA9D0A427751Af201D676719a970857b", 2n]);
 
-console.dir(balance);
+console.log(balance);

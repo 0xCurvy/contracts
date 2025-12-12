@@ -4,10 +4,14 @@ pragma solidity ^0.8.28;
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import { PoseidonT4} from "./utils/PoseidonT4.sol";
+import { PoseidonT4 } from "./utils/PoseidonT4.sol";
 
 import { ICurvyVault } from "../vault/ICurvyVault.sol";
-import { ICurvyInsertionVerifier, ICurvyAggregationVerifier,  ICurvyWithdrawVerifier } from "./verifiers/ICurvyVerifiersAlpha.sol";
+import {
+    ICurvyInsertionVerifier,
+    ICurvyAggregationVerifier,
+    ICurvyWithdrawVerifier
+} from "./verifiers/ICurvyVerifiersAlpha.sol";
 import { CurvyTypes } from "../utils/Types.sol";
 
 /**
@@ -73,8 +77,7 @@ contract CurvyAggregatorAlphaV2 is Initializable, UUPSUpgradeable, OwnableUpgrad
 
     //#region Owner functions
 
-    function updateConfig(CurvyTypes.AggregatorConfigurationUpdate memory _update) external onlyOwner returns (bool)
-    {
+    function updateConfig(CurvyTypes.AggregatorConfigurationUpdate memory _update) external onlyOwner returns (bool) {
         if (_update.insertionVerifier != address(0)) {
             insertionVerifier = ICurvyInsertionVerifier(_update.insertionVerifier);
         }
@@ -110,13 +113,19 @@ contract CurvyAggregatorAlphaV2 is Initializable, UUPSUpgradeable, OwnableUpgrad
 
     //#region Public functions
 
-    function depositNote(
-        address from,
-        CurvyTypes.Note memory note,
-        bytes memory signature
-    ) public {
+    function depositNote(address from, CurvyTypes.Note memory note, bytes memory signature) public {
         // TODO: Gas fee
-        curvyVault.transfer(CurvyTypes.MetaTransaction(from, address(this), note.token, note.amount, 0, CurvyTypes.MetaTransactionType.Transfer), signature);
+        curvyVault.transfer(
+            CurvyTypes.MetaTransaction(
+                from,
+                address(this),
+                note.token,
+                note.amount,
+                0,
+                CurvyTypes.MetaTransactionType.Transfer
+            ),
+            signature
+        );
 
         uint256 noteId = PoseidonT4.hash([note.ownerHash, note.amount, note.token]);
 
@@ -134,7 +143,10 @@ contract CurvyAggregatorAlphaV2 is Initializable, UUPSUpgradeable, OwnableUpgrad
         for (uint256 i = 0; i < maxDeposits; i += 1) {
             uint256 noteId = publicInputs[i];
             if (noteId != 0) {
-                require(_pendingIdsQueue[noteId], "CurvyAggregator#commitDepositBatch: Note not scheduled for deposit!");
+                require(
+                    _pendingIdsQueue[noteId],
+                    "CurvyAggregator#commitDepositBatch: Note not scheduled for deposit!"
+                );
                 delete _pendingIdsQueue[noteId];
             }
         }
@@ -167,8 +179,14 @@ contract CurvyAggregatorAlphaV2 is Initializable, UUPSUpgradeable, OwnableUpgrad
         uint256 oldNotesTreeRoot = publicInputs[2 * maxAggregations + 3];
         uint256 newNotesTreeRoot = publicInputs[2 * maxAggregations + 4];
 
-        require(_notesTreeRoot == oldNotesTreeRoot, "CurvyAggregator#commitAggregationBatch: Current note tree root mismatch!");
-        require(_nullifiersTreeRoot == oldNullifiersTreeRoot, "CurvyAggregator#commitAggregationBatch: Current nullifier tree root mismatch!");
+        require(
+            _notesTreeRoot == oldNotesTreeRoot,
+            "CurvyAggregator#commitAggregationBatch: Current note tree root mismatch!"
+        );
+        require(
+            _nullifiersTreeRoot == oldNullifiersTreeRoot,
+            "CurvyAggregator#commitAggregationBatch: Current nullifier tree root mismatch!"
+        );
 
         require(
             aggregationVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),
@@ -188,9 +206,14 @@ contract CurvyAggregatorAlphaV2 is Initializable, UUPSUpgradeable, OwnableUpgrad
         uint256[2] memory proof_c,
         uint256[10] memory publicInputs
     ) public returns (bool) {
-
-        require(publicInputs[3] == _nullifiersTreeRoot, "CurvyAggregator#commitWithdrawalBatch: Current nullifier tree root mismatch!");
-        require(publicInputs[2] == _notesTreeRoot, "CurvyAggregator#commitWithdrawalBatch: Current note tree root mismatch!");
+        require(
+            publicInputs[3] == _nullifiersTreeRoot,
+            "CurvyAggregator#commitWithdrawalBatch: Current nullifier tree root mismatch!"
+        );
+        require(
+            publicInputs[2] == _notesTreeRoot,
+            "CurvyAggregator#commitWithdrawalBatch: Current note tree root mismatch!"
+        );
 
         require(
             withdrawVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),

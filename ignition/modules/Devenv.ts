@@ -29,5 +29,14 @@ export default buildModule("Devenv", (m) => {
 
   m.call(curvyVault, "registerToken", [erc20Mock], { id: "Register_MockERC20" });
 
+  const userAddressForAutomaticShielding = "0x0eeCE19240e3A8826d92da5f4D31581a1DC97779";
+
+  m.send(`Send_ETH_${userAddressForAutomaticShielding}`, userAddressForAutomaticShielding, DEPOSIT_AMOUNT, undefined, {
+    from: deployer,
+  });
+  m.call(erc20Mock, "mockMint", [userAddressForAutomaticShielding, DEPOSIT_AMOUNT], {
+    id: `Mint_ERC20_${userAddressForAutomaticShielding}`,
+  });
+
   return { erc20Mock, multicall3 };
 });

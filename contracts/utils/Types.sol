@@ -2,7 +2,11 @@
 pragma solidity ^0.8.10;
 
 library CurvyTypes {
-    enum MetaTransactionType {Withdraw, Transfer, Deposit}
+    enum MetaTransactionType {
+        Withdraw,
+        Transfer,
+        Deposit
+    }
 
     struct MetaTransaction {
         // + nonce when signing

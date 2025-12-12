@@ -59,6 +59,18 @@ const config: HardhatUserConfig = {
       url: configVariable("ARBITRUM_RPC_URL"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
     },
+    ethereum: {
+      type: "http",
+      url: configVariable("ETHEREUM_RPC_URL"),
+      accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+    },
+  },
+  ignition: {
+    strategyConfig: {
+      create2: {
+        salt: "0x6d696861696c6f20616e642076616e6a6120637572767920706f776572000000",
+      },
+    },
   },
   verify: {
     etherscan: {

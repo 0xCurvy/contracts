@@ -1,26 +1,47 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
 
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import { EIP712Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {
+    Initializable
+} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {
+    UUPSUpgradeable
+} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {
+    EIP712Upgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
+import {
+    OwnableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {
+    SafeERC20,
+    IERC20
+} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./ICurvyVault.sol";
-import { CurvyTypes } from "../utils/Types.sol";
+import {CurvyTypes} from "../utils/Types.sol";
 
-contract CurvyVaultV2 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgradeable, OwnableUpgradeable {
+contract CurvyVaultV2 is
+    ICurvyVault,
+    Initializable,
+    EIP712Upgradeable,
+    UUPSUpgradeable,
+    OwnableUpgradeable
+{
     using SafeERC20 for IERC20;
 
     //#region Constants
 
-    uint256 constant private ETH_ID = 0x1;
-    address constant private ETH_ADDRESS = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
+    uint256 private constant ETH_ID = 0x1;
+    address private constant ETH_ADDRESS =
+        address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
-    uint96 constant private FEE_DENOMINATOR = 10000;
+    uint96 private constant FEE_DENOMINATOR = 10000;
 
-    bytes32 private constant CURVY_META_TRANSACTION_TYPE_HASH = keccak256("CurvyMetaTransaction(uint256 nonce,address from,address to,uint256 tokenId,uint256 amount,uint256 gasFee,uint8 metaTransactionType)");
+    bytes32 private constant CURVY_META_TRANSACTION_TYPE_HASH =
+        keccak256(
+            "CurvyMetaTransaction(uint256 nonce,address from,address to,uint256 tokenId,uint256 amount,uint256 gasFee,uint8 metaTransactionType)"
+        );
 
     //#endregion
 
@@ -69,7 +90,10 @@ contract CurvyVaultV2 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
 
     //#region Private functions
 
-    function _validateSignature(CurvyTypes.MetaTransaction calldata metaTransaction, bytes memory signature) internal {
+    function _validateSignature(
+        CurvyTypes.MetaTransaction calldata metaTransaction,
+        bytes memory signature
+    ) internal {
         bytes32 structHash = keccak256(
             abi.encode(
                 CURVY_META_TRANSACTION_TYPE_HASH,
@@ -88,68 +112,118 @@ contract CurvyVaultV2 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
 
         // Check that the metaTransaction is signed by metaTransaction.from
         address signer = ECDSA.recover(hash, signature);
-        require(signer == metaTransaction.from, "CurvyVault#_validateSignature: Invalid signature!");
+        require(
+            signer == metaTransaction.from,
+            "CurvyVault#_validateSignature: Invalid signature!"
+        );
 
         // Increment nonce
         _nonces[signer]++;
         emit NonceChange(signer, _nonces[signer]);
     }
 
-    function _transfer(CurvyTypes.MetaTransaction calldata metaTransaction) private {
+    function _transfer(
+        CurvyTypes.MetaTransaction calldata metaTransaction
+    ) private {
         if (metaTransaction.to == address(0)) revert InvalidRecipient();
-        if (metaTransaction.metaTransactionType != CurvyTypes.MetaTransactionType.Transfer) revert InvalidTransactionType();
+        if (
+            metaTransaction.metaTransactionType !=
+            CurvyTypes.MetaTransactionType.Transfer
+        ) revert InvalidTransactionType();
 
-        _balances[metaTransaction.from][metaTransaction.tokenId] -= metaTransaction.amount;
-        _balances[metaTransaction.to][metaTransaction.tokenId] += metaTransaction.amount;
+        _balances[metaTransaction.from][
+            metaTransaction.tokenId
+        ] -= metaTransaction.amount;
+        _balances[metaTransaction.to][
+            metaTransaction.tokenId
+        ] += metaTransaction.amount;
 
         // Refund gas if metaTransaction.gasFee is not 0
         if (metaTransaction.gasFee != 0) {
-            _balances[metaTransaction.to][metaTransaction.tokenId] -= metaTransaction.gasFee;
-            _balances[tx.origin][metaTransaction.tokenId] += metaTransaction.gasFee;
+            _balances[metaTransaction.to][
+                metaTransaction.tokenId
+            ] -= metaTransaction.gasFee;
+            _balances[tx.origin][metaTransaction.tokenId] += metaTransaction
+                .gasFee;
         }
 
         // Collect fees if they are set
         if (transferFee != 0) {
-            uint256 feeAmount = (metaTransaction.amount * transferFee) / FEE_DENOMINATOR;
-            _balances[metaTransaction.from][metaTransaction.tokenId] -= feeAmount;
+            uint256 feeAmount = (metaTransaction.amount * transferFee) /
+                FEE_DENOMINATOR;
+            _balances[metaTransaction.from][
+                metaTransaction.tokenId
+            ] -= feeAmount;
             _balances[owner()][metaTransaction.tokenId] += feeAmount;
         }
 
-        emit Transfer(metaTransaction.from, metaTransaction.to, metaTransaction.tokenId, metaTransaction.amount);
+        emit Transfer(
+            metaTransaction.from,
+            metaTransaction.to,
+            metaTransaction.tokenId,
+            metaTransaction.amount
+        );
     }
 
-    function _withdraw(CurvyTypes.MetaTransaction calldata metaTransaction) private {
-        require(metaTransaction.to != address(0), "CurvyVault#_withdraw: Invalid withdraw recipient!");
-        require(metaTransaction.metaTransactionType == CurvyTypes.MetaTransactionType.Withdraw, "CurvyVault#withdraw: Wrong type for meta transaction!");
+    function _withdraw(
+        CurvyTypes.MetaTransaction calldata metaTransaction
+    ) private {
+        require(
+            metaTransaction.to != address(0),
+            "CurvyVault#_withdraw: Invalid withdraw recipient!"
+        );
+        require(
+            metaTransaction.metaTransactionType ==
+                CurvyTypes.MetaTransactionType.Withdraw,
+            "CurvyVault#withdraw: Wrong type for meta transaction!"
+        );
 
         // Burn wrapped tokens
-        _balances[metaTransaction.from][metaTransaction.tokenId] -= metaTransaction.amount;
+        _balances[metaTransaction.from][
+            metaTransaction.tokenId
+        ] -= metaTransaction.amount;
 
         uint256 amountAfterFees = metaTransaction.amount;
 
         // Refund gas if metaTransaction.gasFee is not 0
         if (metaTransaction.gasFee != 0) {
             amountAfterFees -= metaTransaction.gasFee;
-            _balances[tx.origin][metaTransaction.tokenId] += metaTransaction.gasFee;
+            _balances[tx.origin][metaTransaction.tokenId] += metaTransaction
+                .gasFee;
         }
 
         // Collect fees if they are set
         if (withdrawalFee != 0) {
-            uint256 feeAmount = (metaTransaction.amount * withdrawalFee) / FEE_DENOMINATOR;
+            uint256 feeAmount = (metaTransaction.amount * withdrawalFee) /
+                FEE_DENOMINATOR;
             amountAfterFees -= feeAmount;
             _balances[owner()][metaTransaction.tokenId] += feeAmount;
         }
 
         // Withdraw
-        if (metaTransaction.tokenId != ETH_ID) { // We are withdrawing ERC20s
-            address tokenAddress = _tokenIdToTokenAddress[metaTransaction.tokenId];
-            IERC20(tokenAddress).safeTransfer(metaTransaction.to, amountAfterFees);
-        } else { // We are withdrawing ETH
-            (bool success,) = metaTransaction.to.call{value: amountAfterFees}("");
+        if (metaTransaction.tokenId != ETH_ID) {
+            // We are withdrawing ERC20s
+            address tokenAddress = _tokenIdToTokenAddress[
+                metaTransaction.tokenId
+            ];
+            IERC20(tokenAddress).safeTransfer(
+                metaTransaction.to,
+                amountAfterFees
+            );
+        } else {
+            // We are withdrawing ETH
+            (bool success, ) = metaTransaction.to.call{value: amountAfterFees}(
+                ""
+            );
             require(success, "CurvyVault#_withdraw: ETH withdrawal failed!");
         }
 
-        emit Transfer(metaTransaction.from, address(0x0), metaTransaction.tokenId, metaTransaction.amount);
+        emit Transfer(
+            metaTransaction.from,
+            address(0x0),
+            metaTransaction.tokenId,
+            metaTransaction.amount
+        );
     }
 
     //#endregion
@@ -157,7 +231,10 @@ contract CurvyVaultV2 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
     //#region Owner functions
 
     function registerToken(address tokenAddress) external onlyOwner {
-        require(_tokenAddressToTokenId[tokenAddress] == 0, "CurvyVault#registerToken: Token already registered!");
+        require(
+            _tokenAddressToTokenId[tokenAddress] == 0,
+            "CurvyVault#registerToken: Token already registered!"
+        );
 
         // Register ID
         _numberOfTokens++;
@@ -168,12 +245,19 @@ contract CurvyVaultV2 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
         emit TokenRegistration(tokenAddress, _numberOfTokens);
     }
 
-    function setFeeAmount(CurvyTypes.MetaTransactionType metaTransactionType, uint96 fee) external onlyOwner {
+    function setFeeAmount(
+        CurvyTypes.MetaTransactionType metaTransactionType,
+        uint96 fee
+    ) external onlyOwner {
         if (metaTransactionType == CurvyTypes.MetaTransactionType.Deposit) {
             depositFee = fee;
-        } else if (metaTransactionType == CurvyTypes.MetaTransactionType.Transfer) {
+        } else if (
+            metaTransactionType == CurvyTypes.MetaTransactionType.Transfer
+        ) {
             transferFee = fee;
-        } else if (metaTransactionType == CurvyTypes.MetaTransactionType.Withdraw) {
+        } else if (
+            metaTransactionType == CurvyTypes.MetaTransactionType.Withdraw
+        ) {
             withdrawalFee = fee;
         } else {
             revert("CurvyVault#setFeeAmount: Unknown fee type!");
@@ -190,20 +274,37 @@ contract CurvyVaultV2 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
         deposit(ETH_ADDRESS, msg.sender, msg.value, 0);
     }
 
-    function deposit(address tokenAddress, address to, uint256 amount, uint256 gasSponsorshipAmount) public payable {
+    function deposit(
+        address tokenAddress,
+        address to,
+        uint256 amount,
+        uint256 gasSponsorshipAmount
+    ) public payable {
         if (to == address(0x0)) revert InvalidRecipient();
 
         uint256 tokenId;
 
-        if (tokenAddress != ETH_ADDRESS) { // We are depositing ERC20
-            require(msg.value == 0, "CurvyVault#deposit: Don't send ETH with ERC20 deposit!");
+        if (tokenAddress != ETH_ADDRESS) {
+            // We are depositing ERC20
+            require(
+                msg.value == 0,
+                "CurvyVault#deposit: Don't send ETH with ERC20 deposit!"
+            );
 
-            IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), amount);
+            IERC20(tokenAddress).safeTransferFrom(
+                msg.sender,
+                address(this),
+                amount
+            );
 
             tokenId = _tokenAddressToTokenId[tokenAddress];
             if (tokenId == 0) revert TokenNotRegistered();
-        } else { // We are depositing ETH
-            require(amount == msg.value, "CurvyVault#deposit: Incorrect deposit value!");
+        } else {
+            // We are depositing ETH
+            require(
+                amount == msg.value,
+                "CurvyVault#deposit: Incorrect deposit value!"
+            );
             tokenId = ETH_ID;
         }
 
@@ -226,27 +327,37 @@ contract CurvyVaultV2 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
         emit Transfer(address(0x0), to, tokenId, amount);
     }
 
-    function transfer(CurvyTypes.MetaTransaction calldata metaTransaction) external {
+    function transfer(
+        CurvyTypes.MetaTransaction calldata metaTransaction
+    ) external {
         if (msg.sender != metaTransaction.from) revert InvalidSender();
         if (metaTransaction.gasFee != 0) revert InvalidGasSponsorship();
 
         _transfer(metaTransaction);
     }
 
-    function transfer(CurvyTypes.MetaTransaction calldata metaTransaction, bytes memory signature) external {
+    function transfer(
+        CurvyTypes.MetaTransaction calldata metaTransaction,
+        bytes memory signature
+    ) external {
         _validateSignature(metaTransaction, signature);
 
         _transfer(metaTransaction);
     }
 
-    function withdraw(CurvyTypes.MetaTransaction calldata metaTransaction) external {
+    function withdraw(
+        CurvyTypes.MetaTransaction calldata metaTransaction
+    ) external {
         if (msg.sender != metaTransaction.from) revert InvalidSender();
         if (metaTransaction.gasFee != 0) revert InvalidGasSponsorship();
 
         _withdraw(metaTransaction);
     }
 
-    function withdraw(CurvyTypes.MetaTransaction calldata metaTransaction, bytes memory signature) external {
+    function withdraw(
+        CurvyTypes.MetaTransaction calldata metaTransaction,
+        bytes memory signature
+    ) external {
         _validateSignature(metaTransaction, signature);
 
         _withdraw(metaTransaction);
@@ -256,13 +367,20 @@ contract CurvyVaultV2 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
 
     //#region View functions
 
-    function getTokenAddress(uint256 tokenId) public view returns (address tokenAddress) {
+    function getTokenAddress(
+        uint256 tokenId
+    ) public view returns (address tokenAddress) {
         tokenAddress = _tokenIdToTokenAddress[tokenId];
-        require(tokenAddress != address(0x0), "CurvyVault:#getIdAddress: Unregistered token!");
+        require(
+            tokenAddress != address(0x0),
+            "CurvyVault:#getIdAddress: Unregistered token!"
+        );
         return tokenAddress;
     }
 
-    function getTokenId(address tokenAddress) public view returns (uint256 tokenId) {
+    function getTokenId(
+        address tokenAddress
+    ) public view returns (uint256 tokenId) {
         tokenId = _tokenAddressToTokenId[tokenAddress];
         require(tokenId != 0, "CurvyVault:#getTokenID: Unregistered token!");
         return tokenId;
@@ -272,12 +390,21 @@ contract CurvyVaultV2 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
         return _numberOfTokens;
     }
 
-    function balanceOf(address owner, uint256 tokenId) external view returns (uint256) {
+    function balanceOf(
+        address owner,
+        uint256 tokenId
+    ) external view returns (uint256) {
         return _balances[owner][tokenId];
     }
 
-    function balanceOfBatch(address[] memory owners, uint256[] memory tokenIds) external view returns (uint256[] memory) {
-        require(owners.length == tokenIds.length, "CurvyVault#balanceOfBatch: Invalid array length!");
+    function balanceOfBatch(
+        address[] memory owners,
+        uint256[] memory tokenIds
+    ) external view returns (uint256[] memory) {
+        require(
+            owners.length == tokenIds.length,
+            "CurvyVault#balanceOfBatch: Invalid array length!"
+        );
 
         // Variables
         uint256[] memory batchBalances = new uint256[](owners.length);
@@ -290,8 +417,7 @@ contract CurvyVaultV2 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
         return batchBalances;
     }
 
-    function getNonce(address _signer) external view returns (uint256 nonce)
-    {
+    function getNonce(address _signer) external view returns (uint256 nonce) {
         return _nonces[_signer];
     }
 
