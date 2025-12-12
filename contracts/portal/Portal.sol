@@ -1,18 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
 
-import {CurvyTypes} from "../utils/Types.sol";
-import {
-    ICurvyAggregatorAlpha
-} from "../aggregator-alpha/ICurvyAggregatorAlpha.sol";
-import {ICurvyVault} from "../vault/ICurvyVault.sol";
-import {
-    SafeERC20,
-    IERC20
-} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IAirlock} from "./IAirlock.sol";
+import { CurvyTypes } from "../utils/Types.sol";
+import { ICurvyAggregatorAlpha } from "../aggregator-alpha/ICurvyAggregatorAlpha.sol";
+import { ICurvyVault } from "../vault/ICurvyVault.sol";
+import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IPortal } from "./IPortal.sol";
 
-contract Airlock is IAirlock {
+contract Portal is IPortal {
     using SafeERC20 for IERC20;
 
     uint256 private _ownerHash;
@@ -33,24 +28,19 @@ contract Airlock is IAirlock {
         address curvyVaultProxyAddress
     ) external {
         if (note.ownerHash != _ownerHash) {
-            revert("Airlock: Invalid owner hash");
+            revert("Portal: Invalid owner hash");
         }
 
-        curvyAggregator = ICurvyAggregatorAlpha(
-            curvyAggregatorAlphaProxyAddress
-        );
+        curvyAggregator = ICurvyAggregatorAlpha(curvyAggregatorAlphaProxyAddress);
         curvyVault = ICurvyVault(curvyVaultProxyAddress);
 
         address tokenAddress = curvyVault.getTokenAddress(note.token);
 
         if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
-            IERC20(tokenAddress).forceApprove(
-                address(curvyAggregator),
-                note.amount
-            );
+            IERC20(tokenAddress).forceApprove(address(curvyAggregator), note.amount);
             curvyAggregator.autoShield(note, tokenAddress);
         } else {
-            curvyAggregator.autoShield{value: note.amount}(note, tokenAddress);
+            curvyAggregator.autoShield{ value: note.amount }(note, tokenAddress);
         }
     }
 
@@ -61,11 +51,11 @@ contract Airlock is IAirlock {
         address tokenAddress
     ) external {
         if (lifiDiamondAddress == address(0)) {
-            revert("Airlock: Invalid LI.FI address");
+            revert("Portal: Invalid LI.FI address");
         }
 
         if (note.ownerHash != _ownerHash) {
-            revert("Airlock: Invalid owner hash");
+            revert("Portal: Invalid owner hash");
         }
 
         uint256 amount = note.amount;
@@ -75,9 +65,9 @@ contract Airlock is IAirlock {
             amount = 0;
         }
 
-        (bool success, ) = lifiDiamondAddress.call{value: amount}(bridgeData);
+        (bool success, ) = lifiDiamondAddress.call{ value: amount }(bridgeData);
         if (!success) {
-            revert("Airlock: Bridge call failed");
+            revert("Portal: Bridge call failed");
         }
     }
 }

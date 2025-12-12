@@ -18,10 +18,10 @@
     "deploy:production:arbitrum:aggregator": "hardhat ignition deploy --deployment-id production_arbitrum --verify --network arbitrum ignition/modules/CurvyAggregatorAlpha.ts",
     "deploy:production:arbitrum:vault": "hardhat ignition deploy --deployment-id production_arbitrum --verify --network arbitrum ignition/modules/CurvyVault.ts",
     "deploy:portals:arbitrum": "hardhat ignition deploy --deployment-id portals-testing --verify --network arbitrum ignition/modules/CurvyAggregatorAlpha.ts",
-    "deploy:airlock-factory:ethereum": "hardhat ignition deploy --deployment-id airlock_factory_ethereum-testing --verify --network ethereum ignition/modules/AirlockFactory.ts",
-    "deploy:airlock-factory:arbitrum": "hardhat ignition deploy --deployment-id airlock_factory_arbitrum-testing --verify --network arbitrum ignition/modules/AirlockFactory.ts",
-    "deploy:airlock-factory:arbitrum-sepolia": "hardhat ignition deploy --deployment-id airlock_factory_arbitrum-testing --verify --network arbitrumSepolia --strategy create2 ignition/modules/AirlockFactory.ts",
-    "deploy:airlock-factory:sepolia": "hardhat ignition deploy --deployment-id airlock_factory_sepolia-testing --verify --network sepolia --strategy create2 ignition/modules/AirlockFactory.ts"
+    "deploy:portal-factory:ethereum": "hardhat ignition deploy --deployment-id portal_factory_ethereum-testing --verify --network ethereum ignition/modules/PortalFactory.ts",
+    "deploy:portal-factory:arbitrum": "hardhat ignition deploy --deployment-id portal_factory_arbitrum-testing --verify --network arbitrum ignition/modules/PortalFactory.ts",
+    "deploy:portal-factory:arbitrum-sepolia": "hardhat ignition deploy --deployment-id portal_factory_arbitrum-testing --verify --network arbitrumSepolia --strategy create2 ignition/modules/PortalFactory.ts",
+    "deploy:portal-factory:sepolia": "hardhat ignition deploy --deployment-id portal_factory_sepolia-testing --verify --network sepolia --strategy create2 ignition/modules/PortalFactory.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.0.3",

@@ -3,7 +3,7 @@ import { network } from "hardhat";
 import { privateKeyToAccount } from "viem/accounts";
 import { expect, test } from "vitest";
 
-// import AutomaticShieldingModule from "../ignition/modules/AutomaticShielding";
+// import PortalFactoryModule from "../ignition/modules/AutomaticShielding";
 
 test("automatic-shielding", async () => {
   const ownerHash = 702705117071108858750548073842146797693190729490869702449519502701872077655n;
@@ -15,8 +15,8 @@ test("automatic-shielding", async () => {
 
   // Deploy and run tests
   // const { ignition, viem } = networkObj
-  // const { airlockFactory, curvyVault, curvyAggregatorAlphaV2, erc20Mock } =
-  //   await ignition.deploy(AutomaticShieldingModule);
+  // const { portalFactory, curvyVault, curvyAggregatorAlphaV2, erc20Mock } =
+  //   await ignition.deploy(PortalFactoryModule);
 
   //#region Load deployed contracts
 
@@ -24,17 +24,17 @@ test("automatic-shielding", async () => {
   const deployedAddressesPath = "./ignition/deployments/anvil/deployed_addresses.json";
   const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
 
-  const vaultAddress = deployedAddresses["CurvyVault#CurvyVaultV1"];
+  const vaultAddress = deployedAddresses["CurvyVault#CurvyVault"];
   if (!vaultAddress) {
     throw new Error("MetaERC20Wrapper address not found for anvil");
   }
-  const airlockFactoryAddress = deployedAddresses["CurvyAggregatorAlpha#AirlockFactory"];
-  if (!airlockFactoryAddress) {
-    throw new Error("AirlockFactory address not found for anvil");
+  const portalFactoryAddress = deployedAddresses["CurvyAggregatorAlpha#PortalFactory"];
+  if (!portalFactoryAddress) {
+    throw new Error("PortalFactory address not found for anvil");
   }
-  const curvyAggregatorAlphaV2Address = deployedAddresses["CurvyAggregatorAlpha#CurvyAggregatorAlphaV2"];
-  if (!curvyAggregatorAlphaV2Address) {
-    throw new Error("CurvyAggregatorAlphaV2 address not found for anvil");
+  const curvyAggregatorAlphaAddress = deployedAddresses["CurvyAggregatorAlpha#CurvyAggregatorAlpha"];
+  if (!curvyAggregatorAlphaAddress) {
+    throw new Error("CurvyAggregatorAlpha address not found for anvil");
   }
 
   const erc20MockAddress = deployedAddresses["Devenv#ERC20Mock"];
@@ -42,9 +42,9 @@ test("automatic-shielding", async () => {
     throw new Error("ERC20Mock address not found for anvil");
   }
 
-  const curvyVault = await viem.getContractAt("CurvyVaultV1", vaultAddress);
-  const airlockFactory = await viem.getContractAt("AirlockFactory", airlockFactoryAddress);
-  const curvyAggregatorAlphaV2 = await viem.getContractAt("CurvyAggregatorAlphaV2", curvyAggregatorAlphaV2Address);
+  const curvyVault = await viem.getContractAt("CurvyVault", vaultAddress);
+  const portalFactory = await viem.getContractAt("PortalFactory", portalFactoryAddress);
+  const curvyAggregatorAlpha = await viem.getContractAt("CurvyAggregatorAlpha", curvyAggregatorAlphaAddress);
   const erc20Mock = await viem.getContractAt("ERC20Mock", erc20MockAddress);
 
   //#endregion
@@ -61,7 +61,7 @@ test("automatic-shielding", async () => {
 
   const publicClient = await viem.getPublicClient();
 
-  const airlockAddress = await airlockFactory.read.getAirlockAddress([ownerHash]);
+  const portalAddress = await portalFactory.read.getPortalAddress([ownerHash]);
 
   const { request } = await publicClient.simulateContract({
     account: user,
@@ -93,7 +93,7 @@ test("automatic-shielding", async () => {
       },
     ],
     functionName: "transfer",
-    args: [airlockAddress, amount],
+    args: [portalAddress, amount],
   });
 
   const hash = await userClient.writeContract(request);
@@ -102,7 +102,7 @@ test("automatic-shielding", async () => {
 
   expect(receipt).toBeDefined();
 
-  const deployHash = await airlockFactory.write.deployAndShield([
+  const deployHash = await portalFactory.write.deployAndShield([
     {
       ownerHash,
       token,
@@ -120,13 +120,13 @@ test("automatic-shielding", async () => {
   const expectedAmountMinusFees = amount - (amount * depositFee) / 10000n;
 
   const vaultErc20MockBalanceOfAggregator = await curvyVault.read.balanceOf([
-    curvyAggregatorAlphaV2Address,
+    curvyAggregatorAlphaAddress,
     tokenIdOfErc20Mock,
   ]);
   expect(vaultErc20MockBalanceOfAggregator).toBe(expectedAmountMinusFees);
 
   // check if note is deposited
 
-  const noteDeposited = await curvyAggregatorAlphaV2.read.noteInQueue([noteId]);
+  const noteDeposited = await curvyAggregatorAlpha.read.noteInQueue([noteId]);
   expect(noteDeposited).toBe(true);
 });

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
 
-import {CurvyTypes} from "../utils/Types.sol";
+import { CurvyTypes } from "../utils/Types.sol";
 
-interface IAirlock {
+interface IPortal {
     //#region Errors
 
     error InvalidOwnerHash();
