@@ -10,8 +10,8 @@ export default buildModule("PortalFactoryAggregatorModule", (m) => {
   const portalFactory = m.contract("PortalFactory", [owner], { id: "PortalFactory" });
 
   m.call(portalFactory, "initializeConfig", [
-    curvyAggregatorAlphaProxyAddress,
     curvyVaultProxyAddress,
+    curvyAggregatorAlphaProxyAddress,
     lifiDiamondAddress,
   ]);
 
