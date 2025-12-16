@@ -10,5 +10,10 @@
   "CurvyVault#CurvyVaultV1": "0xB4BA872fBa00Bc4268067D5DE4223240cEc4B6d5",
   "CurvyAggregatorAlpha#ERC1967Proxy": "0x9c07E1Ff4f1B96ae609331BAc327FcC2d8563224",
   "CurvyAggregatorAlpha#CurvyAggregatorAlphaV1": "0x9c07E1Ff4f1B96ae609331BAc327FcC2d8563224",
-  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV2": "0x9c07E1Ff4f1B96ae609331BAc327FcC2d8563224"
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV2": "0x9c07E1Ff4f1B96ae609331BAc327FcC2d8563224",
+  "CurvyVault#CurvyVaultV2": "0xB4BA872fBa00Bc4268067D5DE4223240cEc4B6d5",
+  "CurvyVault#CurvyVaultV2Implementation": "0xaB67F776fC1D4b87EFfa60a75e95758c5ec60640",
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV3": "0x9c07E1Ff4f1B96ae609331BAc327FcC2d8563224",
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV3Implementation": "0x8c7C072fe3550027271d969A4b7Ce331062e9739",
+  "PortalFactoryAggregatorModule#PortalFactory": "0x3e101380687729eE7dBc13cAc20aa86a6450c0c4"
 }
