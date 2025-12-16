@@ -3,8 +3,8 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 export default buildModule("PortalFactoryAggregatorModule", (m) => {
   const owner = m.getAccount(0);
 
-  const curvyAggregatorAlphaProxyAddress = "0xE01eE56C613175502c8e677774eaCbBB2738674C";
-  const curvyVaultProxyAddress = "0xB61F0c208356Df565Bde02dCEd33C896F6b0F939";
+  const curvyVaultProxyAddress = "0xB4BA872fBa00Bc4268067D5DE4223240cEc4B6d5";
+  const curvyAggregatorAlphaProxyAddress = "0x9c07E1Ff4f1B96ae609331BAc327FcC2d8563224";
   const lifiDiamondAddress = "0x0000000000000000000000000000000000000000";
 
   const portalFactory = m.contract("PortalFactory", [owner], { id: "PortalFactory" });
