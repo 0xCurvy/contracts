@@ -18,13 +18,22 @@ contract TokenBridge {
             revert("TokenBridge: Invalid LI.FI address");
         }
 
-        IERC20 token = IERC20(tokenAddress);
-
         if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
+            IERC20 token = IERC20(tokenAddress);
+
             uint256 balance = token.balanceOf(address(this));
             if (balance > 0) {
                 token.forceApprove(_lifiDiamondAddress, balance);
                 (bool success, ) = _lifiDiamondAddress.call(bridgeData);
+
+                if (!success) {
+                    revert("TokenBridge: Bridge call failed");
+                }
+            }
+        } else {
+            uint256 balance = address(this).balance;
+            if (balance > 0) {
+                (bool success, ) = _lifiDiamondAddress.call{ value: balance }(bridgeData);
 
                 if (!success) {
                     revert("TokenBridge: Bridge call failed");
