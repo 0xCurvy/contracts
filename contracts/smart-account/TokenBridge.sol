@@ -13,7 +13,7 @@ contract TokenBridge {
         _lifiDiamondAddress = lifiDiamondAddress;
     }
 
-    function bridgeAllTokens(address tokenAddress, bytes calldata bridgeData) external {
+    function bridgeFullBalance(address tokenAddress, bytes calldata bridgeData) external {
         if (_lifiDiamondAddress == address(0)) {
             revert("TokenBridge: Invalid LI.FI address");
         }
@@ -27,7 +27,7 @@ contract TokenBridge {
                 (bool success, ) = _lifiDiamondAddress.call(bridgeData);
 
                 if (!success) {
-                    revert("Portal: Bridge call failed");
+                    revert("TokenBridge: Bridge call failed");
                 }
             }
         }
