@@ -7,7 +7,7 @@ contract TokenBridge {
     using SafeERC20 for IERC20;
 
     address constant NATIVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    address private _lifiDiamondAddress;
+    address public immutable _lifiDiamondAddress;
 
     constructor(address lifiDiamondAddress)  {
         _lifiDiamondAddress = lifiDiamondAddress;

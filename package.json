@@ -17,6 +17,7 @@
     "deploy:staging:arbitrum:portal-factory": "hardhat ignition deploy --deployment-id staging_arbitrum --verify --network arbitrum --strategy create2 ignition/modules/PortalFactoryAggregator.ts",
     "deploy:staging:arbitrum:token-bridge": "hardhat ignition deploy --deployment-id staging_arbitrum --verify --network arbitrum --strategy create2 ignition/modules/TokenBridge.ts",
     "deploy:staging:ethereum:portal-factory": "hardhat ignition deploy --deployment-id staging_ethereum --verify --network ethereum --strategy create2 ignition/modules/PortalFactory.ts",
+    "deploy:staging:ethereum:legacy-erc20-portal": "hardhat ignition deploy --deployment-id staging_ethereum --verify --network ethereum ignition/modules/LegacyErc20Portal.ts",
     "deploy:production:sepolia:aggregator": "hardhat ignition deploy --deployment-id production_ethereum-sepolia --verify --network sepolia ignition/modules/CurvyAggregatorAlpha.ts",
     "deploy:production:sepolia:vault": "hardhat ignition deploy --deployment-id production_ethereum-sepolia --verify --network sepolia ignition/modules/CurvyVault.ts",
     "deploy:production:sepolia:portal-factory": "hardhat ignition deploy --deployment-id production_ethereum-sepolia --verify --network sepolia --strategy create2 ignition/modules/PortalFactoryAggregator.ts",
