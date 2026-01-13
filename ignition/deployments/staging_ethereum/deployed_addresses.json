@@ -1,5 +1,4 @@
 {
   "PortalFactoryModule#PortalFactory": "0x7d96abE0EA738637faAd028C3Ca91c043609756C",
-  "LegacyErc20PortalModule#LegacyErc20Portal": "0xc9fC98B779894d54996f79aA41438170E75d2909",
-  "LegacyPortalModule#LegacyPortal": "0x3410d7DCBE637f5B1716982Ec6060e68a63008b2"
+  "LegacyPortalModule#LegacyPortal": "0x9c07E1Ff4f1B96ae609331BAc327FcC2d8563224"
 }
