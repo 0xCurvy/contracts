@@ -1,7 +1,9 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
 export default buildModule("LegacyPortalModule", (m) => {
-  const legacyPortal = m.contract("LegacyPortal", [], { id: "LegacyPortal" });
+  const owner = m.getAccount(0);
+
+  const legacyPortal = m.contract("LegacyPortal", [owner], { id: "LegacyPortal" });
 
   return { legacyPortal };
 });
