@@ -6,8 +6,9 @@ import { ICurvyAggregatorAlpha } from "../aggregator-alpha/ICurvyAggregatorAlpha
 import { ICurvyVault } from "../vault/ICurvyVault.sol";
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IPortal } from "./IPortal.sol";
+import { SingleUse } from "../utils/SingleUse.sol";
 
-contract Portal is IPortal {
+contract Portal is IPortal, SingleUse {
     using SafeERC20 for IERC20;
 
     uint256 private _ownerHash;
@@ -26,7 +27,7 @@ contract Portal is IPortal {
         CurvyTypes.Note memory note,
         address curvyAggregatorAlphaProxyAddress,
         address curvyVaultProxyAddress
-    ) external {
+    ) external onlyOnce {
         if (note.ownerHash != _ownerHash) {
             revert("Portal: Invalid owner hash");
         }
@@ -49,7 +50,7 @@ contract Portal is IPortal {
         bytes calldata bridgeData,
         CurvyTypes.Note memory note,
         address tokenAddress
-    ) external {
+    ) external onlyOnce {
         if (lifiDiamondAddress == address(0)) {
             revert("Portal: Invalid LI.FI address");
         }
