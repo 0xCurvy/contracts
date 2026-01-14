@@ -64,6 +64,36 @@ const config: HardhatUserConfig = {
       url: configVariable("ETHEREUM_RPC_URL"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
     },
+    base: {
+      type: "http",
+      url: configVariable("BASE_RPC_URL"),
+      accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+    },
+    optimism: {
+      type: "http",
+      url: configVariable("OPTIMISM_RPC_URL"),
+      accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+    },
+    polygon: {
+      type: "http",
+      url: configVariable("POLYGON_RPC_URL"),
+      accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+    },
+    bsc: {
+      type: "http",
+      url: configVariable("BSC_RPC_URL"),
+      accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+    },
+    linea: {
+      type: "http",
+      url: configVariable("LINEA_RPC_URL"),
+      accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+    },
+    gnosis: {
+      type: "http",
+      url: configVariable("GNOSIS_RPC_URL"),
+      accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+    },
   },
   ignition: {
     strategyConfig: {
