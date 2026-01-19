@@ -25,5 +25,7 @@ interface IPortal {
         address tokenAddress
     ) external;
 
+    function rescue(address token, address to, uint256 amount) external;
+
     //#endregion
 }

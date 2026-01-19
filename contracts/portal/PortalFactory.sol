@@ -32,9 +32,9 @@ contract PortalFactory is Ownable {
         return true;
     }
 
-    function getCreationCode(uint256 ownerHash) public pure returns (bytes memory) {
+    function getCreationCode(uint256 ownerHash) public view returns (bytes memory) {
         bytes memory bytecode = type(Portal).creationCode;
-        bytes memory encodedArgs = abi.encode(ownerHash);
+        bytes memory encodedArgs = abi.encode(ownerHash, owner());
         return abi.encodePacked(bytecode, encodedArgs);
     }
 

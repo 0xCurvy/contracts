@@ -17,10 +17,20 @@ contract Portal is IPortal, SingleUse {
     ICurvyAggregatorAlpha public curvyAggregator;
     ICurvyVault public curvyVault;
 
-    constructor(uint256 ownerHash) {
+    address public admin;
+
+    event ShieldingFailed(uint256 token);
+
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "Portal: Only admin");
+        _;
+    }
+
+    constructor(uint256 ownerHash, address _admin) {
         // TODO: add fee for deployment
 
         _ownerHash = ownerHash;
+        admin = _admin;
     }
 
     function shield(
@@ -35,13 +45,29 @@ contract Portal is IPortal, SingleUse {
         curvyAggregator = ICurvyAggregatorAlpha(curvyAggregatorAlphaProxyAddress);
         curvyVault = ICurvyVault(curvyVaultProxyAddress);
 
-        address tokenAddress = curvyVault.getTokenAddress(note.token);
-
+        address tokenAddress;
+        try curvyVault.getTokenAddress(note.token) returns (address _tokenAddress) {
+            tokenAddress = _tokenAddress;
+        } catch {
+            emit ShieldingFailed(note.token);
+            return;
+        }
         if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
             IERC20(tokenAddress).forceApprove(address(curvyAggregator), note.amount);
             curvyAggregator.autoShield(note, tokenAddress);
         } else {
             curvyAggregator.autoShield{ value: note.amount }(note, tokenAddress);
+        }
+    }
+
+    function rescue(address token, address to, uint256 amount) external onlyAdmin {
+        require(_used, "Portal: Auto-shielding not attempted yet");
+
+        if (token == NATIVE_ETH) {
+            (bool success, ) = to.call{ value: amount }("");
+            require(success, "Portal: ETH transfer failed");
+        } else {
+            IERC20(token).safeTransfer(to, amount);
         }
     }
 
