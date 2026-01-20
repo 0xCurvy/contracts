@@ -4,6 +4,8 @@ pragma solidity ^0.8.28;
 import { CurvyTypes } from "../utils/Types.sol";
 
 interface IPortal {
+    event ShieldingFailed(uint256 token);
+
     //#region Errors
 
     error InvalidOwnerHash();
@@ -25,7 +27,7 @@ interface IPortal {
         address tokenAddress
     ) external;
 
-    function rescue(address token, address to, uint256 amount) external;
+    function rescue(address tokenAddress, address to) external;
 
     //#endregion
 }

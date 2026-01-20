@@ -19,8 +19,6 @@ contract Portal is IPortal, SingleUse {
 
     address public admin;
 
-    event ShieldingFailed(uint256 token);
-
     modifier onlyAdmin() {
         require(msg.sender == admin, "Portal: Only admin");
         _;
@@ -60,14 +58,17 @@ contract Portal is IPortal, SingleUse {
         }
     }
 
-    function rescue(address token, address to, uint256 amount) external onlyAdmin {
+    function rescue(address tokenAddress, address to) external onlyAdmin {
         require(_used, "Portal: Auto-shielding not attempted yet");
 
-        if (token == NATIVE_ETH) {
-            (bool success, ) = to.call{ value: amount }("");
+        IERC20 token = IERC20(tokenAddress);
+        uint256 balance = token.balanceOf(address(this));
+
+        if (tokenAddress == NATIVE_ETH) {
+            (bool success, ) = to.call{ value: balance }("");
             require(success, "Portal: ETH transfer failed");
         } else {
-            IERC20(token).safeTransfer(to, amount);
+            token.safeTransfer(to, balance);
         }
     }
 
