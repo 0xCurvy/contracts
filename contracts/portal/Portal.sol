@@ -17,18 +17,18 @@ contract Portal is IPortal, SingleUse {
     ICurvyAggregatorAlpha public curvyAggregator;
     ICurvyVault public curvyVault;
 
-    address public admin;
+    address public recovery;
 
-    modifier onlyAdmin() {
-        require(msg.sender == admin, "Portal: Only admin");
+    modifier onlyRecovery() {
+        require(msg.sender == recovery, "Portal: Only recovery");
         _;
     }
 
-    constructor(uint256 ownerHash, address _admin) {
+    constructor(uint256 ownerHash, address _recovery) {
         // TODO: add fee for deployment
 
         _ownerHash = ownerHash;
-        admin = _admin;
+        recovery = _recovery;
     }
 
     function shield(
@@ -58,9 +58,7 @@ contract Portal is IPortal, SingleUse {
         }
     }
 
-    function rescue(address tokenAddress, address to) external onlyAdmin {
-        require(_used, "Portal: Auto-shielding not attempted yet");
-
+    function recover(address tokenAddress, address to) external onlyRecovery {
         IERC20 token = IERC20(tokenAddress);
         uint256 balance = token.balanceOf(address(this));
 

@@ -32,24 +32,24 @@ contract PortalFactory is Ownable {
         return true;
     }
 
-    function getCreationCode(uint256 ownerHash, address admin) public pure returns (bytes memory) {
+    function getCreationCode(uint256 ownerHash, address recovery) public pure returns (bytes memory) {
         bytes memory bytecode = type(Portal).creationCode;
-        bytes memory encodedArgs = abi.encode(ownerHash, admin);
+        bytes memory encodedArgs = abi.encode(ownerHash, recovery);
         return abi.encodePacked(bytecode, encodedArgs);
     }
 
-    function getPortalAddress(uint256 ownerHash, address admin) public view returns (address) {
-        bytes memory code = getCreationCode(ownerHash, admin);
+    function getPortalAddress(uint256 ownerHash, address recovery) public view returns (address) {
+        bytes memory code = getCreationCode(ownerHash, recovery);
         bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), _salt, keccak256(code)));
         return address(uint160(uint256(hash)));
     }
 
-    function deployAndShield(CurvyTypes.Note memory note, address admin) public payable {
+    function deployAndShield(CurvyTypes.Note memory note, address recovery) public payable {
         if (_curvyVaultProxyAddress == address(0) || _curvyAggregatorAlphaProxyAddress == address(0)) {
             revert("PortalFactory: Shielding not supported on this chain");
         }
 
-        bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash, admin);
+        bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash, recovery);
         address portalAddress;
 
         bytes32 salt = _salt;
@@ -74,13 +74,13 @@ contract PortalFactory is Ownable {
         bytes calldata bridgeData,
         CurvyTypes.Note memory note,
         address tokenAddress,
-        address admin
+        address recovery
     ) public {
         if (_lifiDiamondAddress == address(0)) {
             revert("PortalFactory: Bridging not supported on this chain");
         }
 
-        bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash, admin);
+        bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash, recovery);
         address portalAddress;
 
         bytes32 salt = _salt;
