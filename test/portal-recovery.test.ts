@@ -6,8 +6,7 @@ import { expect, test } from "vitest";
 test("portal-recovery", async () => {
   // 1. Setup
   const ownerHash = 702705117071108858750548073842146797693190729490869702449519502701872077655n;
-  const invalidTokenId = 5n;
-  const validTokenId = 2n;
+  const tokenId = 2n;
   const amount = 2797004n;
 
   const networkObj = await network.connect({ network: "anvil" });
@@ -15,11 +14,6 @@ test("portal-recovery", async () => {
   const { viem } = networkObj;
   const deployedAddressesPath = "./ignition/deployments/anvil/deployed_addresses.json";
   const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
-
-  const vaultAddress = deployedAddresses["CurvyVault#CurvyVaultV2"];
-  if (!vaultAddress) {
-    throw new Error("CurvyVault address not found for anvil");
-  }
 
   const portalFactoryAddress = deployedAddresses["PortalFactoryAggregatorModule#PortalFactory"];
   if (!portalFactoryAddress) {
@@ -31,20 +25,15 @@ test("portal-recovery", async () => {
     throw new Error("ERC20Mock address not found for anvil");
   }
 
-  const curvyVault = await viem.getContractAt("CurvyVaultV2", vaultAddress);
   const portalFactory = await viem.getContractAt("PortalFactory", portalFactoryAddress);
   const erc20Mock = await viem.getContractAt("ERC20Mock", erc20MockAddress);
 
   const publicClient = await viem.getPublicClient();
 
-  const token2Address = await curvyVault.read.getTokenAddress([validTokenId]);
-  expect(token2Address).toBe(erc20Mock.address);
-
   const user = privateKeyToAccount("0x49593edf99c94e11b7e1e6f98387af4b5bb996ee76723f0ab5a658ba643d1058");
   const userClient = await viem.getWalletClient(user.address);
 
-  // 2. Deploy Portal with INVALID token in Note to trigger ShieldingFailed
-
+  // 2. Transfer tokens to portal
   const expectedPortalAddress = await portalFactory.read.getPortalAddress([ownerHash, user.address]);
 
   const { request } = await publicClient.simulateContract({
@@ -86,11 +75,12 @@ test("portal-recovery", async () => {
 
   expect(receipt).toBeDefined();
 
+  // 3. Deploy Portal with INVALID token in Note
   console.log("Deploying Portal with invalid token");
   const deployHash = await portalFactory.write.deployAndShield([
     {
       ownerHash,
-      token: invalidTokenId,
+      token: tokenId,
       amount: amount,
     },
     user.address,

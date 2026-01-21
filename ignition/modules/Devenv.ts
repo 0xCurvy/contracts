@@ -5,7 +5,7 @@ import PortalFactoryAggregatorModule from "./PortalFactoryAggregator";
 const DEPOSIT_AMOUNT = 1000n * 10n ** 18n;
 
 export default buildModule("Devenv", (m) => {
-  // Deploy aggregator and Vault
+  // Deploy aggregator, vault and portal factory
   const { curvyVault, portalFactory } = m.useModule(PortalFactoryAggregatorModule);
 
   // Deploy multicall
