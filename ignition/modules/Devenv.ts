@@ -1,12 +1,12 @@
 import fs from "node:fs";
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import CurvyAggregatorAlphaModule from "./CurvyAggregatorAlpha";
+import PortalFactoryAggregatorModule from "./PortalFactoryAggregator";
 
 const DEPOSIT_AMOUNT = 1000n * 10n ** 18n;
 
 export default buildModule("Devenv", (m) => {
   // Deploy aggregator and Vault
-  const { curvyVault } = m.useModule(CurvyAggregatorAlphaModule);
+  const { curvyVault, portalFactory } = m.useModule(PortalFactoryAggregatorModule);
 
   // Deploy multicall
   const multicall3 = m.contract("Multicall3");
@@ -38,5 +38,5 @@ export default buildModule("Devenv", (m) => {
     id: `Mint_ERC20_${userAddressForAutomaticShielding}`,
   });
 
-  return { erc20Mock, multicall3 };
+  return { erc20Mock, multicall3, curvyVault, portalFactory };
 });

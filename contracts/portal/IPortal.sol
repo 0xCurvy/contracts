@@ -4,8 +4,6 @@ pragma solidity ^0.8.28;
 import { CurvyTypes } from "../utils/Types.sol";
 
 interface IPortal {
-    event ShieldingFailed(uint256 token);
-
     //#region Errors
 
     error InvalidOwnerHash();
@@ -28,7 +26,7 @@ interface IPortal {
     ) external;
 
     /**
-     * @notice Used by the recipient to recover funds from the Portal.
+     * @notice Used by the user to recover funds from the Portal.
      * @dev This is typically used when auto-shielding fails or if funds are accidentally sent to the Portal address.
      * @param tokenAddress The address of the token to recover.
      * @param to The address to send the recovered funds to.

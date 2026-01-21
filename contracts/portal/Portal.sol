@@ -47,7 +47,6 @@ contract Portal is IPortal, SingleUse {
         try curvyVault.getTokenAddress(note.token) returns (address _tokenAddress) {
             tokenAddress = _tokenAddress;
         } catch {
-            emit ShieldingFailed(note.token);
             return;
         }
         if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {

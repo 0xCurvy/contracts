@@ -7,6 +7,8 @@ import { IPortal } from "./IPortal.sol";
 import { Portal } from "./Portal.sol";
 import { CurvyTypes } from "../utils/Types.sol";
 
+import "hardhat/console.sol";
+
 contract PortalFactory is Ownable {
     bytes32 private _salt = keccak256(abi.encodePacked("curvy-portal-factory-salt"));
 
@@ -45,9 +47,15 @@ contract PortalFactory is Ownable {
     }
 
     function deployAndShield(CurvyTypes.Note memory note, address recovery) public payable {
+        console.log("Deploying Portal...");
+        console.log("Vault Addr:", _curvyVaultProxyAddress);
+        console.log("Aggregator Addr:", _curvyAggregatorAlphaProxyAddress);
+
         if (_curvyVaultProxyAddress == address(0) || _curvyAggregatorAlphaProxyAddress == address(0)) {
             revert("PortalFactory: Shielding not supported on this chain");
         }
+
+        console.log("Addresses OK. Creating Portal...");
 
         bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash, recovery);
         address portalAddress;
@@ -67,7 +75,11 @@ contract PortalFactory is Ownable {
             revert("PortalFactory: Deployment failed");
         }
 
-        IPortal(portalAddress).shield(note, _curvyAggregatorAlphaProxyAddress, _curvyVaultProxyAddress);
+        try IPortal(portalAddress).shield(note, _curvyAggregatorAlphaProxyAddress, _curvyVaultProxyAddress) {
+            // success
+        } catch {
+            // failure
+        }
     }
 
     function deployAndBridge(
