@@ -20,13 +20,10 @@ test("portal-recovery", async () => {
   if (!vaultAddress) {
     throw new Error("CurvyVault address not found for anvil");
   }
+
   const portalFactoryAddress = deployedAddresses["PortalFactoryAggregatorModule#PortalFactory"];
   if (!portalFactoryAddress) {
     throw new Error("PortalFactory address not found for anvil");
-  }
-  const curvyAggregatorAlphaAddress = deployedAddresses["CurvyAggregatorAlpha#CurvyAggregatorAlphaV3"];
-  if (!curvyAggregatorAlphaAddress) {
-    throw new Error("CurvyAggregatorAlpha address not found for anvil");
   }
 
   const erc20MockAddress = deployedAddresses["Devenv#ERC20Mock"];
@@ -36,7 +33,6 @@ test("portal-recovery", async () => {
 
   const curvyVault = await viem.getContractAt("CurvyVaultV2", vaultAddress);
   const portalFactory = await viem.getContractAt("PortalFactory", portalFactoryAddress);
-  const curvyAggregatorAlpha = await viem.getContractAt("CurvyAggregatorAlphaV3", curvyAggregatorAlphaAddress);
   const erc20Mock = await viem.getContractAt("ERC20Mock", erc20MockAddress);
 
   const publicClient = await viem.getPublicClient();
