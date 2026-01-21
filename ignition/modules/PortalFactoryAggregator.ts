@@ -12,5 +12,5 @@ export default buildModule("PortalFactoryAggregatorModule", (m) => {
 
   m.call(portalFactory, "initializeConfig", [curvyVault, curvyAggregatorAlpha, lifiDiamondAddress]);
 
-  return { portalFactory };
+  return { curvyVault, portalFactory };
 });

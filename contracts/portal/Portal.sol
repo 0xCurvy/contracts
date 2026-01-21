@@ -17,10 +17,18 @@ contract Portal is IPortal, SingleUse {
     ICurvyAggregatorAlpha public curvyAggregator;
     ICurvyVault public curvyVault;
 
-    constructor(uint256 ownerHash) {
+    address public recovery;
+
+    modifier onlyRecovery() {
+        require(msg.sender == recovery, "Portal: Only recovery");
+        _;
+    }
+
+    constructor(uint256 ownerHash, address _recovery) {
         // TODO: add fee for deployment
 
         _ownerHash = ownerHash;
+        recovery = _recovery;
     }
 
     function shield(
@@ -35,13 +43,29 @@ contract Portal is IPortal, SingleUse {
         curvyAggregator = ICurvyAggregatorAlpha(curvyAggregatorAlphaProxyAddress);
         curvyVault = ICurvyVault(curvyVaultProxyAddress);
 
-        address tokenAddress = curvyVault.getTokenAddress(note.token);
-
+        address tokenAddress;
+        try curvyVault.getTokenAddress(note.token) returns (address _tokenAddress) {
+            tokenAddress = _tokenAddress;
+        } catch {
+            return;
+        }
         if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
             IERC20(tokenAddress).forceApprove(address(curvyAggregator), note.amount);
             curvyAggregator.autoShield(note, tokenAddress);
         } else {
             curvyAggregator.autoShield{ value: note.amount }(note, tokenAddress);
+        }
+    }
+
+    function recover(address tokenAddress, address to) external onlyRecovery {
+        IERC20 token = IERC20(tokenAddress);
+        uint256 balance = token.balanceOf(address(this));
+
+        if (tokenAddress == NATIVE_ETH) {
+            (bool success, ) = to.call{ value: balance }("");
+            require(success, "Portal: ETH transfer failed");
+        } else {
+            token.safeTransfer(to, balance);
         }
     }
 
