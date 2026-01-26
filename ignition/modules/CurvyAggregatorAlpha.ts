@@ -65,5 +65,35 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
 
   const curvyAggregatorAlpha = m.contractAt("CurvyAggregatorAlphaV3", proxy);
 
+  const newInsertionVerifier = m.contract(`CurvyInsertionVerifierAlpha_${maxDeposits}`, [], {
+    id: "NewInsertionVerifier_v2",
+    after: [curvyAggregatorAlpha]
+  });
+
+  const newAggregationVerifier = m.contract(`CurvyAggregationVerifierAlpha_${maxAggregations}`, [], {
+    id: "NewAggregationVerifier_v2",
+    after: [newInsertionVerifier]
+  });
+
+  const newWithdrawVerifier = m.contract(`CurvyWithdrawVerifierAlpha_${maxWithdrawals}`, [], {
+    id: "NewWithdrawVerifier_v2",
+    after: [newAggregationVerifier]
+  });
+
+  m.call(curvyAggregatorAlpha, "updateConfig", [
+    {
+      insertionVerifier: newInsertionVerifier,
+      aggregationVerifier: newAggregationVerifier,
+      withdrawVerifier: newWithdrawVerifier,
+      curvyVault: "0x0000000000000000000000000000000000000000",
+      maxDeposits: 0,
+      maxAggregations: 0,
+      maxWithdrawals: 0,
+    },
+  ], {
+    id: "UpdateConfig_WithNewVerifiers",
+    after: [newWithdrawVerifier]
+  });
+
   return { implementation, proxy, curvyAggregatorAlpha, curvyVault };
 });
