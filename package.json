@@ -9,6 +9,7 @@
     "start:hardhat": "pnpm hardhat node --network hardhat",
     "start:anvil": "anvil -b 1 --load-state ./cache/anvil_state.json",
     "deploy:anvil": "node ./scripts/deploy-and-dump.js",
+    
     "deploy:staging:sepolia:aggregator": "hardhat ignition deploy --deployment-id staging_ethereum-sepolia --verify --network sepolia ignition/modules/CurvyAggregatorAlpha.ts",
     "deploy:staging:sepolia:vault": "hardhat ignition deploy --deployment-id staging_ethereum-sepolia --verify --network sepolia ignition/modules/CurvyVault.ts",
     "deploy:staging:sepolia:portal-factory": "hardhat ignition deploy --deployment-id staging_ethereum-sepolia --verify --network sepolia --strategy create2 ignition/modules/PortalFactoryAggregator.ts",
@@ -26,12 +27,18 @@
     "deploy:production:arbitrum:portal-factory": "hardhat ignition deploy --deployment-id production_arbitrum --verify --network arbitrum --strategy create2 ignition/modules/PortalFactoryAggregator.ts",
     "deploy:production:ethereum:portal-factory": "hardhat ignition deploy --deployment-id production_ethereum --verify --network ethereum --strategy create2 ignition/modules/PortalFactory.ts",
 
-    "deploy:base:portal-factory": "hardhat ignition deploy --deployment-id base --verify --network base --strategy create2 ignition/modules/PortalFactory.ts",
-    "deploy:optimism:portal-factory": "hardhat ignition deploy --deployment-id optimism --verify --network optimism --strategy create2 ignition/modules/PortalFactory.ts",
-    "deploy:polygon:portal-factory": "hardhat ignition deploy --deployment-id polygon --verify --network polygon --strategy create2 ignition/modules/PortalFactory.ts",
-    "deploy:bsc:portal-factory": "hardhat ignition deploy --deployment-id bsc --verify --network bsc --strategy create2 ignition/modules/PortalFactory.ts",
-    "deploy:linea:portal-factory": "hardhat ignition deploy --deployment-id linea --verify --network linea --strategy create2 ignition/modules/PortalFactory.ts",
-    "deploy:gnosis:portal-factory": "hardhat ignition deploy --deployment-id gnosis --verify --network gnosis --strategy create2 ignition/modules/PortalFactory.ts"
+    "deploy:staging:base:portal-factory": "hardhat ignition deploy --deployment-id staging_base --verify --network base --strategy create2 ignition/modules/PortalFactory.ts",
+    "deploy:staging:optimism:portal-factory": "hardhat ignition deploy --deployment-id staging_optimism --verify --network optimism --strategy create2 ignition/modules/PortalFactory.ts",
+    "deploy:staging:polygon:portal-factory": "hardhat ignition deploy --deployment-id staging_polygon --verify --network polygon --strategy create2 ignition/modules/PortalFactory.ts",
+    "deploy:staging:bsc:portal-factory": "hardhat ignition deploy --deployment-id staging_bsc --verify --network bsc --strategy create2 ignition/modules/PortalFactory.ts",
+    "deploy:staging:linea:portal-factory": "hardhat ignition deploy --deployment-id staging_linea --verify --network linea --strategy create2 ignition/modules/PortalFactory.ts",
+    "deploy:staging:gnosis:portal-factory": "hardhat ignition deploy --deployment-id staging_gnosis --verify --network gnosis --strategy create2 ignition/modules/PortalFactory.ts",
+    "deploy:production:base:portal-factory": "hardhat ignition deploy --deployment-id production_base --verify --network base --strategy create2 ignition/modules/PortalFactory.ts",
+    "deploy:production:optimism:portal-factory": "hardhat ignition deploy --deployment-id production_optimism --verify --network optimism --strategy create2 ignition/modules/PortalFactory.ts",
+    "deploy:production:polygon:portal-factory": "hardhat ignition deploy --deployment-id production_polygon --verify --network polygon --strategy create2 ignition/modules/PortalFactory.ts",
+    "deploy:production:bsc:portal-factory": "hardhat ignition deploy --deployment-id production_bsc --verify --network bsc --strategy create2 ignition/modules/PortalFactory.ts",
+    "deploy:production:linea:portal-factory": "hardhat ignition deploy --deployment-id production_linea --verify --network linea --strategy create2 ignition/modules/PortalFactory.ts",
+    "deploy:production:gnosis:portal-factory": "hardhat ignition deploy --deployment-id production_gnosis --verify --network gnosis --strategy create2 ignition/modules/PortalFactory.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.0.3",
