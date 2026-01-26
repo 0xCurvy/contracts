@@ -11,14 +11,21 @@ console.log(`👷 Deployer Wallet: ${deployerClient.account.address}`);
 
 const core = new Core();
 
+// note data
+const ownerHash = 104523775061865081978688333206914837947832712051815280022934306837594910208413n;
+const tokenAddress = "0xabc";
+const viewTag = "2a";
+const ephemeralPublicKey = "216163113738129077026981082324476512393870475034151261972342073686655368504.17738778503081880329520898390562451499239148980806015804088882169172728886181";
 const announcement = {
   createdAt: "2026-01-22T09:15:53.168Z",
   id: "49",
   networkFlavour: "evm",
-  viewTag: "2b",
-  ephemeralPublicKey:
-    "12694814128352825173555891916474688948022902810048283398122577572297648545302.769867253832128338353427508361950705748312918666179012235061862770337441780",
+  viewTag,
+  ephemeralPublicKey,
 } as const;
+
+// address where user wants to recover their funds
+const recoveryAddress = "0xabc";
 
 // spending and viewing private keys of the user
 const spendingPrivateKey = "";
@@ -30,20 +37,16 @@ const {
 
 const recoveryAccount = privateKeyToAccount(recoveryPrivateKey);
 
+console.log(`Recovery wallet address: ${recoveryAccount.address}`);
+
 const deployedAddressesPath = "./ignition/deployments/staging_ethereum-sepolia/deployed_addresses.json";
 const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
 
 const portalFactoryAddress = deployedAddresses["PortalFactoryAggregatorModule#PortalFactory"];
-// address of token that user wants to recover
-const tokenAddress = "0x08210F9170F89Ab7658F0B5E3fF39b0E03C594D4";
 
 if (!portalFactoryAddress) {
   throw new Error("PortalFactory address not found.");
 }
-
-const ownerHash = 4858610214764074763546445921752291276456790862179504486794658106036719941752n;
-// address where user wants to recover their funds
-const recoveryAddress = "0xabc123";
 
 const portalFactory = await viem.getContractAt("PortalFactory", portalFactoryAddress);
 
