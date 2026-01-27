@@ -1,13 +1,11 @@
 import {buildModule} from "@nomicfoundation/hardhat-ignition/modules";
-import {getDeployedContractAddressOnNetwork, getParameter} from "./utils/deployment";
+import {getDeployedContractAddressOrZero, getParameter} from "./utils/deployment";
 
 export default buildModule("PortalFactoryModule", (m) => {
     const owner = m.getAccount(0);
 
-    const aggregatorNetwork = getParameter<string>("aggregatorNetwork", "arbitrum");
-
-    const curvyVaultProxyAddress = getDeployedContractAddressOnNetwork(aggregatorNetwork, "CurvyVault#ERC1967Proxy");
-    const curvyAggregatorAlphaProxyAddress = getDeployedContractAddressOnNetwork(aggregatorNetwork, "CurvyAggregatorAlpha#ERC1967Proxy");
+    const curvyVaultProxyAddress = getDeployedContractAddressOrZero("CurvyVault#ERC1967Proxy");
+    const curvyAggregatorAlphaProxyAddress = getDeployedContractAddressOrZero("CurvyAggregatorAlpha#ERC1967Proxy");
 
     const portalFactory = m.contract("PortalFactory", [owner], {id: "PortalFactory"});
 

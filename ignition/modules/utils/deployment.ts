@@ -30,9 +30,9 @@ export function getEnvironmentAndChainName(): { environment: string; chainName: 
     return {environment, chainName};
 }
 
-export function getDeployedContractAddressOnNetwork(networkName: string, contractName: string): string {
-    const {environment} = getEnvironmentAndChainName();
-    const deploymentId = `${environment}_${networkName}`;
+export function getDeployedContractAddressOrZero(contractName: string): string {
+    const {environment, chainName} = getEnvironmentAndChainName();
+    const deploymentId = `${environment}_${chainName}`;
 
     const filePath = path.resolve(process.cwd(), "ignition", "deployments", deploymentId, "deployed_addresses.json");
 
@@ -44,7 +44,7 @@ export function getDeployedContractAddressOnNetwork(networkName: string, contrac
     const addresses = JSON.parse(rawData);
 
     if (!addresses[contractName]) {
-        throw new Error(`Contract '${contractName}' not found in deployment file for deployment ID '${deploymentId}'.`);
+        return "0x0000000000000000000000000000000000000000";
     }
 
     return addresses[contractName];
