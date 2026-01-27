@@ -1,8 +1,8 @@
 import hardhatIgnitionViemPlugin from "@nomicfoundation/hardhat-ignition-viem";
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import hardhatVerifyPlugin from "@nomicfoundation/hardhat-verify";
-
 import { configVariable, type HardhatUserConfig } from "hardhat/config";
+import salts from "./ignition/salts.json" with { type: "json" };
 
 const config: HardhatUserConfig = {
   plugins: [hardhatToolboxViemPlugin, hardhatIgnitionViemPlugin, hardhatVerifyPlugin],
@@ -98,7 +98,7 @@ const config: HardhatUserConfig = {
   ignition: {
     strategyConfig: {
       create2: {
-        salt: "0x6d696861696c6f20616e642076616e6a6120637572767920706f776572000000",
+        salt: salts[process.env.DEPLOY_ENV as keyof typeof salts],
       },
     },
   },
