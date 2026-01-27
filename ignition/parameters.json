@@ -1,0 +1,27 @@
+{
+  "sepolia": {
+    "aggregatorNetwork": "sepolia",
+    "aggregatorChainId": 11155111
+  },
+  "ethereum": {
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE"
+  },
+  "base": {
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE"
+  },
+  "optimism": {
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE"
+  },
+  "polygon": {
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE"
+  },
+  "bsc": {
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE"
+  },
+  "gnosis": {
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE"
+  },
+  "linea": {
+    "lifiDiamondAddress": "0xde1e598b81620773454588b85d6b5d4eec32573e"
+  }
+}

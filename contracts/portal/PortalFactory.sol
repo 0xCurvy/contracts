@@ -13,18 +13,12 @@ contract PortalFactory is Ownable {
     address private _curvyVaultProxyAddress;
     address private _curvyAggregatorAlphaProxyAddress;
     address private _lifiDiamondAddress;
+    uint256 private _aggregatorChainId;
 
-    constructor(address initialOwner) Ownable(initialOwner) {}
-
-    function initializeConfig(
-        address curvyVaultProxyAddress,
-        address curvyAggregatorAlphaProxyAddress,
-        address lifiDiamondAddress
-    ) external onlyOwner returns (bool) {
+    constructor(address initialOwner, address curvyVaultProxyAddress, address curvyAggregatorAlphaProxyAddress, uint256 aggregatorChainId) Ownable(initialOwner) {
+        _aggregatorChainId = aggregatorChainId;
         _curvyVaultProxyAddress = curvyVaultProxyAddress;
         _curvyAggregatorAlphaProxyAddress = curvyAggregatorAlphaProxyAddress;
-        _lifiDiamondAddress = lifiDiamondAddress;
-        return true;
     }
 
     function updateLifiDiamondAddress(address lifiDiamondAddress) external onlyOwner returns (bool) {
@@ -45,7 +39,7 @@ contract PortalFactory is Ownable {
     }
 
     function deployAndShield(CurvyTypes.Note memory note, address recovery) public payable {
-        if (_curvyVaultProxyAddress == address(0) || _curvyAggregatorAlphaProxyAddress == address(0)) {
+        if (block.chainid != _aggregatorChainId) {
             revert("PortalFactory: Shielding not supported on this chain");
         }
 
@@ -76,7 +70,7 @@ contract PortalFactory is Ownable {
         address tokenAddress,
         address recovery
     ) public {
-        if (_lifiDiamondAddress == address(0)) {
+        if (_lifiDiamondAddress == address(0) || block.chainid == _aggregatorChainId) {
             revert("PortalFactory: Bridging not supported on this chain");
         }
 

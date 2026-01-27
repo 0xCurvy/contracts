@@ -1,5 +1,6 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import CurvyAggregatorAlphaModule from "./CurvyAggregatorAlpha";
+import {assertCurrentNetwork} from "./utils/deployment";
 
 const erc20Addresses = [
   "0xba5DdD1f9d7F570dc94a51479a000E3BCE967196",
@@ -23,6 +24,8 @@ const erc20Addresses = [
 ];
 
 export default buildModule("RegisterVaultTokens", (m) => {
+  assertCurrentNetwork("arbitrum");
+
   // Deploy aggregator and Vault
   const { curvyVault } = m.useModule(CurvyAggregatorAlphaModule);
 
