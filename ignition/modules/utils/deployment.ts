@@ -58,13 +58,6 @@ export async function assertCurrentNetwork(networkName: string): Promise<void> {
     }
 }
 
-export async function getCurrentChainId(): Promise<number> {
-    const network = await hre.network.connect();
-    const client = await network.viem.getPublicClient();
-
-    return client.getChainId();
-}
-
 function getParameter<T>(parameterName: string): T | null
 function getParameter<T>(parameterName: string, defaultValue: T): T
 function getParameter<T>(parameterName: string, defaultValue?: T): T | null {
