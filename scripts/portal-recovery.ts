@@ -3,7 +3,7 @@ import { Core } from "@0xcurvy/curvy-sdk";
 import { network } from "hardhat";
 import { privateKeyToAccount } from "viem/accounts";
 
-const { viem } = await network.connect({ network: "sepolia" });
+const { viem } = await network.connect({ network: "arbitrum" });
 const [deployerClient] = await viem.getWalletClients();
 const publicClient = await viem.getPublicClient();
 
@@ -39,10 +39,10 @@ const recoveryAccount = privateKeyToAccount(recoveryPrivateKey);
 
 console.log(`Recovery wallet address: ${recoveryAccount.address}`);
 
-const deployedAddressesPath = "./ignition/deployments/staging_ethereum-sepolia/deployed_addresses.json";
+const deployedAddressesPath = "./ignition/deployments/staging_arbitrum/deployed_addresses.json";
 const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
 
-const portalFactoryAddress = deployedAddresses["PortalFactoryAggregatorModule#PortalFactory"];
+const portalFactoryAddress = deployedAddresses["PortalFactoryModule#PortalFactory"];
 
 if (!portalFactoryAddress) {
   throw new Error("PortalFactory address not found.");
