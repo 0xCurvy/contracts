@@ -37,7 +37,8 @@ export function getDeployedContractAddressOrZero(contractName: string): string {
     const filePath = path.resolve(process.cwd(), "ignition", "deployments", deploymentId, "deployed_addresses.json");
 
     if (!fs.existsSync(filePath)) {
-        throw new Error(`Deployment file not found for deployment ID '${deploymentId}'.`);
+        console.warn(`Deployment file not found for deployment ID '${deploymentId}' returning zero address.`);
+        return "0x0000000000000000000000000000000000000000";
     }
 
     const rawData = fs.readFileSync(filePath, "utf-8");
