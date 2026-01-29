@@ -1,12 +1,14 @@
 import fs from "node:fs";
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import PortalFactoryAggregatorModule from "./PortalFactoryAggregator";
+import CurvyAggregatorAlphaModule from "./CurvyAggregatorAlpha";
+import PortalFactoryModule from "./PortalFactory";
 
 const DEPOSIT_AMOUNT = 1000n * 10n ** 18n;
 
 export default buildModule("Devenv", (m) => {
   // Deploy aggregator, vault and portal factory
-  const { curvyVault, portalFactory } = m.useModule(PortalFactoryAggregatorModule);
+  const { curvyVault } = m.useModule(CurvyAggregatorAlphaModule);
+  const { portalFactory } = m.useModule(PortalFactoryModule);
 
   // Deploy multicall
   const multicall3 = m.contract("Multicall3");
