@@ -12,7 +12,7 @@ test("portal-recovery", async () => {
   const networkObj = await network.connect({ network: "anvil" });
 
   const { viem } = networkObj;
-  const deployedAddressesPath = "./ignition/deployments/anvil/deployed_addresses.json";
+  const deployedAddressesPath = "./ignition/deployments/staging_anvil/deployed_addresses.json";
   const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
 
   const portalFactoryAddress = deployedAddresses["PortalFactoryAggregatorModule#PortalFactory"];
