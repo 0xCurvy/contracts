@@ -9,6 +9,8 @@
     "start:hardhat": "pnpm hardhat node --network hardhat",
     "start:anvil": "anvil -b 1 --load-state ./cache/anvil_state.json",
     "deploy:anvil": "node ./scripts/deploy-and-dump.js",
+
+    "deploy": "bash ./scripts/deploy.sh",
     
     "deploy:staging:sepolia:aggregator": "hardhat ignition deploy --deployment-id staging_ethereum-sepolia --verify --network sepolia ignition/modules/CurvyAggregatorAlpha.ts",
     "deploy:staging:sepolia:vault": "hardhat ignition deploy --deployment-id staging_ethereum-sepolia --verify --network sepolia ignition/modules/CurvyVault.ts",

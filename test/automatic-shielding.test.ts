@@ -21,7 +21,7 @@ test("automatic-shielding", async () => {
   //#region Load deployed contracts
 
   const { viem } = networkObj;
-  const deployedAddressesPath = "./ignition/deployments/anvil/deployed_addresses.json";
+  const deployedAddressesPath = "./ignition/deployments/staging_anvil/deployed_addresses.json";
   const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
 
   const vaultAddress = deployedAddresses["CurvyVault#CurvyVault"];

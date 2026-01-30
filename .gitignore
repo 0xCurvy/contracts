@@ -21,4 +21,4 @@
 
 # Deployments for all chains
 ignition/deployments/chain-31337
-ignition/deployments/anvil
+ignition/deployments/staging_anvil

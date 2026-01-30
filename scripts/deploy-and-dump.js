@@ -24,7 +24,7 @@ function run(cmd, args) {
           "ignition",
           "deploy",
           "--deployment-id",
-          "anvil",
+          "staging_anvil",
           "--network",
           "anvil",
           "./ignition/modules/Devenv.ts",

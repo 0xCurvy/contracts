@@ -16,5 +16,8 @@
   "CurvyAggregatorAlpha#CurvyAggregatorAlphaV3": "0x9c07E1Ff4f1B96ae609331BAc327FcC2d8563224",
   "CurvyAggregatorAlpha#CurvyAggregatorAlphaV3Implementation": "0x8c7C072fe3550027271d969A4b7Ce331062e9739",
   "PortalFactoryAggregatorModule#PortalFactory": "0x10aA4c497Fbb880AEa10F8258D7fECb6A2da297F",
-  "PortalFactoryModule#PortalFactory": "0xfF84ACBAE0c126506b250b0c7d17bcc8367C1d16"
+  "PortalFactoryModule#PortalFactory": "0xfF84ACBAE0c126506b250b0c7d17bcc8367C1d16",
+  "CurvyAggregatorAlpha#NewInsertionVerifier_v2": "0xb9AfF2366995bbc304fc361D23F7b4E06CA11efc",
+  "CurvyAggregatorAlpha#NewAggregationVerifier_v2": "0x17a305e298bd3C5108F9Dc97B363B33DAEcFD29f",
+  "CurvyAggregatorAlpha#NewWithdrawVerifier_v2": "0x5f2caFDB348D16b1F4DFb62CFCfd44a41043C9F0"
 }
