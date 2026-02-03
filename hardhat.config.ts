@@ -35,7 +35,6 @@ const config: HardhatUserConfig = {
         auto: false,
         interval: 1000,
       },
-      allowUnlimitedContractSize: true,
     },
     localhost: {
       type: "http",

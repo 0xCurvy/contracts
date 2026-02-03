@@ -27,7 +27,6 @@
     "deploy:production:arbitrum:vault": "hardhat ignition deploy --deployment-id production_arbitrum --verify --network arbitrum ignition/modules/CurvyVault.ts",
     "deploy:production:arbitrum:portal-factory": "DEPLOY_ENV=production hardhat ignition deploy --deployment-id production_arbitrum --verify --network arbitrum --strategy create2 ignition/modules/PortalFactory.ts",
     "deploy:production:ethereum:portal-factory": "DEPLOY_ENV=production hardhat ignition deploy --deployment-id production_ethereum --verify --network ethereum --strategy create2 ignition/modules/PortalFactory.ts",
-
     "deploy:staging:base:portal-factory": "DEPLOY_ENV=staging hardhat ignition deploy --deployment-id staging_base --verify --network base --strategy create2 ignition/modules/PortalFactory.ts",
     "deploy:staging:optimism:portal-factory": "DEPLOY_ENV=staging hardhat ignition deploy --deployment-id staging_optimism --verify --network optimism --strategy create2 ignition/modules/PortalFactory.ts",
     "deploy:staging:polygon:portal-factory": "DEPLOY_ENV=staging hardhat ignition deploy --deployment-id staging_polygon --verify --network polygon --strategy create2 ignition/modules/PortalFactory.ts",
@@ -54,7 +53,6 @@
   },
   "dependencies": {
     "@0xcurvy/curvy-sdk": "workspace:*",
-    "@ensdomains/ens-contracts": "^1.6.2",
     "@nomicfoundation/hardhat-ignition-viem": "^3.0.3",
     "@nomicfoundation/hardhat-verify": "^3.0.4",
     "@openzeppelin/contracts": "^5.4.0",

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import { keccak256, toHex, stringToBytes, namehash } from "viem";
+import { labelhash, namehash } from "viem";
 import CurvyAggregatorAlphaModule from "./CurvyAggregatorAlpha";
 import PortalFactoryModule from "./PortalFactory";
 
@@ -19,52 +19,49 @@ export default buildModule("Devenv", (m) => {
 
   const deployer = m.getAccount(0);
 
-  // Deploy ENS Registry
-  const ensRegistry = m.contract("LocalENSRegistry", [], { id: "ENS_Registry" });
+  // ENS Setup
+  const GATEWAY_URL = "http://localhost:4000/gateway/testnet/{sender}/{data}.json";
+  const ROOT_NODE = "0x0000000000000000000000000000000000000000000000000000000000000000";
+  // Deploy Registry
+  const registry = m.contract("LocalENSRegistry");
 
-  const rootNode = "0x0000000000000000000000000000000000000000000000000000000000000000";
-  const tldLabel = "name";
-  const tldLabelHash = keccak256(toHex(stringToBytes(tldLabel)));
-  const tldNode = namehash(tldLabel); // namehash('name')
-  
-  const domainLabel = "local-curvy";
-  const domainLabelHash = keccak256(toHex(stringToBytes(domainLabel)));
-  const domainNode = namehash("local-curvy.name");
-
-  const gatewayUrl = "http://localhost:4000/gateway/testnet/{sender}/{callData}.json";
-
-  const gatewayProvider = m.contract("StaticGatewayProvider", [deployer, [gatewayUrl]], {
-    id: "ENS_GatewayProvider"
-  });
+  // Deploy SimpleOffchainResolver
+  // Arguments: [url, signer_address]
+  const offchain = m.contract("SimpleOffchainResolver", [GATEWAY_URL, deployer]);
 
   // Deploy Universal Resolver
-  m.contract("LocalUniversalResolver", [deployer, ensRegistry, gatewayProvider], {
-    id: "ENS_UniversalResolver"
+  // Arguments: [registry_address, wildcard_node_hash]
+  const localCurvyNode = namehash("local-curvy.name");
+
+  const universal = m.contract("LocalUniversalResolver", [registry, localCurvyNode], {
+    id: "LocalUniversalResolver",
   });
 
-  // Deploy Offchain Resolver
-  const offchainResolver = m.contract("OffchainResolver", [gatewayUrl, [deployer]], {
-    id: "ENS_OffchainResolver"
+  // Configure TLD: .name
+  // registry.setSubnodeOwner(ROOT_NODE, labelhash("name"), deployer)
+  const setupTld = m.call(registry, "setSubnodeOwner", [ROOT_NODE, labelhash("name"), deployer], {
+    id: "setup_tld",
   });
 
-  // Configure ENS
+  // Configure Domain: local-curvy.name
+  // registry.setSubnodeRecord(nameNode, labelhash("local-curvy"), deployer, offchainAddress, ttl)
+  const nameNode = namehash("name");
 
-  // Set deployer as owner of ".name" TLD
-  const setTldOwner = m.call(ensRegistry, "setSubnodeOwner", [rootNode, tldLabelHash, deployer], { 
-    id: "ENS_SetSubnode_Name" 
-  });
-
-  // Set deployer as owner of "local-curvy.name" domain
-  const setDomainOwner = m.call(ensRegistry, "setSubnodeOwner", [tldNode, domainLabelHash, deployer], { 
-    id: "ENS_SetSubnode_LocalCurvy", 
-    after: [setTldOwner]
-  });
-
-  // Set OffchainResolver as resolver for "local-curvy.name"
-  m.call(ensRegistry, "setResolver", [domainNode, offchainResolver], { 
-    id: "ENS_SetResolver", 
-    after: [setDomainOwner, offchainResolver]
-  });
+  m.call(
+    registry,
+    "setSubnodeRecord",
+    [
+      nameNode,
+      labelhash("local-curvy"),
+      deployer,
+      offchain,
+      0, // TTL
+    ],
+    {
+      id: "setup_subnode_record",
+      after: [setupTld], // Ensure TLD is set before setting subdomain
+    },
+  );
 
   const addresses = JSON.parse(fs.readFileSync("../devenv/addresses.json", "utf-8"));
   for (const userAddresses of addresses) {
@@ -88,5 +85,5 @@ export default buildModule("Devenv", (m) => {
     id: `Mint_ERC20_${userAddressForAutomaticShielding}`,
   });
 
-  return { erc20Mock, multicall3, curvyVault, portalFactory, ensRegistry, offchainResolver };
+  return { erc20Mock, multicall3, curvyVault, portalFactory, universal, registry, offchain };
 });
