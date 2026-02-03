@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import { keccak256, toHex, stringToBytes, namehash } from "viem";
 import CurvyAggregatorAlphaModule from "./CurvyAggregatorAlpha";
 import PortalFactoryModule from "./PortalFactory";
 
@@ -17,6 +18,53 @@ export default buildModule("Devenv", (m) => {
   const erc20Mock = m.contract("ERC20Mock");
 
   const deployer = m.getAccount(0);
+
+  // Deploy ENS Registry
+  const ensRegistry = m.contract("LocalENSRegistry", [], { id: "ENS_Registry" });
+
+  const rootNode = "0x0000000000000000000000000000000000000000000000000000000000000000";
+  const tldLabel = "name";
+  const tldLabelHash = keccak256(toHex(stringToBytes(tldLabel)));
+  const tldNode = namehash(tldLabel); // namehash('name')
+  
+  const domainLabel = "local-curvy";
+  const domainLabelHash = keccak256(toHex(stringToBytes(domainLabel)));
+  const domainNode = namehash("local-curvy.name");
+
+  const gatewayUrl = "http://localhost:4000/gateway/testnet/{sender}/{callData}.json";
+
+  const gatewayProvider = m.contract("StaticGatewayProvider", [deployer, [gatewayUrl]], {
+    id: "ENS_GatewayProvider"
+  });
+
+  // Deploy Universal Resolver
+  m.contract("LocalUniversalResolver", [deployer, ensRegistry, gatewayProvider], {
+    id: "ENS_UniversalResolver"
+  });
+
+  // Deploy Offchain Resolver
+  const offchainResolver = m.contract("OffchainResolver", [gatewayUrl, [deployer]], {
+    id: "ENS_OffchainResolver"
+  });
+
+  // Configure ENS
+
+  // Set deployer as owner of ".name" TLD
+  const setTldOwner = m.call(ensRegistry, "setSubnodeOwner", [rootNode, tldLabelHash, deployer], { 
+    id: "ENS_SetSubnode_Name" 
+  });
+
+  // Set deployer as owner of "local-curvy.name" domain
+  const setDomainOwner = m.call(ensRegistry, "setSubnodeOwner", [tldNode, domainLabelHash, deployer], { 
+    id: "ENS_SetSubnode_LocalCurvy", 
+    after: [setTldOwner]
+  });
+
+  // Set OffchainResolver as resolver for "local-curvy.name"
+  m.call(ensRegistry, "setResolver", [domainNode, offchainResolver], { 
+    id: "ENS_SetResolver", 
+    after: [setDomainOwner, offchainResolver]
+  });
 
   const addresses = JSON.parse(fs.readFileSync("../devenv/addresses.json", "utf-8"));
   for (const userAddresses of addresses) {
@@ -40,5 +88,5 @@ export default buildModule("Devenv", (m) => {
     id: `Mint_ERC20_${userAddressForAutomaticShielding}`,
   });
 
-  return { erc20Mock, multicall3, curvyVault, portalFactory };
+  return { erc20Mock, multicall3, curvyVault, portalFactory, ensRegistry, offchainResolver };
 });
