@@ -23,6 +23,7 @@ library CurvyTypes {
         address aggregationVerifier;
         address withdrawVerifier;
         address curvyVault;
+        address portalFactory;
         uint256 maxDeposits;
         uint256 maxWithdrawals;
         uint256 maxAggregations;

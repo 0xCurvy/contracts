@@ -1,5 +1,4 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import curvyVaultModule from "./CurvyVault";
 
 export default buildModule("CurvyAggregatorAlpha", (m) => {
   const poseidonT4 = m.library("PoseidonT4");
@@ -12,11 +11,9 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
 
   const owner = m.getAccount(0);
 
-  const { curvyVault } = m.useModule(curvyVaultModule);
-
   const proxy = m.contract("ERC1967Proxy", [
     implementation,
-    m.encodeFunctionCall(implementation, "initialize", [owner, curvyVault]),
+    m.encodeFunctionCall(implementation, "initialize", [owner, "0x0000000000000000000000000000000000000000"]),
   ]);
 
   const curvyAggregatorAlphaV1 = m.contractAt(`CurvyAggregatorAlphaV1`, proxy);
@@ -36,6 +33,7 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
       withdrawVerifier,
       // Don't change what was set in constructor
       curvyVault: "0x0000000000000000000000000000000000000000",
+      portalFactory: "0x0000000000000000000000000000000000000000",
       maxDeposits,
       maxAggregations,
       maxWithdrawals,
@@ -63,11 +61,11 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
 
   m.call(curvyAggregatorAlphaV2, "upgradeToAndCall", [implementationV3, "0x"]);
 
-  const curvyAggregatorAlpha = m.contractAt("CurvyAggregatorAlphaV3", proxy);
+  const curvyAggregatorAlphaV3 = m.contractAt("CurvyAggregatorAlphaV3", proxy);
 
   const newInsertionVerifier = m.contract(`CurvyInsertionVerifierAlpha_${maxDeposits}`, [], {
     id: "NewInsertionVerifier_v2",
-    after: [curvyAggregatorAlpha]
+    after: [curvyAggregatorAlphaV3]
   });
 
   const newAggregationVerifier = m.contract(`CurvyAggregationVerifierAlpha_${maxAggregations}`, [], {
@@ -79,13 +77,13 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
     id: "NewWithdrawVerifier_v2",
     after: [newAggregationVerifier]
   });
-
-  m.call(curvyAggregatorAlpha, "updateConfig", [
+  m.call(curvyAggregatorAlphaV3, "updateConfig", [
     {
       insertionVerifier: newInsertionVerifier,
       aggregationVerifier: newAggregationVerifier,
       withdrawVerifier: newWithdrawVerifier,
       curvyVault: "0x0000000000000000000000000000000000000000",
+      portalFactory: "0x0000000000000000000000000000000000000000",
       maxDeposits: 0,
       maxAggregations: 0,
       maxWithdrawals: 0,
@@ -95,5 +93,16 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
     after: [newWithdrawVerifier]
   });
 
-  return { implementation, proxy, curvyAggregatorAlpha, curvyVault };
+  const implementationV4 = m.contract("CurvyAggregatorAlphaV4", [], {
+    id: "CurvyAggregatorAlphaV4Implementation",
+    libraries: {
+      PoseidonT4: poseidonT4,
+    },
+  });
+
+  m.call(curvyAggregatorAlphaV3, "upgradeToAndCall", [implementationV4, "0x"]);
+
+  const curvyAggregatorAlpha = m.contractAt("CurvyAggregatorAlphaV4", proxy);
+
+  return { implementation, proxy, curvyAggregatorAlpha };
 });

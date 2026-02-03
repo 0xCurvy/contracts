@@ -1,18 +1,9 @@
-import {buildModule} from "@nomicfoundation/hardhat-ignition/modules";
-import {getDeployedContractAddressOrZero, getParameter} from "./utils/deployment";
+import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
 export default buildModule("PortalFactoryModule", (m) => {
-    const owner = m.getAccount(0);
+  const owner = m.getAccount(0);
 
-    const curvyVaultProxyAddress = getDeployedContractAddressOrZero("CurvyVault#ERC1967Proxy");
-    const curvyAggregatorAlphaProxyAddress = getDeployedContractAddressOrZero("CurvyAggregatorAlpha#ERC1967Proxy");
+  const portalFactory = m.contract("PortalFactory", [owner], { id: "PortalFactory" });
 
-    const portalFactory = m.contract("PortalFactory", [owner], {id: "PortalFactory"});
-
-    // https://docs.li.fi/introduction/lifi-architecture/smart-contract-addresses
-    const lifiDiamondAddress = getParameter<string>("lifiDiamondAddress", "0x0000000000000000000000000000000000000000");
-
-    m.call(portalFactory, "updateConfig", [curvyVaultProxyAddress, curvyAggregatorAlphaProxyAddress, lifiDiamondAddress]);
-
-    return {portalFactory};
+  return { portalFactory };
 });

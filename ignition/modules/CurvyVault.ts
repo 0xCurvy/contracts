@@ -17,7 +17,13 @@ export default buildModule("CurvyVault", (m) => {
 
   m.call(curvyVaultV1, "upgradeToAndCall", [implementationV2, "0x"]);
 
-  const curvyVault = m.contractAt("CurvyVaultV2", proxy);
+  const curvyVaultV2 = m.contractAt("CurvyVaultV2", proxy);
+
+  // This version introduces the origin address checks for compliance
+  const implementationV3 = m.contract("CurvyVaultV3", [], { id: "CurvyVaultV3Implementation" });
+  m.call(curvyVaultV2, "upgradeToAndCall", [implementationV3, "0x"]);
+
+  const curvyVault = m.contractAt("CurvyVaultV3", proxy);
 
   return { implementation, proxy, curvyVault };
 });
