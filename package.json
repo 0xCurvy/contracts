@@ -7,6 +7,7 @@
     "build": "hardhat compile",
     "test": "pnpm run dev && vitest run",
     "start:hardhat": "pnpm hardhat node --network hardhat",
+    "start:anvil": "anvil -b 1 --load-state ./cache/anvil_state.json",
     "devenv": "hardhat run scripts/devenv.ts --network anvil",
 
     "deploy": "bash ./scripts/deploy.sh",
