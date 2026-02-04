@@ -10,7 +10,7 @@ function run(cmd, args) {
 (async () => {
   await run("pnpm", ["hardhat", "clean"]);
 
-  const anvil = spawn("anvil", ["-b", "1", "--dump-state", "./cache/anvil_state.json"]);
+  const anvil = spawn("anvil", ["-b", "1", "--dump-state", "./cache/anvil_state.json", "--disable-code-size-limit"]);
 
   let ready = false;
   anvil.stdout.on("data", (data) => {
