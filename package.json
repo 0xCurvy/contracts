@@ -11,7 +11,7 @@
     "devenv": "hardhat run scripts/devenv.ts --network anvil",
 
     "deploy": "bash ./scripts/deploy.sh",
-    
+
     "deploy:staging:sepolia:aggregator": "hardhat ignition deploy --deployment-id staging_ethereum-sepolia --verify --network sepolia ignition/modules/CurvyAggregatorAlpha.ts",
     "deploy:staging:sepolia:vault": "hardhat ignition deploy --deployment-id staging_ethereum-sepolia --verify --network sepolia ignition/modules/CurvyVault.ts",
     "deploy:staging:sepolia:portal-factory": "DEPLOY_ENV=staging hardhat ignition deploy --deployment-id staging_ethereum-sepolia --verify --network sepolia --strategy create2 ignition/modules/PortalFactory.ts",

@@ -2,7 +2,6 @@ import hardhatIgnitionViemPlugin from "@nomicfoundation/hardhat-ignition-viem";
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import hardhatVerifyPlugin from "@nomicfoundation/hardhat-verify";
 import { configVariable, type HardhatUserConfig } from "hardhat/config";
-import salts from "./ignition/salts.json" with { type: "json" };
 
 const config: HardhatUserConfig = {
   plugins: [hardhatToolboxViemPlugin, hardhatIgnitionViemPlugin, hardhatVerifyPlugin],
@@ -11,6 +10,9 @@ const config: HardhatUserConfig = {
     profiles: {
       default: {
         version: "0.8.28",
+      },
+      createx: {
+        version: "0.8.23",
       },
       production: {
         version: "0.8.28",
@@ -93,13 +95,6 @@ const config: HardhatUserConfig = {
       type: "http",
       url: configVariable("GNOSIS_RPC_URL"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
-    },
-  },
-  ignition: {
-    strategyConfig: {
-      create2: {
-        salt: salts[process.env.DEPLOY_ENV as keyof typeof salts],
-      },
     },
   },
   verify: {
