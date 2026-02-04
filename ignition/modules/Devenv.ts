@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import { labelhash, namehash } from "viem";
 import DeploymentModule from "./Deployment";
 
 const DEPOSIT_AMOUNT = 1000n * 10n ** 18n;
@@ -15,6 +16,50 @@ export default buildModule("Devenv", (m) => {
   const erc20Mock = m.contract("ERC20Mock");
 
   const deployer = m.getAccount(0);
+
+  // ENS Setup
+  const GATEWAY_URL = "http://localhost:4000/gateway/testnet/{sender}/{data}.json";
+  const ROOT_NODE = "0x0000000000000000000000000000000000000000000000000000000000000000";
+  // Deploy Registry
+  const registry = m.contract("LocalENSRegistry");
+
+  // Deploy SimpleOffchainResolver
+  // Arguments: [url, signer_address]
+  const offchain = m.contract("SimpleOffchainResolver", [GATEWAY_URL, deployer]);
+
+  // Deploy Universal Resolver
+  // Arguments: [registry_address, wildcard_node_hash]
+  const localCurvyNode = namehash("local-curvy.name");
+
+  const universal = m.contract("LocalUniversalResolver", [registry, localCurvyNode], {
+    id: "LocalUniversalResolver",
+  });
+
+  // Configure TLD: .name
+  // registry.setSubnodeOwner(ROOT_NODE, labelhash("name"), deployer)
+  const setupTld = m.call(registry, "setSubnodeOwner", [ROOT_NODE, labelhash("name"), deployer], {
+    id: "setup_tld",
+  });
+
+  // Configure Domain: local-curvy.name
+  // registry.setSubnodeRecord(nameNode, labelhash("local-curvy"), deployer, offchainAddress, ttl)
+  const nameNode = namehash("name");
+
+  m.call(
+    registry,
+    "setSubnodeRecord",
+    [
+      nameNode,
+      labelhash("local-curvy"),
+      deployer,
+      offchain,
+      0, // TTL
+    ],
+    {
+      id: "setup_subnode_record",
+      after: [setupTld], // Ensure TLD is set before setting subdomain
+    },
+  );
 
   const addresses = JSON.parse(fs.readFileSync("../devenv/addresses.json", "utf-8"));
   for (const userAddresses of addresses) {
@@ -38,5 +83,5 @@ export default buildModule("Devenv", (m) => {
     id: `Mint_ERC20_${userAddressForAutomaticShielding}`,
   });
 
-  return { erc20Mock, multicall3, curvyVault, portalFactory };
+  return { erc20Mock, multicall3, curvyVault, portalFactory, universal, registry, offchain };
 });
