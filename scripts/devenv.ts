@@ -52,7 +52,7 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
           "ignition",
           "deploy",
           "--deployment-id",
-          "staging_anvil",
+          "local_anvil",
           "--network",
           "anvil",
           "./ignition/modules/Devenv.ts",

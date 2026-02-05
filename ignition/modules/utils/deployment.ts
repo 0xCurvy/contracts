@@ -23,7 +23,7 @@ export function getEnvironmentAndChainName(): { environment: string; chainName: 
     throw new Error("Invalid deployment id format. Expected format: 'environment_chainName'");
   }
 
-  if (environment !== "staging" && environment !== "production") {
+  if (environment !== "local" && environment !== "staging" && environment !== "production") {
     throw new Error(`Invalid environment '${environment}'. Expected 'staging' or 'production'`);
   }
 

@@ -1,10 +1,10 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { encodeDeployData, keccak256 } from "viem";
 import artifact from "../../artifacts/contracts/portal/PortalFactory.sol/PortalFactory.json";
-import { getEnvironmentParameter, getNetworkParameter } from "./utils/deployment";
+import { getEnvironmentParameter } from "./utils/deployment";
 
 export default buildModule("PortalFactory", (m) => {
-  const ownerAddress = getNetworkParameter<`0x{string}`>("owner");
+  const ownerAddress = getEnvironmentParameter<`0x{string}`>("owner");
 
   const CREATEX_ADDRESS = "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed";
   const createX = m.contractAt("ICreateX", CREATEX_ADDRESS, { id: "CreateX" });

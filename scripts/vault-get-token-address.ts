@@ -3,7 +3,7 @@ import { network } from "hardhat";
 
 const { viem } = await network.connect({ network: "anvil" });
 
-const deployedAddressesPath = "./ignition/deployments/staging_anvil/deployed_addresses.json";
+const deployedAddressesPath = "./ignition/deployments/local_anvil/deployed_addresses.json";
 const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
 
 const vaultAddress = deployedAddresses["CurvyVault#CurvyVaultV1"];
