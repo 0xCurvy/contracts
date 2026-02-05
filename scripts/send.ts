@@ -7,7 +7,7 @@ const [walletClient] = await viem.getWalletClients();
 const publicClient = await viem.getPublicClient();
 
 const hash = await walletClient.sendTransaction({
-  to: "0x71574e2f689e5155bbb0339c4563e27dd01da512",
+  to: "0x2e6748c0a0125e78543f2a052a26d742cc453a04",
   value: parseEther("1"),
 });
 
