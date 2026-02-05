@@ -52,15 +52,16 @@ contract CurvyAggregatorAlphaV4 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
     // Curvy's vault contract
     ICurvyVault public curvyVault;
 
-    // Curvy's portal factory contract;
-    IPortalFactory public portalFactory;
-
     //Curvy's insertion verifier.
     ICurvyInsertionVerifier public insertionVerifier;
     //Curvy's aggregation verifier.
     ICurvyAggregationVerifier public aggregationVerifier;
     //Curvy's withdraw verifier.
     ICurvyWithdrawVerifier public withdrawVerifier;
+
+    // Curvy's portal factory contract;
+    IPortalFactory public portalFactory;
+
 
     //#endregion
 
