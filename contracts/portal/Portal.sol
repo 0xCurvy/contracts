@@ -47,7 +47,8 @@ contract Portal is IPortal, SingleUse {
         try curvyVault.getTokenAddress(note.token) returns (address _tokenAddress) {
             tokenAddress = _tokenAddress;
         } catch {
-            return;
+            // TODO: Emit shielding failed and if that event is detected in the simulation, then we will mark the shielding as failed.
+            return; // Here we just do a return because we want the deployment to pass so that the user can call the recover method.
         }
         if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
             IERC20(tokenAddress).forceApprove(address(curvyAggregator), note.amount);

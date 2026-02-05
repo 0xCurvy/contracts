@@ -78,9 +78,9 @@ contract PortalFactory is Ownable {
             revert("PortalFactory: Deployment failed");
         }
 
-        IPortal(portalAddress).shield(note, _curvyAggregatorAlphaProxyAddress, _curvyVaultProxyAddress);
-
         _registeredPortals[portalAddress] = true;
+
+        IPortal(portalAddress).shield(note, _curvyAggregatorAlphaProxyAddress, _curvyVaultProxyAddress);
     }
 
     function deployAndBridge(

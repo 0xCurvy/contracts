@@ -29,8 +29,6 @@ contract CurvyVaultV3 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
 
     //#region State variables
 
-    address private _curvyAggregator;
-
     mapping(address => mapping(uint256 => uint256)) private _balances;
     mapping(address => uint256) internal _nonces;
 
@@ -44,6 +42,8 @@ contract CurvyVaultV3 is ICurvyVault, Initializable, EIP712Upgradeable, UUPSUpgr
     uint96 public depositFee;
     uint96 public transferFee;
     uint96 public withdrawalFee;
+
+    address private _curvyAggregator;
 
     //#endregion
 

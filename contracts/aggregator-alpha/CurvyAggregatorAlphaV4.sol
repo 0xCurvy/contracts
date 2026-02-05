@@ -121,7 +121,7 @@ contract CurvyAggregatorAlphaV4 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
 
     function autoShield(CurvyTypes.Note memory note, address tokenAddress) external payable {
         // Only allow auto shielding of portals that were deployed through the portalFactory
-        require(portalFactory.portalIsRegistered(msg.sender));
+        require(portalFactory.portalIsRegistered(msg.sender), "CurvyAggregator: portal is not registered");
 
         if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
             IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), note.amount);
