@@ -2,6 +2,7 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import CurvyAggregatorAlpha from "./CurvyAggregatorAlpha";
 import CurvyVault from "./CurvyVault";
 import PortalFactory from "./PortalFactory";
+import { getNetworkParameter } from "./utils/deployment";
 
 export default buildModule("DeploymentModule", (m) => {
   const { curvyAggregatorAlpha } = m.useModule(CurvyAggregatorAlpha);
@@ -21,6 +22,14 @@ export default buildModule("DeploymentModule", (m) => {
       maxWithdrawals: BigInt(0),
     },
   ]);
+
+  const lifiDiamondAddress = getNetworkParameter<`0x{string}`>("lifiDiamondAddress");
+
+  if (!lifiDiamondAddress) {
+    throw new Error("Missing lifiDiamondAddress network parameter");
+  }
+
+  m.call(portalFactory, "updateConfig", [curvyVault, curvyAggregatorAlpha, lifiDiamondAddress]);
 
   return { curvyAggregatorAlpha, curvyVault, portalFactory };
 });
