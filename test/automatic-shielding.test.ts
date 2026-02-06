@@ -2,6 +2,7 @@ import fs from "node:fs";
 import { network } from "hardhat";
 import { privateKeyToAccount } from "viem/accounts";
 import { expect, test } from "vitest";
+import type { HexString } from "@0xcurvy/curvy-sdk";
 
 // import PortalFactoryModule from "../ignition/modules/AutomaticShielding";
 
@@ -65,7 +66,7 @@ test("automatic-shielding", async () => {
 
   const { request } = await publicClient.simulateContract({
     account: user,
-    address: tokenAddress,
+    address: tokenAddress as HexString,
     abi: [
       {
         inputs: [
@@ -116,7 +117,7 @@ test("automatic-shielding", async () => {
 
   // check balances after deposit
 
-  const depositFee = await curvyVault.read.depositFee();
+  const depositFee = await curvyVault.read.depositFee() as bigint;
   const expectedAmountMinusFees = amount - (amount * depositFee) / 10000n;
 
   const vaultErc20MockBalanceOfAggregator = await curvyVault.read.balanceOf([
