@@ -10,6 +10,7 @@ interface ICurvyVault {
     event TokenRegistration(address token_address, uint256 token_id);
     event NonceChange(address indexed signer, uint256 newNonce);
     event FeeChange(CurvyTypes.MetaTransactionType metaTransactionType, uint96 fee);
+    event CurvyAggregatorAddressChange(address curvyAggregator);
 
     //#endregion
 

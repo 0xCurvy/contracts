@@ -2,7 +2,6 @@ import hardhatIgnitionViemPlugin from "@nomicfoundation/hardhat-ignition-viem";
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import hardhatVerifyPlugin from "@nomicfoundation/hardhat-verify";
 import { configVariable, type HardhatUserConfig } from "hardhat/config";
-import salts from "./ignition/salts.json" with { type: "json" };
 
 const config: HardhatUserConfig = {
   plugins: [hardhatToolboxViemPlugin, hardhatIgnitionViemPlugin, hardhatVerifyPlugin],
@@ -11,6 +10,9 @@ const config: HardhatUserConfig = {
     profiles: {
       default: {
         version: "0.8.28",
+      },
+      createx: {
+        version: "0.8.23",
       },
       production: {
         version: "0.8.28",
@@ -51,55 +53,48 @@ const config: HardhatUserConfig = {
     sepolia: {
       type: "http",
       chainType: "l1",
-      url: configVariable("SEPOLIA_RPC_URL"),
+      url: configVariable("ALCHEMY_API_KEY", "https://eth-sepolia.g.alchemy.com/v2/{variable}"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
     },
     arbitrum: {
       type: "http",
-      url: configVariable("ARBITRUM_RPC_URL"),
+      url: configVariable("ALCHEMY_API_KEY", "https://arb-mainnet.g.alchemy.com/v2/{variable}"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
     },
     ethereum: {
       type: "http",
-      url: configVariable("ETHEREUM_RPC_URL"),
+      url: configVariable("ALCHEMY_API_KEY", "https://eth-mainnet.g.alchemy.com/v2/{variable}"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
     },
     base: {
       type: "http",
-      url: configVariable("BASE_RPC_URL"),
+      url: configVariable("ALCHEMY_API_KEY", "https://base-mainnet.g.alchemy.com/v2/{variable}"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
     },
     optimism: {
       type: "http",
-      url: configVariable("OPTIMISM_RPC_URL"),
+      url: configVariable("ALCHEMY_API_KEY", "https://opt-mainnet.g.alchemy.com/v2/{variable}"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
     },
     polygon: {
       type: "http",
-      url: configVariable("POLYGON_RPC_URL"),
+      url: configVariable("ALCHEMY_API_KEY", "https://polygon-mainnet.g.alchemy.com/v2/{variable}"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
     },
     bsc: {
       type: "http",
-      url: configVariable("BSC_RPC_URL"),
+      url: configVariable("ALCHEMY_API_KEY", "https://bnb-mainnet.g.alchemy.com/v2/{variable}"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
     },
     linea: {
       type: "http",
-      url: configVariable("LINEA_RPC_URL"),
+      url: configVariable("ALCHEMY_API_KEY", "https://linea-mainnet.g.alchemy.com/v2/{variable}"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
     },
     gnosis: {
       type: "http",
-      url: configVariable("GNOSIS_RPC_URL"),
+      url: configVariable("ALCHEMY_API_KEY", "https://gnosis-mainnet.g.alchemy.com/v2/{variable}"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
-    },
-  },
-  ignition: {
-    strategyConfig: {
-      create2: {
-        salt: salts[process.env.DEPLOY_ENV as keyof typeof salts],
-      },
     },
   },
   verify: {
