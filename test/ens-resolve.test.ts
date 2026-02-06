@@ -7,16 +7,17 @@ const client = createPublicClient({
     ...anvil,
     contracts: {
       ensRegistry: { address: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853" },
-      ensUniversalResolver: { address: "0x68B1D87F95878fE05B998F19b66F4baba5De1aed" },
+      ensUniversalResolver: { address: "0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE" },
     },
   },
   transport: http(),
 });
 
 test("ens-resolve", async () => {
-  // This function internally handles the OffchainLookup revert and calls your backend
   const address = await client.getEnsAddress({
     name: "devenv1.local-curvy.name",
+    coinType: 9004n,
+    // coinType:toCoinType(42161)
   });
 
   console.log(`Resolved address from offchain backend: ${address}`);
