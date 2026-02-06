@@ -9,9 +9,7 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
 }
 
 async function main() {
-  const networks = [
-    /*"sepolia",  "arbitrum", "ethereum", "base", "optimism", "polygon", "bsc",*/ "gnosis" /* "linea"*/,
-  ];
+  const networks = ["sepolia", "arbitrum", "ethereum", "base", "optimism", "polygon", "bsc", "gnosis", "linea"];
   const environment = "staging";
 
   for (const networkName of networks) {
