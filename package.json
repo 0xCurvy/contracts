@@ -52,7 +52,7 @@
     "hardhat": "^3.0.6",
     "rimraf": "^6.0.1",
     "typescript": "~5.8.3",
-    "viem": "^2.36.0"
+    "viem": "^2.43.5"
   },
   "dependencies": {
     "@0xcurvy/curvy-sdk": "workspace:*",

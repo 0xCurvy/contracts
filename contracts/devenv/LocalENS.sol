@@ -57,7 +57,7 @@ contract LocalUniversalResolver {
             }
         }
 
-        return (abi.decode(result, (bytes)), resolverAddr);
+        return (result, resolverAddr);
     }
 
     function resolveCallback(bytes calldata response, bytes calldata extraData) external view returns (bytes memory) {
