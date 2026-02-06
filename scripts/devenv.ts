@@ -31,7 +31,7 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
       });
 
       const publicClient = await connection.viem.getPublicClient();
-      const sendReceipt = await publicClient.waitForTransactionReceipt({ hash: sendHash });
+      const sendReceipt = await publicClient.waitForTransactionReceipt({ hash: sendHash, confirmations: 5 });
 
       console.log(`Send tx finalized: ${sendReceipt.transactionHash}`);
 
