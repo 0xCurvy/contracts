@@ -14,6 +14,9 @@ contract PortalFactory is Ownable {
     address private _curvyAggregatorAlphaProxyAddress;
     address private _lifiDiamondAddress;
 
+    // Portals checked for compliance and deployed
+    mapping(address => bool) private _registeredPortals;
+
     constructor(address initialOwner) Ownable(initialOwner) {}
 
     function updateConfig(
@@ -48,6 +51,10 @@ contract PortalFactory is Ownable {
         return address(uint160(uint256(hash)));
     }
 
+    function portalIsRegistered(address portalAddress) public view returns (bool) {
+        return _registeredPortals[portalAddress];
+    }
+
     function deployAndShield(CurvyTypes.Note memory note, address recovery) public payable {
         if (_curvyVaultProxyAddress == address(0) || _curvyAggregatorAlphaProxyAddress == address(0)) {
             revert("PortalFactory: Shielding not supported on this chain");
@@ -70,6 +77,8 @@ contract PortalFactory is Ownable {
         if (portalAddress == address(0)) {
             revert("PortalFactory: Deployment failed");
         }
+
+        _registeredPortals[portalAddress] = true;
 
         IPortal(portalAddress).shield(note, _curvyAggregatorAlphaProxyAddress, _curvyVaultProxyAddress);
     }
