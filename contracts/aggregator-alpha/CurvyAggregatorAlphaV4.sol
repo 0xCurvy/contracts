@@ -82,7 +82,7 @@ contract CurvyAggregatorAlphaV4 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
 
     //#region Owner functions
 
-    function updateConfig(CurvyTypes.AggregatorConfigurationUpdate memory _update) external onlyOwner returns (bool) {
+    function updateConfig(CurvyTypes.AggregatorConfigurationUpdateV2 memory _update) external onlyOwner returns (bool) {
         if (_update.insertionVerifier != address(0)) {
             insertionVerifier = ICurvyInsertionVerifier(_update.insertionVerifier);
         }

@@ -33,7 +33,6 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
       withdrawVerifier,
       // Don't change what was set in constructor
       curvyVault: "0x0000000000000000000000000000000000000000",
-      portalFactory: "0x0000000000000000000000000000000000000000",
       maxDeposits,
       maxAggregations,
       maxWithdrawals,
@@ -65,44 +64,50 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
 
   const newInsertionVerifier = m.contract(`CurvyInsertionVerifierAlpha_${maxDeposits}`, [], {
     id: "NewInsertionVerifier_v2",
-    after: [curvyAggregatorAlphaV3]
+    after: [curvyAggregatorAlphaV3],
   });
 
   const newAggregationVerifier = m.contract(`CurvyAggregationVerifierAlpha_${maxAggregations}`, [], {
     id: "NewAggregationVerifier_v2",
-    after: [newInsertionVerifier]
+    after: [newInsertionVerifier],
   });
 
   const newWithdrawVerifier = m.contract(`CurvyWithdrawVerifierAlpha_${maxWithdrawals}`, [], {
     id: "NewWithdrawVerifier_v2",
-    after: [newAggregationVerifier]
+    after: [newAggregationVerifier],
   });
-  m.call(curvyAggregatorAlphaV3, "updateConfig", [
+
+  const updateNewVerifiers = m.call(
+    curvyAggregatorAlphaV3,
+    "updateConfig",
+    [
+      {
+        insertionVerifier: newInsertionVerifier,
+        aggregationVerifier: newAggregationVerifier,
+        withdrawVerifier: newWithdrawVerifier,
+        curvyVault: "0x0000000000000000000000000000000000000000",
+        maxDeposits: 0,
+        maxAggregations: 0,
+        maxWithdrawals: 0,
+      },
+    ],
     {
-      insertionVerifier: newInsertionVerifier,
-      aggregationVerifier: newAggregationVerifier,
-      withdrawVerifier: newWithdrawVerifier,
-      curvyVault: "0x0000000000000000000000000000000000000000",
-      portalFactory: "0x0000000000000000000000000000000000000000",
-      maxDeposits: 0,
-      maxAggregations: 0,
-      maxWithdrawals: 0,
+      id: "UpdateConfig_WithNewVerifiers",
+      after: [newWithdrawVerifier],
     },
-  ], {
-    id: "UpdateConfig_WithNewVerifiers",
-    after: [newWithdrawVerifier]
-  });
+  );
 
   const implementationV4 = m.contract("CurvyAggregatorAlphaV4", [], {
     id: "CurvyAggregatorAlphaV4Implementation",
     libraries: {
       PoseidonT4: poseidonT4,
     },
+    after: [updateNewVerifiers],
   });
 
   m.call(curvyAggregatorAlphaV3, "upgradeToAndCall", [implementationV4, "0x"]);
 
   const curvyAggregatorAlpha = m.contractAt("CurvyAggregatorAlphaV4", proxy);
 
-  return { implementation, proxy, curvyAggregatorAlpha };
+  return { implementation: implementationV4, proxy, curvyAggregatorAlpha };
 });

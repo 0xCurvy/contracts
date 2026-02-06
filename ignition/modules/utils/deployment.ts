@@ -2,7 +2,14 @@ import fs from "node:fs";
 import path from "node:path";
 import hre from "hardhat";
 
-export function getEnvironmentAndChainName(): { environment: string; chainName: string } {
+export function getEnvironmentAndNetworkName(): { environment: string; networkName: string } {
+  if (process.env.CURVY_NETWORK && process.env.CURVY_ENVIRONMENT) {
+    return {
+      environment: process.env.CURVY_ENVIRONMENT,
+      networkName: process.env.CURVY_NETWORK,
+    };
+  }
+
   let deploymentId: string | undefined;
 
   for (let i = 0; i < process.argv.length; i++) {
@@ -17,9 +24,9 @@ export function getEnvironmentAndChainName(): { environment: string; chainName: 
   }
 
   const environment = deploymentId.split("_")[0]; // Extract environment from deploymentId
-  const chainName = deploymentId.split("_")[1]; // Extract chainName from deploymentId
+  const networkName = deploymentId.split("_")[1]; // Extract chainName from deploymentId
 
-  if (!environment || !chainName) {
+  if (!environment || !networkName) {
     throw new Error("Invalid deployment id format. Expected format: 'environment_chainName'");
   }
 
@@ -27,12 +34,12 @@ export function getEnvironmentAndChainName(): { environment: string; chainName: 
     throw new Error(`Invalid environment '${environment}'. Expected 'staging' or 'production'`);
   }
 
-  return { environment, chainName };
+  return { environment, networkName };
 }
 
 export function getDeployedContractAddressOrZero(contractName: string): string {
-  const { environment, chainName } = getEnvironmentAndChainName();
-  const deploymentId = `${environment}_${chainName}`;
+  const { environment, networkName } = getEnvironmentAndNetworkName();
+  const deploymentId = `${environment}_${networkName}`;
 
   const filePath = path.resolve(process.cwd(), "ignition", "deployments", deploymentId, "deployed_addresses.json");
 
@@ -59,29 +66,29 @@ export async function assertCurrentNetwork(networkName: string): Promise<void> {
   }
 }
 
-function getNetworkParameter<T>(parameterName: string): T | null;
-function getNetworkParameter<T>(parameterName: string, defaultValue: T): T;
-function getNetworkParameter<T>(parameterName: string, defaultValue?: T): T | null {
-  const { chainName } = getEnvironmentAndChainName();
+function getNetworkParameter<T>(parameterName: string, networkName?: string): T {
+  if (!networkName) {
+    networkName = getEnvironmentAndNetworkName().networkName;
+  }
 
   const parameters = readParameters("network-parameters.json");
 
-  if (!parameters[chainName] || !parameters[chainName][parameterName]) {
-    return defaultValue ?? null;
+  if (parameters[networkName] === undefined || parameters[networkName][parameterName] === undefined) {
+    throw new Error(`Parameter ${parameterName} not found for network ${networkName}`);
   }
 
-  return parameters[chainName][parameterName];
+  return parameters[networkName][parameterName];
 }
 
-function getEnvironmentParameter<T>(parameterName: string): T | null;
-function getEnvironmentParameter<T>(parameterName: string, defaultValue: T): T;
-function getEnvironmentParameter<T>(parameterName: string, defaultValue?: T): T | null {
-  const { environment } = getEnvironmentAndChainName();
+function getEnvironmentParameter<T>(parameterName: string, environment?: string): T {
+  if (!environment) {
+    environment = getEnvironmentAndNetworkName().environment;
+  }
 
   const parameters = readParameters("environment-parameters.json");
 
-  if (!parameters[environment] || !parameters[environment][parameterName]) {
-    return defaultValue ?? null;
+  if (parameters[environment] === undefined || !parameters[environment][parameterName] === undefined) {
+    throw new Error(`Parameter ${parameterName} not found for environment ${environment}`);
   }
 
   return parameters[environment][parameterName];

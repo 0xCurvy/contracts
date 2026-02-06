@@ -1,26 +1,42 @@
 {
+  "sepolia": {
+    "mainDeployment":  true,
+    "lifiDiamondAddress": "0x0000000000000000000000000000000000000000"
+  },
+  "arbitrum": {
+    "mainDeployment": true,
+    "lifiDiamondAddress": "0x0000000000000000000000000000000000000000"
+  },
   "ethereum": {
-    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE"
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
+    "mainDeployment": false
   },
   "base": {
-    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE"
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
+    "mainDeployment": false
   },
   "optimism": {
-    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE"
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
+    "mainDeployment": false
   },
   "polygon": {
-    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE"
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
+    "mainDeployment": false
   },
   "bsc": {
-    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE"
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
+    "mainDeployment": false
   },
   "gnosis": {
-    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE"
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
+    "mainDeployment": false
   },
   "linea": {
-    "lifiDiamondAddress": "0xde1e598b81620773454588b85d6b5d4eec32573e"
+    "lifiDiamondAddress": "0xde1e598b81620773454588b85d6b5d4eec32573e",
+    "mainDeployment": false
   },
   "anvil": {
-    "lifiDiamondAddress": "0x0000000000000000000000000000000000000000"
+    "lifiDiamondAddress": "0x0000000000000000000000000000000000000000",
+    "mainDeployment": true
   }
 }

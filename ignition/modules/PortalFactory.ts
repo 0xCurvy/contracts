@@ -1,5 +1,5 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import { encodeDeployData, keccak256 } from "viem";
+import { encodeDeployData } from "viem";
 import artifact from "../../artifacts/contracts/portal/PortalFactory.sol/PortalFactory.json";
 import { getEnvironmentParameter } from "./utils/deployment";
 
@@ -19,8 +19,6 @@ export default buildModule("PortalFactory", (m) => {
   if (!create2Salt) {
     throw new Error("Missing create2_salt environment variable");
   }
-
-  const initCodeHash = keccak256(initCode);
 
   const deployCall = m.call(createX, "deployCreate2(bytes32,bytes)", [create2Salt, initCode], {
     id: "CreateX_PortalFactory_Deploy",

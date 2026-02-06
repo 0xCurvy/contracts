@@ -25,5 +25,5 @@ export default buildModule("CurvyVault", (m) => {
 
   const curvyVault = m.contractAt("CurvyVaultV3", proxy);
 
-  return { implementation, proxy, curvyVault };
+  return { implementation: implementationV3, proxy, curvyVault };
 });
