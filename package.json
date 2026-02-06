@@ -5,13 +5,14 @@
   "scripts": {
     "clean": "pnpm hardhat clean && rimraf artifacts cache .turbo",
     "build": "hardhat compile",
+    "extract-abis": "hardhat run scripts/extract-abis.ts",
     "test": "pnpm run dev && vitest run",
     "start:hardhat": "pnpm hardhat node --network hardhat",
     "start:anvil": "anvil -b 1 --load-state ./cache/anvil_state.json",
-    "deploy:anvil": "node ./scripts/deploy-and-dump.js",
-
+    "deploy:local": "hardhat run scripts/devenv.ts --network anvil",
+    "deploy:staging": "...",
+    "deploy:production": "...",
     "deploy": "bash ./scripts/deploy.sh",
-    
     "deploy:staging:sepolia:aggregator": "hardhat ignition deploy --deployment-id staging_ethereum-sepolia --verify --network sepolia ignition/modules/CurvyAggregatorAlpha.ts",
     "deploy:staging:sepolia:vault": "hardhat ignition deploy --deployment-id staging_ethereum-sepolia --verify --network sepolia ignition/modules/CurvyVault.ts",
     "deploy:staging:sepolia:portal-factory": "DEPLOY_ENV=staging hardhat ignition deploy --deployment-id staging_ethereum-sepolia --verify --network sepolia --strategy create2 ignition/modules/PortalFactory.ts",
@@ -44,12 +45,14 @@
     "@nomicfoundation/hardhat-ignition": "^3.0.3",
     "@nomicfoundation/hardhat-network-helpers": "^3.0.2",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
+    "@types/glob": "^9.0.0",
     "@types/node": "^22.18.0",
     "forge-std": "github:foundry-rs/forge-std#v1.9.4",
+    "glob": "^13.0.1",
     "hardhat": "^3.0.6",
     "rimraf": "^6.0.1",
     "typescript": "~5.8.3",
-    "viem": "^2.36.0"
+    "viem": "^2.43.5"
   },
   "dependencies": {
     "@0xcurvy/curvy-sdk": "workspace:*",

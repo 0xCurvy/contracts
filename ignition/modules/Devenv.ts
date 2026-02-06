@@ -1,30 +1,21 @@
 import fs from "node:fs";
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { labelhash, namehash } from "viem";
-import CurvyAggregatorAlphaModule from "./CurvyAggregatorAlpha";
+import MainDeployment from "./MainDeployment";
 
 const DEPOSIT_AMOUNT = 1000n * 10n ** 18n;
 
 export default buildModule("Devenv", (m) => {
-  const deployer = m.getAccount(0);
-
   // Deploy aggregator, vault and portal factory
-  const { curvyVault, curvyAggregatorAlpha } = m.useModule(CurvyAggregatorAlphaModule);
-
-  const portalFactory = m.contract("PortalFactory", [deployer], { id: "PortalFactory", after: [curvyVault] });
-
-  m.call(
-    portalFactory,
-    "updateConfig",
-    [curvyVault.address, curvyAggregatorAlpha.address, "0x0000000000000000000000000000000000000000"],
-    { after: [portalFactory] },
-  );
+  const { curvyVault, portalFactory } = m.useModule(MainDeployment);
 
   // Deploy multicall
   const multicall3 = m.contract("Multicall3");
 
   // Deploy mock erc20
   const erc20Mock = m.contract("ERC20Mock");
+
+  const deployer = m.getAccount(0);
 
   // ENS Setup
   const GATEWAY_URL = "http://localhost:4000/gateway/testnet/{sender}/{data}.json";

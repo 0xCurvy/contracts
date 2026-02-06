@@ -28,6 +28,17 @@ library CurvyTypes {
         uint256 maxAggregations;
     }
 
+    struct AggregatorConfigurationUpdateV2 {
+        address insertionVerifier;
+        address aggregationVerifier;
+        address withdrawVerifier;
+        address curvyVault;
+        address portalFactory;
+        uint256 maxDeposits;
+        uint256 maxWithdrawals;
+        uint256 maxAggregations;
+    }
+
     struct Note {
         uint256 ownerHash;
         uint256 token;

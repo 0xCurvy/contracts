@@ -1,18 +1,36 @@
-import {buildModule} from "@nomicfoundation/hardhat-ignition/modules";
-import {getDeployedContractAddressOrZero, getParameter} from "./utils/deployment";
+import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import { encodeDeployData } from "viem";
+import artifact from "../../artifacts/contracts/portal/PortalFactory.sol/PortalFactory.json";
+import { getEnvironmentParameter } from "./utils/deployment";
 
-export default buildModule("PortalFactoryModule", (m) => {
-    const owner = m.getAccount(0);
+export default buildModule("PortalFactory", (m) => {
+  const ownerAddress = getEnvironmentParameter<`0x{string}`>("owner");
 
-    const curvyVaultProxyAddress = getDeployedContractAddressOrZero("CurvyVault#ERC1967Proxy");
-    const curvyAggregatorAlphaProxyAddress = getDeployedContractAddressOrZero("CurvyAggregatorAlpha#ERC1967Proxy");
+  const CREATEX_ADDRESS = "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed";
+  const createX = m.contractAt("ICreateX", CREATEX_ADDRESS, { id: "CreateX" });
 
-    const portalFactory = m.contract("PortalFactory", [owner], {id: "PortalFactory"});
+  const initCode = encodeDeployData({
+    abi: artifact.abi,
+    bytecode: artifact.bytecode as `0x${string}`,
+    args: [ownerAddress as `0x${string}`],
+  });
 
-    // https://docs.li.fi/introduction/lifi-architecture/smart-contract-addresses
-    const lifiDiamondAddress = getParameter<string>("lifiDiamondAddress", "0x0000000000000000000000000000000000000000");
+  const create2Salt = getEnvironmentParameter<`0x{string}`>("create2_salt");
+  if (!create2Salt) {
+    throw new Error("Missing create2_salt environment variable");
+  }
 
-    m.call(portalFactory, "updateConfig", [curvyVaultProxyAddress, curvyAggregatorAlphaProxyAddress, lifiDiamondAddress]);
+  const deployCall = m.call(createX, "deployCreate2(bytes32,bytes)", [create2Salt, initCode], {
+    id: "CreateX_PortalFactory_Deploy",
+  });
 
-    return {portalFactory};
+  const deployedAddress = m.readEventArgument(deployCall, "ContractCreation(address,bytes32)", "newContract", {
+    emitter: createX,
+  });
+
+  const portalFactory = m.contractAt("PortalFactory", deployedAddress, {
+    after: [deployCall],
+  });
+
+  return { portalFactory };
 });
