@@ -11,7 +11,7 @@
     "start:anvil": "anvil -b 1 --load-state ./cache/anvil_state.json",
     "deploy:local": "hardhat run scripts/devenv.ts --network anvil",
     "deploy:staging": "ENVIRONMENT=staging hardhat run scripts/deploy.ts",
-    "deploy:production": "ENVIRONMENT=production hardhat run scripts/deploy.ts",
+    "deploy:production": "ENVIRONMENT=production hardhat run scripts/deploy.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.0.3",
