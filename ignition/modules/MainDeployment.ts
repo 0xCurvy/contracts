@@ -2,14 +2,20 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import CurvyAggregatorAlpha from "./CurvyAggregatorAlpha";
 import CurvyVault from "./CurvyVault";
 import PortalFactory from "./PortalFactory";
+import TokenBridge from "./TokenBridge";
 import { getNetworkParameter } from "./utils/deployment";
 
 export default buildModule("MainDeploymentModule", (m) => {
+  // Deploy the contracts
   const { curvyAggregatorAlpha } = m.useModule(CurvyAggregatorAlpha);
   const { curvyVault } = m.useModule(CurvyVault);
   const { portalFactory } = m.useModule(PortalFactory);
+  const { tokenBridge } = m.useModule(TokenBridge);
 
+  // Connect Vault to Aggregator
   m.call(curvyVault, "setCurvyAggregatorAddress", [curvyAggregatorAlpha]);
+
+  // Connect Aggregator to Vault
   m.call(curvyAggregatorAlpha, "updateConfig", [
     {
       insertionVerifier: "0x0000000000000000000000000000000000000000",
@@ -23,13 +29,30 @@ export default buildModule("MainDeploymentModule", (m) => {
     },
   ]);
 
+  // Connect PortalFactory to LifiDiamond, Aggregator and Vault
   const lifiDiamondAddress = getNetworkParameter<`0x{string}`>("lifiDiamondAddress");
-
-  if (!lifiDiamondAddress) {
-    throw new Error("Missing lifiDiamondAddress network parameter");
-  }
 
   m.call(portalFactory, "updateConfig", [curvyVault, curvyAggregatorAlpha, lifiDiamondAddress]);
 
-  return { curvyAggregatorAlpha, curvyVault, portalFactory };
+  // Register tokens in vault
+
+  let previousRegistration: any;
+
+  const erc20Addresses = getNetworkParameter<string[]>("erc20Addresses");
+
+  for (let i = 0; i < erc20Addresses.length; i++) {
+    const address = erc20Addresses[i];
+
+    const after = [];
+    if (previousRegistration) {
+      after.push(previousRegistration);
+    }
+
+    previousRegistration = m.call(curvyVault, "registerToken", [address], {
+      id: `RegisterVaultToken_${i}`,
+      after,
+    });
+  }
+
+  return { curvyAggregatorAlpha, curvyVault, portalFactory, tokenBridge };
 });

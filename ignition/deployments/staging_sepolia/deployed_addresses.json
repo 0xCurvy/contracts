@@ -23,5 +23,6 @@
   "CurvyAggregatorAlpha#NewInsertionVerifier_v2": "0xd40E27D59763DC8B5727A2D09073427E8064095D",
   "CurvyAggregatorAlpha#NewAggregationVerifier_v2": "0xa4d33955253d18411f30EddB5d28171722415C85",
   "CurvyAggregatorAlpha#NewWithdrawVerifier_v2": "0xa573d954f7db86b08Bd6aeDAa3eB24375Ea508bd",
-  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV4Implementation": "0x76c53EB316dFb2ae31E880cdc613970A66748C9f"
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV4Implementation": "0x76c53EB316dFb2ae31E880cdc613970A66748C9f",
+  "TokenBridgeModule#TokenBridge": "0xD6e2B1A78656327a0B63dDBB813effaefc2F89C7"
 }
