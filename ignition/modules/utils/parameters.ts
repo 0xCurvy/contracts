@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import hre from "hardhat";
 
 export function getEnvironmentAndNetworkName(): { environment: string; networkName: string } {
   if (process.env.CURVY_NETWORK && process.env.CURVY_ENVIRONMENT) {
@@ -35,35 +34,6 @@ export function getEnvironmentAndNetworkName(): { environment: string; networkNa
   }
 
   return { environment, networkName };
-}
-
-export function getDeployedContractAddressOrZero(contractName: string): string {
-  const { environment, networkName } = getEnvironmentAndNetworkName();
-  const deploymentId = `${environment}_${networkName}`;
-
-  const filePath = path.resolve(process.cwd(), "ignition", "deployments", deploymentId, "deployed_addresses.json");
-
-  if (!fs.existsSync(filePath)) {
-    console.warn(`Deployment file not found for deployment ID '${deploymentId}' returning zero address.`);
-    return "0x0000000000000000000000000000000000000000";
-  }
-
-  const rawData = fs.readFileSync(filePath, "utf-8");
-  const addresses = JSON.parse(rawData);
-
-  if (!addresses[contractName]) {
-    return "0x0000000000000000000000000000000000000000";
-  }
-
-  return addresses[contractName];
-}
-
-export async function assertCurrentNetwork(networkName: string): Promise<void> {
-  const network = await hre.network.connect();
-  const client = await network.viem.getPublicClient();
-  if (client.chain.name !== networkName) {
-    throw new Error(`Expected network '${networkName}', but got '${client.chain.name}'`);
-  }
 }
 
 function getNetworkParameter<T>(parameterName: string, networkName?: string): T {
