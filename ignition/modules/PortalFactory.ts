@@ -1,7 +1,7 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { encodeDeployData } from "viem";
 import artifact from "../../artifacts/contracts/portal/PortalFactory.sol/PortalFactory.json";
-import { getEnvironmentParameter } from "./utils/deployment";
+import { getEnvironmentParameter } from "./utils/parameters";
 
 export default buildModule("PortalFactory", (m) => {
   const ownerAddress = getEnvironmentParameter<`0x{string}`>("owner");

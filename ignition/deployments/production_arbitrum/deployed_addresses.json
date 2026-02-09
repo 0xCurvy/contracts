@@ -19,5 +19,12 @@
   "PortalFactoryModule#PortalFactory": "0xfF84ACBAE0c126506b250b0c7d17bcc8367C1d16",
   "CurvyAggregatorAlpha#NewInsertionVerifier_v2": "0xb9AfF2366995bbc304fc361D23F7b4E06CA11efc",
   "CurvyAggregatorAlpha#NewAggregationVerifier_v2": "0x17a305e298bd3C5108F9Dc97B363B33DAEcFD29f",
-  "CurvyAggregatorAlpha#NewWithdrawVerifier_v2": "0x5f2caFDB348D16b1F4DFb62CFCfd44a41043C9F0"
+  "CurvyAggregatorAlpha#NewWithdrawVerifier_v2": "0x5f2caFDB348D16b1F4DFb62CFCfd44a41043C9F0",
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV4": "0x9c07E1Ff4f1B96ae609331BAc327FcC2d8563224",
+  "CurvyVault#CurvyVaultV3": "0xB4BA872fBa00Bc4268067D5DE4223240cEc4B6d5",
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV4Implementation": "0x5CFA880Cd3230e417097fB29d9A78e9E582A15c9",
+  "CurvyVault#CurvyVaultV3Implementation": "0x18104Dd209fa5C048DF820C82a9975dA5f920a34",
+  "PortalFactory#CreateX": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
+  "TokenBridgeModule#TokenBridge": "0x2a31476E13FEFFfcb3702349045cE53a634CcA23",
+  "PortalFactory#PortalFactory": "0x341d1571998c937E5f3Cb3E640805C8b457e7124"
 }

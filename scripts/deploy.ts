@@ -10,7 +10,11 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
 
 async function main() {
   const networks = ["sepolia", "arbitrum", "ethereum", "base", "optimism", "polygon", "bsc", "gnosis", "linea"];
-  const environment = "staging";
+  const environment = process.env.ENVIRONMENT;
+
+  if (environment !== "staging" && environment !== "production") {
+    throw new Error("process.env.ENVIRONMENT must be set to either staging or production");
+  }
 
   for (const networkName of networks) {
     const mainDeployment = getNetworkParameter("mainDeployment", networkName);

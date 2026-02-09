@@ -1,9 +1,10 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import { getNetworkParameter } from "./utils/parameters";
 
 export default buildModule("TokenBridgeModule", (m) => {
-  const lifiDiamondAddress = "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE";
+  const outputBridgelifiDiamondAddress = getNetworkParameter<`0x{string}`>("outputBridgeLifiDiamondAddress");
 
-  const tokenBridge = m.contract("TokenBridge", [lifiDiamondAddress], { id: "TokenBridge" });
+  const tokenBridge = m.contract("TokenBridge", [outputBridgelifiDiamondAddress], { id: "TokenBridge" });
 
   return { tokenBridge };
 });

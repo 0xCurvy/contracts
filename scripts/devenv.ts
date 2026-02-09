@@ -42,7 +42,7 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
         ],
       });
 
-      const deployReceipt = await publicClient.waitForTransactionReceipt({ hash: deployHash });
+      const deployReceipt = await publicClient.waitForTransactionReceipt({ hash: deployHash, confirmations: 5 });
       console.log("CreateX Deploy tx finalized, contract deployed at:", deployReceipt.contractAddress);
 
       const deploy = spawn(
