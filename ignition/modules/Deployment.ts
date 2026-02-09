@@ -1,6 +1,6 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import PortalFactory from "./PortalFactory";
-import { getNetworkParameter } from "./utils/deployment";
+import { getNetworkParameter } from "./utils/parameters";
 
 export default buildModule("DeploymentModule", (m) => {
   const { portalFactory } = m.useModule(PortalFactory);

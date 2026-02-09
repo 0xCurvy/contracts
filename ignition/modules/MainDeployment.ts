@@ -3,7 +3,7 @@ import CurvyAggregatorAlpha from "./CurvyAggregatorAlpha";
 import CurvyVault from "./CurvyVault";
 import PortalFactory from "./PortalFactory";
 import TokenBridge from "./TokenBridge";
-import { getNetworkParameter } from "./utils/deployment";
+import { getNetworkParameter } from "./utils/parameters";
 
 export default buildModule("MainDeploymentModule", (m) => {
   // Deploy the contracts

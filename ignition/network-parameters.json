@@ -61,6 +61,8 @@
   },
   "anvil": {
     "lifiDiamondAddress": "0x0000000000000000000000000000000000000000",
-    "mainDeployment": true
+    "mainDeployment": true,
+    "outputBridgeLifiDiamondAddress": "0x0000000000000000000000000000000000000000",
+    "erc20Addresses": []
   }
 }
