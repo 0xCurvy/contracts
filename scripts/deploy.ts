@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { getNetworkParameter } from "../ignition/modules/utils/deployment";
+import { getNetworkParameter } from "../ignition/modules/utils/parameters";
 
 function run(cmd: string, args: readonly string[]): Promise<void> {
   return new Promise((resolve, reject) => {
