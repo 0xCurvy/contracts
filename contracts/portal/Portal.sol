@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
 
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import { CurvyTypes } from "../utils/Types.sol";
 import { ICurvyAggregatorAlpha } from "../aggregator-alpha/ICurvyAggregatorAlpha.sol";
 import { ICurvyVault } from "../vault/ICurvyVault.sol";
@@ -12,7 +14,8 @@ contract Portal is IPortal, SingleUse {
     using SafeERC20 for IERC20;
 
     uint256 private _ownerHash;
-    address constant NATIVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address constant private NATIVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    uint256 constant private AGGREGATOR_CHAIN_ID = 42161; // added this here @lazar said this may be problematic, should i move this to the end?
 
     ICurvyAggregatorAlpha public curvyAggregator;
     ICurvyVault public curvyVault;
@@ -31,13 +34,30 @@ contract Portal is IPortal, SingleUse {
         recovery = _recovery;
     }
 
+    /**
+    * @dev Use this if the bridgeCallData is purely the ABI-encoded struct
+     * (e.g., it was encoded using abi.encode(bridgeData))
+     */
+    function _decodeBridgeDataStruct(bytes calldata bridgeCallData) internal pure returns (LiFiBridgeData memory) {
+        return abi.decode(bridgeCallData, (LiFiBridgeData));
+    }
+
+    /**
+        * @dev Use this if the bridgeCallData is a full transaction payload
+     * where the struct is the very first parameter after the 4-byte function selector.
+     */
+    function _decodeBridgeData(bytes calldata txData) internal pure returns (LiFiBridgeData memory) {
+        // The first 4 bytes are the function selector, so we skip them
+        return abi.decode(txData[4:], (LiFiBridgeData));
+    }
+
     function shield(
         CurvyTypes.Note memory note,
         address curvyAggregatorAlphaProxyAddress,
         address curvyVaultProxyAddress
     ) external onlyOnce {
         if (note.ownerHash != _ownerHash) {
-            revert("Portal: Invalid owner hash");
+            revert InvalidOwnerHash();
         }
 
         curvyAggregator = ICurvyAggregatorAlpha(curvyAggregatorAlphaProxyAddress);
@@ -73,27 +93,111 @@ contract Portal is IPortal, SingleUse {
     function bridge(
         address lifiDiamondAddress,
         bytes calldata bridgeData,
-        CurvyTypes.Note memory note,
-        address tokenAddress
+        CurvyTypes.Note memory note
     ) external onlyOnce {
         if (lifiDiamondAddress == address(0)) {
-            revert("Portal: Invalid LI.FI address");
+            revert InvalidLiFiAddress();
+        }
+
+        LiFiBridgeData memory data = _decodeBridgeData(bridgeData);
+
+        if (data.receiver != address(this)) {
+            revert InvalidReceiver();
+        }
+
+        if (data.destinationChainId != AGGREGATOR_CHAIN_ID) {
+            revert InvalidDestinationChain();
         }
 
         if (note.ownerHash != _ownerHash) {
-            revert("Portal: Invalid owner hash");
+            revert InvalidOwnerHash();
         }
 
-        uint256 amount = note.amount;
-
-        if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
-            IERC20(tokenAddress).forceApprove(lifiDiamondAddress, note.amount);
-            amount = 0;
+        if (note.amount < data.minAmount) {
+            revert InsufficientAmountForBridging();
         }
 
-        (bool success, ) = lifiDiamondAddress.call{ value: amount }(bridgeData);
-        if (!success) {
-            revert("Portal: Bridge call failed");
+        if (data.sendingAssetId != address(0) && data.sendingAssetId != NATIVE_ETH) {
+            IERC20 token = IERC20(data.sendingAssetId);
+
+            uint256 balance = token.balanceOf(address(this));
+            if (balance < note.amount) {
+                revert InsufficientBalanceForBridging();
+            }
+
+            token.forceApprove(lifiDiamondAddress, note.amount);
+            (bool success, bytes memory returnData) = lifiDiamondAddress.call(bridgeData);
+
+            if (!success) {
+                assembly {
+                    revert(add(returnData, 32), mload(returnData))
+                }
+            }
+        } else {
+            uint256 balance = address(this).balance;
+            if (balance < note.amount) {
+                revert InsufficientBalanceForBridging();
+            }
+
+            (bool success, bytes memory returnData) = lifiDiamondAddress.call{ value: note.amount }(bridgeData);
+
+            if (!success) {
+                assembly {
+                    revert(add(returnData, 32), mload(returnData))
+                }
+            }
+        }
+    }
+
+    function exitBridge(address lifiDiamondAddress, uint256 amountToBridge, bytes calldata bridgeData, bytes memory signature) external onlyOnce {
+        if (lifiDiamondAddress == address(0)) {
+            revert InvalidLiFiAddress();
+        }
+
+        LiFiBridgeData memory data = _decodeBridgeDataStruct(bridgeData);
+
+
+        bytes32 messageHash = keccak256(
+            abi.encodePacked(data.transactionId, data.receiver, data.destinationChainId, amountToBridge)
+        );
+
+        bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(messageHash);
+
+        address recoveredSigner = ECDSA.recover(ethSignedMessageHash, signature);
+
+        if (recoveredSigner != recovery) {
+            revert InvalidSignatureOrTamperedData();
+        }
+
+        if (data.sendingAssetId != address(0) && data.sendingAssetId != NATIVE_ETH) {
+            IERC20 token = IERC20(data.sendingAssetId);
+
+            uint256 balance = token.balanceOf(address(this));
+            if (balance < amountToBridge) {
+                revert InsufficientBalanceForBridging();
+            }
+
+            token.forceApprove(lifiDiamondAddress, amountToBridge);
+            (bool success, bytes memory returnData) = lifiDiamondAddress.call(bridgeData);
+
+            if (!success) {
+                assembly {
+                    revert(add(returnData, 32), mload(returnData))
+                }
+            }
+        } else {
+            uint256 balance = address(this).balance;
+            if (balance < amountToBridge) {
+                revert InsufficientBalanceForBridging();
+            }
+
+            (bool success, bytes memory returnData) = lifiDiamondAddress.call{ value: amountToBridge }(bridgeData);
+
+            if (!success) {
+                assembly {
+                    revert(add(returnData, 32), mload(returnData))
+                }
+            }
         }
     }
 }
