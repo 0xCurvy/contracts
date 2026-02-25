@@ -86,7 +86,6 @@ contract PortalFactory is Ownable {
     function deployAndBridge(
         bytes calldata bridgeData,
         CurvyTypes.Note memory note,
-        address tokenAddress,
         address recovery
     ) public {
         if (_lifiDiamondAddress == address(0)) {
@@ -111,6 +110,6 @@ contract PortalFactory is Ownable {
             revert("PortalFactory: Deployment failed");
         }
 
-        IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, note, tokenAddress);
+        IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, note);
     }
 }

@@ -6,7 +6,31 @@ import { CurvyTypes } from "../utils/Types.sol";
 interface IPortal {
     //#region Errors
 
+    error InvalidLiFiAddress();
+    error InvalidReceiver();
+    error InvalidDestinationChain();
     error InvalidOwnerHash();
+    error InsufficientAmountForBridging();
+    error InsufficientBalanceForBridging();
+    error InvalidSignatureOrTamperedData();
+
+    //#endregion
+
+
+    //#region Structs
+
+    struct LiFiBridgeData {
+        bytes32 transactionId;
+        string bridge;
+        string integrator;
+        address referrer;
+        address sendingAssetId;
+        address receiver;
+        uint256 minAmount;
+        uint256 destinationChainId;
+        bool hasSourceSwaps;
+        bool hasDestinationCall;
+    }
 
     //#endregion
 
@@ -21,8 +45,7 @@ interface IPortal {
     function bridge(
         address lifiDiamondAddress,
         bytes calldata bridgeData,
-        CurvyTypes.Note memory note,
-        address tokenAddress
+        CurvyTypes.Note memory note
     ) external;
 
     /**
