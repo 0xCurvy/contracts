@@ -1,0 +1,42 @@
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.8.10;
+
+import { CurvyTypes } from "../utils/Types.sol";
+
+interface ICurvyVaultV2 {
+    //#region Events
+
+    event Deposit(address indexed tokenAddress, address indexed to, uint256 amount, uint256 gasSponsorshipAmount);
+    event Withdraw(address indexed tokenAddress, address indexed to, uint256 amount);
+    event TokenRegistration(address token_address, uint256 token_id);
+    event TokenUnsupported(address tokenAddress, uint256 tokenId);
+    event FeeChange(CurvyTypes.FeeUpdate feeUpdate);
+    event CurvyAggregatorAddressChange(address curvyAggregator);
+
+    //#endregion
+
+    //#region Errors
+
+    error InvalidRecipient();
+    error InvalidSender();
+    error TokenNotRegistered();
+    error InsufficientBalance(uint256 balance, uint256 required);
+    error InsufficientAmountForGas();
+    error ETHTransferFailed();
+
+    //#endregion
+
+    //#region Public functions
+
+    function withdraw(uint256 tokenId, address to, uint256 amount) external;
+    function deposit(address tokenAddress, address to, uint256 amount, uint256 gasSponsorshipAmount) external payable;
+    function unsupportToken(address tokenAddress) external;
+
+    //#endregion
+
+    //#region View functions
+
+    function getTokenAddress(uint256 tokenId) external view returns (address);
+
+    //#endregion
+}

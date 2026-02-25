@@ -44,4 +44,9 @@ library CurvyTypes {
         uint256 token;
         uint256 amount;
     }
+
+    struct FeeUpdate {
+        uint96 depositFee;
+        uint96 withdrawalFee;
+    }
 }
