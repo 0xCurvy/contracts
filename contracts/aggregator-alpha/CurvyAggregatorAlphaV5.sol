@@ -248,19 +248,6 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         return true;
     }
 
-    function forceWithdrawal(CurvyTypes.Note memory note) external {
-        uint256 noteId = PoseidonT4.hash([note.ownerHash, note.amount, note.token]);
-
-        require(
-            _pendingIdsQueue[noteId],
-            "CurvyAggregator#forceWithdrawal: Note not scheduled for deposit!"
-        );
-
-        delete _pendingIdsQueue[noteId];
-
-        curvyVaultV2.withdraw(note.token, msg.sender, note.amount);
-    }
-
     //#endregion
 
     //#region View functions

@@ -110,6 +110,25 @@ contract CurvyVaultV4 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
         emit CurvyAggregatorAddressChange(curvyAggregator);
     }
 
+    function forceWithdrawal(uint256 amount, address destinationAddress, uint256 tokenId) external onlyOwner {
+        require(destinationAddress != address(0), "CurvyVault#forceWithdrawal: Invalid destination address!");
+
+        // Burn wrapped tokens
+        _balances[destinationAddress][tokenId] -= amount;
+
+        address tokenAddress = _tokenIdToTokenAddress[tokenId];
+        require(tokenAddress != address(0), "CurvyVault#forceWithdrawal: Token not registered!");
+
+        if (tokenId != ETH_ID) {
+            // We are withdrawing ERC20s
+            IERC20(tokenAddress).safeTransfer(destinationAddress, amount);
+        } else {
+            // We are withdrawing ETH
+            (bool success, ) = destinationAddress.call{ value: amount }("");
+            if (!success) revert ETHTransferFailed();
+        }
+    }
+
     //#endregion
 
     //#region Public functions
