@@ -107,7 +107,20 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
 
   m.call(curvyAggregatorAlphaV3, "upgradeToAndCall", [implementationV4, "0x"]);
 
-  const curvyAggregatorAlpha = m.contractAt("CurvyAggregatorAlphaV4", proxy);
+  const curvyAggregatorAlphaV4 = m.contractAt("CurvyAggregatorAlphaV4", proxy);
 
-  return { implementation: implementationV4, proxy, curvyAggregatorAlpha };
+  // This implementation relies on vault's withdraw instead of transfer and includes forceWithdrawal
+  const implementationV5 = m.contract("CurvyAggregatorAlphaV5", [], {
+    id: "CurvyAggregatorAlphaV5Implementation",
+    libraries: {
+      PoseidonT4: poseidonT4,
+    },
+    after: [updateNewVerifiers],
+  });
+
+  m.call(curvyAggregatorAlphaV4, "upgradeToAndCall", [implementationV5, "0x"]);
+
+  const curvyAggregatorAlpha = m.contractAt("CurvyAggregatorAlphaV5", proxy);
+
+  return { implementation: implementationV5, proxy, curvyAggregatorAlpha };
 });
