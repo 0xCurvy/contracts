@@ -7,12 +7,20 @@ interface IPortal {
     //#region Errors
 
     error InvalidLiFiAddress();
+    error InvalidRecoveryAddress();
     error InvalidReceiver();
     error InvalidDestinationChain();
     error InvalidOwnerHash();
     error InsufficientAmountForBridging();
     error InsufficientBalanceForBridging();
     error InvalidSignatureOrTamperedData();
+
+    //#endregion
+
+    //#region Events
+
+    /// @notice Emitted when a shielding attempt fails
+    event ShieldingFailed(uint256 indexed ownerHash, address indexed token, uint256 amount, string reason);
 
     //#endregion
 
