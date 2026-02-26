@@ -7,8 +7,8 @@ import { getNetworkParameter } from "./utils/parameters";
 
 export default buildModule("MainDeploymentModule", (m) => {
   // Deploy the contracts
-  const { curvyAggregatorAlpha } = m.useModule(CurvyAggregatorAlpha);
-  const { curvyVault } = m.useModule(CurvyVault);
+  const { curvyAggregatorAlpha, proxy: curvyAggregatorAlphaProxy } = m.useModule(CurvyAggregatorAlpha);
+  const { curvyVault, proxy: curvyVaultProxy } = m.useModule(CurvyVault);
   const { portalFactory } = m.useModule(PortalFactory);
   const { tokenBridge } = m.useModule(TokenBridge);
 
@@ -21,7 +21,7 @@ export default buildModule("MainDeploymentModule", (m) => {
       insertionVerifier: "0x0000000000000000000000000000000000000000",
       aggregationVerifier: "0x0000000000000000000000000000000000000000",
       withdrawVerifier: "0x0000000000000000000000000000000000000000",
-      curvyVault: curvyVault,
+      curvyVault: curvyVaultProxy,
       portalFactory: portalFactory,
       maxDeposits: BigInt(0),
       maxAggregations: BigInt(0),
@@ -32,10 +32,11 @@ export default buildModule("MainDeploymentModule", (m) => {
   // Connect PortalFactory to LifiDiamond, Aggregator and Vault
   const lifiDiamondAddress = getNetworkParameter<`0x{string}`>("lifiDiamondAddress");
 
-  m.call(portalFactory, "updateConfig", [curvyVault, curvyAggregatorAlpha, lifiDiamondAddress]);
+  m.call(portalFactory, "updateConfig", [curvyVaultProxy, curvyAggregatorAlphaProxy, lifiDiamondAddress]);
 
   // Register tokens in vault
 
+  /*
   let previousRegistration: any;
 
   const erc20Addresses = getNetworkParameter<string[]>("erc20Addresses");
@@ -54,5 +55,6 @@ export default buildModule("MainDeploymentModule", (m) => {
     });
   }
 
+  */
   return { curvyAggregatorAlpha, curvyVault, portalFactory, tokenBridge };
 });
