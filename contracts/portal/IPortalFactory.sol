@@ -21,7 +21,12 @@ interface IPortalFactory {
     function deployAndBridge(
         bytes calldata bridgeData,
         CurvyTypes.Note memory note,
-        address tokenAddress,
+        address recovery
+    ) external;
+
+    function deployAndExitBridge(
+        bytes calldata bridgeData,
+        uint256 amount,
         address recovery
     ) external;
 }

@@ -39,14 +39,20 @@ contract PortalFactory is Ownable {
         return true;
     }
 
-    function getCreationCode(uint256 ownerHash, address recovery) public pure returns (bytes memory) {
+    function getCreationCode(uint256 ownerHash, address exitAddress, uint256 exitChainId, address recovery) public pure returns (bytes memory) {
         bytes memory bytecode = type(Portal).creationCode;
-        bytes memory encodedArgs = abi.encode(ownerHash, recovery);
+        bytes memory encodedArgs = abi.encode(ownerHash, exitAddress, exitChainId, recovery);
         return abi.encodePacked(bytecode, encodedArgs);
     }
 
-    function getPortalAddress(uint256 ownerHash, address recovery) public view returns (address) {
-        bytes memory code = getCreationCode(ownerHash, recovery);
+    function getEntryPortalAddress(uint256 ownerHash, address recovery) public view returns (address) {
+        bytes memory code = getCreationCode(ownerHash,address(0), 0, recovery);
+        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), _salt, keccak256(code)));
+        return address(uint160(uint256(hash)));
+    }
+
+    function getExitPortalAddress(address exitAddress, uint256 exitChainId, address recovery) public view returns (address) {
+        bytes memory code = getCreationCode(0,exitAddress,exitChainId, recovery);
         bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), _salt, keccak256(code)));
         return address(uint160(uint256(hash)));
     }
@@ -60,7 +66,7 @@ contract PortalFactory is Ownable {
             revert("PortalFactory: Shielding not supported on this chain");
         }
 
-        bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash, recovery);
+        bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash,address(0), 0, recovery);
         address portalAddress;
 
         bytes32 salt = _salt;
@@ -89,7 +95,39 @@ contract PortalFactory is Ownable {
             revert("PortalFactory: Bridging not supported on this chain");
         }
 
-        bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash, recovery);
+        bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash, address(0), 0, recovery);
+        address portalAddress;
+
+        bytes32 salt = _salt;
+
+        assembly {
+            // Deploy using CREATE2: value in wei, data pointer, data length, salt
+            portalAddress := create2(
+                callvalue(), // value to send
+                add(creationCodeWithArgs, 0x20), // pointer to start of bytecode
+                mload(creationCodeWithArgs), // length of bytecode (will load what we skip in previous argument)
+                salt // the salt
+            )
+        }
+        if (portalAddress == address(0)) {
+            revert("PortalFactory: Deployment failed");
+        }
+
+        IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, note);
+    }
+
+    function deployAndExitBridge(
+        bytes calldata bridgeData,
+        uint256 amount,
+        address exitAddress,
+        uint256 exitChainId,
+        address recovery
+    ) public {
+        if (_lifiDiamondAddress == address(0)) {
+            revert("PortalFactory: Bridging not supported on this chain");
+        }
+
+        bytes memory creationCodeWithArgs = getCreationCode(0, exitAddress, exitChainId, recovery);
         address portalAddress;
 
         bytes32 salt = _salt;
@@ -108,6 +146,6 @@ contract PortalFactory is Ownable {
             revert("PortalFactory: Deployment failed");
         }
 
-        IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, note);
+        IPortal(portalAddress).exitBridge(_lifiDiamondAddress, amount, bridgeData);
     }
 }

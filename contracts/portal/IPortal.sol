@@ -52,6 +52,8 @@ interface IPortal {
 
     function bridge(address lifiDiamondAddress, bytes calldata bridgeData, CurvyTypes.Note memory note) external;
 
+    function exitBridge(address lifiDiamondAddress, uint256 amount, bytes calldata bridgeData) external;
+
     /**
      * @notice Used by the user to recover funds from the Portal.
      * @dev This is typically used when auto-shielding fails or if funds are accidentally sent to the Portal address.

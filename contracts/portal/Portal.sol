@@ -149,7 +149,7 @@ contract Portal is IPortal, SingleUse {
         }
     }
 
-    function exitBridge(address lifiDiamondAddress, uint256 amountToBridge, bytes calldata bridgeData)
+    function exitBridge(address lifiDiamondAddress, uint256 amount, bytes calldata bridgeData)
         external
         onlyOnce
     {
@@ -171,11 +171,11 @@ contract Portal is IPortal, SingleUse {
             IERC20 token = IERC20(data.sendingAssetId);
 
             uint256 balance = token.balanceOf(address(this));
-            if (balance < amountToBridge) {
+            if (balance < amount) {
                 revert InsufficientBalanceForBridging();
             }
 
-            token.forceApprove(lifiDiamondAddress, amountToBridge);
+            token.forceApprove(lifiDiamondAddress, amount);
             (bool success,) = lifiDiamondAddress.call(bridgeData);
 
             if (!success) {
@@ -183,11 +183,11 @@ contract Portal is IPortal, SingleUse {
             }
         } else {
             uint256 balance = address(this).balance;
-            if (balance < amountToBridge) {
+            if (balance < amount) {
                 revert InsufficientBalanceForBridging();
             }
 
-            (bool success,) = lifiDiamondAddress.call{value: amountToBridge}(bridgeData);
+            (bool success,) = lifiDiamondAddress.call{value: amount}(bridgeData);
 
             if (!success) {
                 revert BridgeCallFailed();
