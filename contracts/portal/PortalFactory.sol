@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-import { IPortal } from "./IPortal.sol";
-import { Portal } from "./Portal.sol";
-import { CurvyTypes } from "../utils/Types.sol";
+import {IPortal} from "./IPortal.sol";
+import {Portal} from "./Portal.sol";
+import {CurvyTypes} from "../utils/Types.sol";
 
 contract PortalFactory is Ownable {
     bytes32 private _salt = keccak256(abi.encodePacked("curvy-portal-factory-salt"));
@@ -55,7 +55,7 @@ contract PortalFactory is Ownable {
         return _registeredPortals[portalAddress];
     }
 
-    function deployAndShield(CurvyTypes.Note memory note, address recovery) public payable {
+    function deployAndShield(CurvyTypes.Note memory note, address recovery) public payable onlyOwner {
         if (_curvyVaultProxyAddress == address(0) || _curvyAggregatorAlphaProxyAddress == address(0)) {
             revert("PortalFactory: Shielding not supported on this chain");
         }
@@ -67,12 +67,13 @@ contract PortalFactory is Ownable {
 
         assembly {
             // Deploy using CREATE2: value in wei, data pointer, data length, salt
-            portalAddress := create2(
-                callvalue(), // value to send
-                add(creationCodeWithArgs, 0x20), // pointer to start of bytecode
-                mload(creationCodeWithArgs), // length of bytecode
-                salt // the salt
-            )
+            portalAddress :=
+                create2(
+                    callvalue(), // value to send
+                    add(creationCodeWithArgs, 0x20), // pointer to start of bytecode
+                    mload(creationCodeWithArgs), // length of bytecode
+                    salt // the salt
+                )
         }
         if (portalAddress == address(0)) {
             revert("PortalFactory: Deployment failed");
@@ -83,11 +84,7 @@ contract PortalFactory is Ownable {
         IPortal(portalAddress).shield(note, _curvyAggregatorAlphaProxyAddress, _curvyVaultProxyAddress);
     }
 
-    function deployAndBridge(
-        bytes calldata bridgeData,
-        CurvyTypes.Note memory note,
-        address recovery
-    ) public {
+    function deployAndBridge(bytes calldata bridgeData, CurvyTypes.Note memory note, address recovery) public {
         if (_lifiDiamondAddress == address(0)) {
             revert("PortalFactory: Bridging not supported on this chain");
         }
@@ -99,12 +96,13 @@ contract PortalFactory is Ownable {
 
         assembly {
             // Deploy using CREATE2: value in wei, data pointer, data length, salt
-            portalAddress := create2(
-                callvalue(), // value to send
-                add(creationCodeWithArgs, 0x20), // pointer to start of bytecode
-                mload(creationCodeWithArgs), // length of bytecode (will load what we skip in previous argument)
-                salt // the salt
-            )
+            portalAddress :=
+                create2(
+                    callvalue(), // value to send
+                    add(creationCodeWithArgs, 0x20), // pointer to start of bytecode
+                    mload(creationCodeWithArgs), // length of bytecode (will load what we skip in previous argument)
+                    salt // the salt
+                )
         }
         if (portalAddress == address(0)) {
             revert("PortalFactory: Deployment failed");

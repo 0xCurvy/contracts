@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
 
-import { CurvyTypes } from "../utils/Types.sol";
+import {CurvyTypes} from "../utils/Types.sol";
 
 interface IPortal {
     //#region Errors
@@ -14,6 +14,7 @@ interface IPortal {
     error InsufficientAmountForBridging();
     error InsufficientBalanceForBridging();
     error InvalidSignatureOrTamperedData();
+    error BridgeCallFailed();
 
     //#endregion
 
@@ -23,7 +24,6 @@ interface IPortal {
     event ShieldingFailed(uint256 indexed ownerHash, address indexed token, uint256 amount, string reason);
 
     //#endregion
-
 
     //#region Structs
 
@@ -50,11 +50,7 @@ interface IPortal {
         address curvyVaultProxyAddress
     ) external;
 
-    function bridge(
-        address lifiDiamondAddress,
-        bytes calldata bridgeData,
-        CurvyTypes.Note memory note
-    ) external;
+    function bridge(address lifiDiamondAddress, bytes calldata bridgeData, CurvyTypes.Note memory note) external;
 
     /**
      * @notice Used by the user to recover funds from the Portal.

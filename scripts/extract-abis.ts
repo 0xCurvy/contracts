@@ -10,10 +10,6 @@ const __dirname = dirname(__filename);
 const artifactsDir = join(__dirname, "../ignition/deployments/local_anvil/artifacts");
 const abiDir = join(process.cwd(), "../sdk/src/contracts/evm/abi");
 
-function toKebabCase(str: string): string {
-  return str.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, "$1-$2").toLowerCase();
-}
-
 function toCamelCase(str: string): string {
   return str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
 }
