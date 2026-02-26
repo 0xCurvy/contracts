@@ -24,5 +24,7 @@
   "CurvyAggregatorAlpha#NewInsertionVerifier_v2": "0x0887f15D62cADE29503815328760447FF60d6916",
   "CurvyAggregatorAlpha#NewAggregationVerifier_v2": "0x799409D5066b0b3CB5cE1398Bf208587b5B9285C",
   "CurvyAggregatorAlpha#NewWithdrawVerifier_v2": "0xC80bBc0C209C3d62397c88CE47Ddf31272E69F6b",
-  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV4Implementation": "0x655e119C92f39CEc144A8AC41224fECC145bf059"
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV4Implementation": "0x655e119C92f39CEc144A8AC41224fECC145bf059",
+  "CurvyVault#CurvyVaultV4": "0xc837Aaa99A8e5A096F5e6E54E396F027fA106aB5",
+  "CurvyVault#CurvyVaultV4Implementation": "0xc4d31f0d91B40Fe24d6416e546323AeceEfDAA5B"
 }

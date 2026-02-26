@@ -23,7 +23,13 @@ export default buildModule("CurvyVault", (m) => {
   const implementationV3 = m.contract("CurvyVaultV3", [], { id: "CurvyVaultV3Implementation" });
   m.call(curvyVaultV2, "upgradeToAndCall", [implementationV3, "0x"]);
 
-  const curvyVault = m.contractAt("CurvyVaultV3", proxy);
+  const curvyVault3 = m.contractAt("CurvyVaultV3", proxy);
 
-  return { implementation: implementationV3, proxy, curvyVault };
+  // This version fixes the bug with gas sponsorship when transferring
+  const implementationV4 = m.contract("CurvyVaultV4", [], { id: "CurvyVaultV4Implementation" });
+  m.call(curvyVault3, "upgradeToAndCall", [implementationV4, "0x"]);
+  const curvyVault = m.contractAt("CurvyVaultV4", proxy);
+
+
+  return { implementation: implementationV4, proxy, curvyVault };
 });

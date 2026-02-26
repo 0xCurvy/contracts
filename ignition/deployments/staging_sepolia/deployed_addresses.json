@@ -24,5 +24,7 @@
   "CurvyAggregatorAlpha#NewAggregationVerifier_v2": "0xa4d33955253d18411f30EddB5d28171722415C85",
   "CurvyAggregatorAlpha#NewWithdrawVerifier_v2": "0xa573d954f7db86b08Bd6aeDAa3eB24375Ea508bd",
   "CurvyAggregatorAlpha#CurvyAggregatorAlphaV4Implementation": "0x76c53EB316dFb2ae31E880cdc613970A66748C9f",
-  "TokenBridgeModule#TokenBridge": "0xD6e2B1A78656327a0B63dDBB813effaefc2F89C7"
+  "TokenBridgeModule#TokenBridge": "0xD6e2B1A78656327a0B63dDBB813effaefc2F89C7",
+  "CurvyVault#CurvyVaultV4": "0x73Efd0aBE4D89F3C40Ac226229db204A1E7B13aD",
+  "CurvyVault#CurvyVaultV4Implementation": "0x10Cf9e1ABDe7360abAf59231c518D59908a527B2"
 }

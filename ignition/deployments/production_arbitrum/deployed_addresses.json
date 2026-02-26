@@ -26,5 +26,7 @@
   "CurvyVault#CurvyVaultV3Implementation": "0x18104Dd209fa5C048DF820C82a9975dA5f920a34",
   "PortalFactory#CreateX": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
   "TokenBridgeModule#TokenBridge": "0x2a31476E13FEFFfcb3702349045cE53a634CcA23",
-  "PortalFactory#PortalFactory": "0x341d1571998c937E5f3Cb3E640805C8b457e7124"
+  "PortalFactory#PortalFactory": "0x341d1571998c937E5f3Cb3E640805C8b457e7124",
+  "CurvyVault#CurvyVaultV4": "0xB4BA872fBa00Bc4268067D5DE4223240cEc4B6d5",
+  "CurvyVault#CurvyVaultV4Implementation": "0x5d5dB00C1587E50535F3b1886877F866f1600862"
 }
