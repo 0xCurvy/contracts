@@ -32,7 +32,7 @@ export default buildModule("CurvyVault", (m) => {
   const curvyVaultV4 = m.contractAt("CurvyVaultV4", proxy);
 
   // This version removes EIP712 metatractions, transfers, and fee structures in favor of a simpler generic interface.
-  const implementationV5 = m.contract("CurvyVaultV4", [], { id: "CurvyVaultV4Implementation" });
+  const implementationV5 = m.contract("CurvyVaultV5", [], { id: "CurvyVaultV5Implementation" });
   m.call(curvyVaultV4, "upgradeToAndCall", [implementationV5, "0x"]);
   const curvyVault = m.contractAt("CurvyVaultV5", proxy);
 

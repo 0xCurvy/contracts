@@ -1,14 +1,14 @@
- // SPDX-License-Identifier: Apache-2.0
+    // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
 
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./ICurvyVaultV2.sol";
-import { CurvyTypes } from "../utils/Types.sol";
+import {CurvyTypes} from "../utils/Types.sol";
 
-contract CurvyVaultV4 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract CurvyVaultV5 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
 
     //#region Constants
@@ -18,10 +18,9 @@ contract CurvyVaultV4 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
 
     uint96 private constant FEE_DENOMINATOR = 10000;
 
-    bytes32 private constant CURVY_META_TRANSACTION_TYPE_HASH =
-        keccak256(
-            "CurvyMetaTransaction(uint256 nonce,address from,address to,uint256 tokenId,uint256 amount,uint256 gasFee,uint8 metaTransactionType)"
-        );
+    bytes32 private constant CURVY_META_TRANSACTION_TYPE_HASH = keccak256(
+        "CurvyMetaTransaction(uint256 nonce,address from,address to,uint256 tokenId,uint256 amount,uint256 gasFee,uint8 metaTransactionType)"
+    );
 
     //#endregion
 
@@ -85,7 +84,7 @@ contract CurvyVaultV4 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
     function unsupportToken(address tokenAddress) external onlyOwner {
         uint256 tokenId = _tokenAddressToTokenId[tokenAddress];
         require(tokenId != 0, "CurvyVault#unsupportToken: Token not registered!");
-        
+
         // Remove from both mappings
         _tokenAddressToTokenId[tokenAddress] = 0;
         _tokenIdToTokenAddress[tokenId] = address(0);
@@ -124,7 +123,7 @@ contract CurvyVaultV4 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
             IERC20(tokenAddress).safeTransfer(destinationAddress, amount);
         } else {
             // We are withdrawing ETH
-            (bool success, ) = destinationAddress.call{ value: amount }("");
+            (bool success,) = destinationAddress.call{value: amount}("");
             if (!success) revert ETHTransferFailed();
         }
     }
@@ -138,7 +137,6 @@ contract CurvyVaultV4 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
     }
 
     function deposit(address tokenAddress, address to, uint256 amount, uint256 gasSponsorshipAmount) public payable {
-
         require(msg.sender == _curvyAggregator, "Only CurvyAggregator can do vault deposits through portal autoShield");
 
         if (to == address(0x0)) revert InvalidRecipient();
@@ -198,7 +196,7 @@ contract CurvyVaultV4 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
             IERC20(tokenAddress).safeTransfer(to, amount);
         } else {
             // We are withdrawing ETH
-            (bool success, ) = to.call{ value: amount }("");
+            (bool success,) = to.call{value: amount}("");
             if (!success) revert ETHTransferFailed();
         }
 

@@ -2,7 +2,6 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import CurvyAggregatorAlpha from "./CurvyAggregatorAlpha";
 import CurvyVault from "./CurvyVault";
 import PortalFactory from "./PortalFactory";
-import TokenBridge from "./TokenBridge";
 import { getNetworkParameter } from "./utils/parameters";
 
 export default buildModule("MainDeploymentModule", (m) => {
@@ -10,7 +9,6 @@ export default buildModule("MainDeploymentModule", (m) => {
   const { curvyAggregatorAlpha, proxy: curvyAggregatorAlphaProxy } = m.useModule(CurvyAggregatorAlpha);
   const { curvyVault, proxy: curvyVaultProxy } = m.useModule(CurvyVault);
   const { portalFactory } = m.useModule(PortalFactory);
-  const { tokenBridge } = m.useModule(TokenBridge);
 
   // Connect Vault to Aggregator
   m.call(curvyVault, "setCurvyAggregatorAddress", [curvyAggregatorAlpha]);
@@ -36,6 +34,7 @@ export default buildModule("MainDeploymentModule", (m) => {
 
   // Register tokens in vault
 
+  // TODO: Reorganize deployment so that this is done inside the vault module itself
   /*
   let previousRegistration: any;
 
@@ -54,7 +53,7 @@ export default buildModule("MainDeploymentModule", (m) => {
       after,
     });
   }
-
   */
-  return { curvyAggregatorAlpha, curvyVault, portalFactory, tokenBridge };
+
+  return { curvyAggregatorAlpha, curvyVault, portalFactory };
 });
