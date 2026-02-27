@@ -209,14 +209,14 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
-        uint256[10] memory publicInputs
+        uint256[9] memory publicInputs
     ) public returns (bool) {
         require(
-            publicInputs[3] == _nullifiersTreeRoot,
+            publicInputs[2] == _nullifiersTreeRoot,
             "CurvyAggregator#commitWithdrawalBatch: Current nullifier tree root mismatch!"
         );
         require(
-            publicInputs[2] == _notesTreeRoot,
+            publicInputs[1] == _notesTreeRoot,
             "CurvyAggregator#commitWithdrawalBatch: Current note tree root mismatch!"
         );
 
@@ -230,12 +230,10 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
 
         uint256 numPublicInputs = publicInputs.length;
 
-        require(publicInputs[1] > 0, "CurvyAggregator#commitWithdrawalBatch: Fee must be greater than zero!");
-
         // Transfer withdrawals
         for (uint256 i = 0; i < maxWithdrawals; i += 1) {
-            uint256 amount = publicInputs[4 + i];
-            address destinationAddress = address(uint160(publicInputs[4 + maxWithdrawals + i]));
+            uint256 amount = publicInputs[3 + i];
+            address destinationAddress = address(uint160(publicInputs[3 + maxWithdrawals + i]));
             if (amount != 0) {
                 curvyVaultV2.withdraw(
                     publicInputs[numPublicInputs - 1], // tokenId

@@ -115,12 +115,37 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
     libraries: {
       PoseidonT4: poseidonT4,
     },
-    after: [updateNewVerifiers],
+    after: [curvyAggregatorAlphaV4],
   });
 
   m.call(curvyAggregatorAlphaV4, "upgradeToAndCall", [implementationV5, "0x"]);
 
   const curvyAggregatorAlpha = m.contractAt("CurvyAggregatorAlphaV5", proxy);
+
+  const withdrawVerifierV3 = m.contract(`CurvyWithdrawVerifierAlpha_${maxWithdrawals}`, [], {
+    id: "withdrawVerifierV3",
+    after: [curvyAggregatorAlpha],
+  });
+
+  const updateWithdrawVerifier = m.call(
+    curvyAggregatorAlpha,
+    "updateConfig",
+    [
+      {
+        insertionVerifier: "0x0000000000000000000000000000000000000000",
+        aggregationVerifier: "0x0000000000000000000000000000000000000000",
+        withdrawVerifier: withdrawVerifierV3,
+        curvyVault: "0x0000000000000000000000000000000000000000",
+        maxDeposits: 0,
+        maxAggregations: 0,
+        maxWithdrawals: 0,
+      },
+    ],
+    {
+      id: "UpdateConfig_WithNewVerifiers",
+      after: [withdrawVerifierV3],
+    },
+  );
 
   return { implementation: implementationV5, proxy, curvyAggregatorAlpha };
 });
