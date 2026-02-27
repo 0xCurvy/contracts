@@ -5,7 +5,8 @@ import "../portal/IPortalFactory.sol";
 import {
 ICurvyInsertionVerifier,
 ICurvyAggregationVerifier,
-ICurvyWithdrawVerifier
+ICurvyWithdrawVerifier,
+ICurvyWithdrawVerifierV3
 } from "./verifiers/ICurvyVerifiersAlpha.sol";
 import {CurvyTypes} from "../utils/Types.sol";
 import {ICurvyAggregatorAlpha} from "./ICurvyAggregatorAlpha.sol";
@@ -64,6 +65,8 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
 
     ICurvyVaultV2 public curvyVaultV2;
 
+    ICurvyWithdrawVerifierV3 public withdrawVerifierV3;
+
     //#endregion
 
     //#region Init functions
@@ -91,7 +94,7 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
             aggregationVerifier = ICurvyAggregationVerifier(_update.aggregationVerifier);
         }
         if (_update.withdrawVerifier != address(0)) {
-            withdrawVerifier = ICurvyWithdrawVerifier(_update.withdrawVerifier);
+            withdrawVerifierV3 = ICurvyWithdrawVerifierV3(_update.withdrawVerifier);
         }
         if (_update.curvyVault != address(0)) {
             curvyVaultV2 = ICurvyVaultV2(_update.curvyVault);
@@ -221,7 +224,7 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         );
 
         require(
-            withdrawVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),
+            withdrawVerifierV3.verifyProof(proof_a, proof_b, proof_c, publicInputs),
             "CurvyAggregator#commitWithdrawalBatch: Invalid withdraw proof!"
         );
 

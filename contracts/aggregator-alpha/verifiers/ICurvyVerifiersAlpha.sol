@@ -37,6 +37,21 @@ interface ICurvyWithdrawVerifier {
      * @param input The public input to the proof.
      * @return r True if the proof is valid, false otherwise.
      */
+    function verifyProof(uint256[2] memory a, uint256[2][2] memory b, uint256[2] memory c, uint256[10] memory input)
+    external
+    view
+    returns (bool r);
+}
+
+interface ICurvyWithdrawVerifierV3 {
+    /**
+     * @notice Verifies a proof for withdrawing a note from the note tree.
+     * @param a The first part of the proof.
+     * @param b The second part of the proof.
+     * @param c The third part of the proof.
+     * @param input The public input to the proof.
+     * @return r True if the proof is valid, false otherwise.
+     */
     function verifyProof(uint256[2] memory a, uint256[2][2] memory b, uint256[2] memory c, uint256[9] memory input)
     external
     view
