@@ -18,11 +18,15 @@ interface ICurvyVaultV2 {
     //#region Errors
 
     error InvalidRecipient();
-    error InvalidSender();
+    error NotCurvyAggregator();
+    error TokenAllreadyRegistered();
+    error InvalidDestinationAddress();
     error TokenNotRegistered();
-    error InsufficientBalance(uint256 balance, uint256 required);
-    error InsufficientAmountForGas();
     error ETHTransferFailed();
+    error ERC20TransferFailed();
+    error NoFeeUpdate();
+    error WithdrawalFeeNotSet();
+    error NotCurvyAggregatorOrOwner();
 
     //#endregion
 

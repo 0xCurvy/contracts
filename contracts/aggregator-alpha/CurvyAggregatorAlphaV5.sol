@@ -126,7 +126,7 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
 
     function autoShield(CurvyTypes.Note memory note, address tokenAddress) external payable {
         // Only allow auto shielding of portals that were deployed through the portalFactory
-        require(portalFactory.portalIsRegistered(msg.sender), "CurvyAggregator: portal is not registered");
+        if (!portalFactory.portalIsRegistered(msg.sender)) revert PortalNotRegistered();
 
         if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
             IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), note.amount);
@@ -151,25 +151,16 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         for (uint256 i = 0; i < maxDeposits; i += 1) {
             uint256 noteId = publicInputs[i];
             if (noteId != 0) {
-                require(
-                    _pendingIdsQueue[noteId],
-                    "CurvyAggregator#commitDepositBatch: Note not scheduled for deposit!"
-                );
+                if (!_pendingIdsQueue[noteId]) revert NoteNotScheduledForDeposit();
                 delete _pendingIdsQueue[noteId];
             }
         }
 
         uint256 numPublicInputs = publicInputs.length;
 
-        require(
-            _notesTreeRoot == publicInputs[numPublicInputs - 2],
-            "CurvyAggregator#commitDepositBatch: Invalid notes root!"
-        );
+        if (_notesTreeRoot != publicInputs[numPublicInputs - 2]) revert InvalidNotesRoot();
 
-        require(
-            insertionVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),
-            "CurvyAggregator#commitDepositBatch: Invalid proof!"
-        );
+        if (!insertionVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs)) revert InvalidProof();
 
         _notesTreeRoot = publicInputs[numPublicInputs - 1];
 
@@ -187,19 +178,10 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         uint256 oldNotesTreeRoot = publicInputs[2 * maxAggregations + 3];
         uint256 newNotesTreeRoot = publicInputs[2 * maxAggregations + 4];
 
-        require(
-            _notesTreeRoot == oldNotesTreeRoot,
-            "CurvyAggregator#commitAggregationBatch: Current note tree root mismatch!"
-        );
-        require(
-            _nullifiersTreeRoot == oldNullifiersTreeRoot,
-            "CurvyAggregator#commitAggregationBatch: Current nullifier tree root mismatch!"
-        );
+        if (_notesTreeRoot != oldNotesTreeRoot) revert CurrentNoteTreeRootMismatch();
+        if (_nullifiersTreeRoot != oldNullifiersTreeRoot) revert CurrentNullifierTreeRootMismatch();
 
-        require(
-            aggregationVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs),
-            "CurvyAggregator#commitAggregationBatch: Invalid proof!"
-        );
+        if (!aggregationVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs)) revert InvalidProof();
 
         // Update the roots of the trees
         _notesTreeRoot = newNotesTreeRoot;
@@ -214,19 +196,10 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         uint256[2] memory proof_c,
         uint256[9] memory publicInputs
     ) public returns (bool) {
-        require(
-            publicInputs[2] == _nullifiersTreeRoot,
-            "CurvyAggregator#commitWithdrawalBatch: Current nullifier tree root mismatch!"
-        );
-        require(
-            publicInputs[1] == _notesTreeRoot,
-            "CurvyAggregator#commitWithdrawalBatch: Current note tree root mismatch!"
-        );
+        if (publicInputs[2] != _nullifiersTreeRoot) revert CurrentNullifierTreeRootMismatch();
+        if (publicInputs[1] != _notesTreeRoot) revert CurrentNoteTreeRootMismatch();
 
-        require(
-            withdrawVerifierV3.verifyProof(proof_a, proof_b, proof_c, publicInputs),
-            "CurvyAggregator#commitWithdrawalBatch: Invalid withdraw proof!"
-        );
+        if (!withdrawVerifierV3.verifyProof(proof_a, proof_b, proof_c, publicInputs)) revert InvalidProof();
 
         // Update the root of the nullifier tree
         _nullifiersTreeRoot = publicInputs[0];

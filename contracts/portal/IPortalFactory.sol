@@ -4,29 +4,45 @@ pragma solidity ^0.8.28;
 import { CurvyTypes } from "../utils/Types.sol";
 
 interface IPortalFactory {
+    //#region Errors
+
+    error UnsuppotedShielding();
+    error DeploymentFailed();
+    error UnsupportedBridging();
+
+    //#endregion
+
+    //#region Public functions
+
     function updateConfig(
         address curvyVaultProxyAddress,
         address curvyAggregatorAlphaProxyAddress,
         address lifiDiamondAddress
     ) external returns (bool);
 
-    function getCreationCode(uint256 ownerHash, address recovery) external pure returns (bytes memory);
+    function getCreationCode(uint256 ownerHash, address exitAddress, uint256 exitChainId, address recovery) external pure returns (bytes memory);
 
-    function getPortalAddress(uint256 ownerHash, address recovery) external view returns (address);
+    function getEntryPortalAddress(uint256 ownerHash, address recovery) external view returns (address);
+
+    function getExitPortalAddress(address exitAddress, uint256 exitChainId, address recovery) external view returns (address);
 
     function portalIsRegistered(address portalAddress) external view returns (bool);
 
-    function deployAndShield(CurvyTypes.Note memory note, address recovery) external payable;
+    function deployShieldPortal(CurvyTypes.Note memory note, address recovery) external payable;
 
-    function deployAndBridge(
+    function deployEntryBridgePortal(
         bytes calldata bridgeData,
         CurvyTypes.Note memory note,
         address recovery
     ) external;
 
-    function deployAndExitBridge(
+    function deployExitBridgePortal(
         bytes calldata bridgeData,
         uint256 amount,
+        address exitAddress,
+        uint256 exitChainId,
         address recovery
     ) external;
+
+    //#endregion
 }

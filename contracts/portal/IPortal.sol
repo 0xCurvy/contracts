@@ -6,13 +6,14 @@ import {CurvyTypes} from "../utils/Types.sol";
 interface IPortal {
     //#region Errors
 
+    error InvalidOwnerHashOrExitBridgeData();
     error InvalidLiFiAddress();
     error InvalidRecoveryAddress();
-    error InvalidReceiver();
-    error InvalidDestinationChain();
+    error InvalidLiFiReceiver();
+    error InvalidLiFiDestinationChain();
     error InvalidOwnerHash();
-    error InsufficientAmountForBridging();
-    error InsufficientBalanceForBridging();
+    error InsufficientAmountForLiFiBridging();
+    error InsufficientBalanceForLiFiBridging();
     error InvalidSignatureOrTamperedData();
     error BridgeCallFailed();
 
@@ -50,7 +51,7 @@ interface IPortal {
         address curvyVaultProxyAddress
     ) external;
 
-    function bridge(address lifiDiamondAddress, bytes calldata bridgeData, CurvyTypes.Note memory note) external;
+    function entryBridge(address lifiDiamondAddress, bytes calldata bridgeData, CurvyTypes.Note memory note) external;
 
     function exitBridge(address lifiDiamondAddress, uint256 amount, bytes calldata bridgeData) external;
 

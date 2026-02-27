@@ -1,12 +1,12 @@
-    // SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
 
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./ICurvyVaultV2.sol";
-import {CurvyTypes} from "../utils/Types.sol";
+import { CurvyTypes } from "../utils/Types.sol";
 
 contract CurvyVaultV5 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
@@ -18,9 +18,10 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
 
     uint96 private constant FEE_DENOMINATOR = 10000;
 
-    bytes32 private constant CURVY_META_TRANSACTION_TYPE_HASH = keccak256(
-        "CurvyMetaTransaction(uint256 nonce,address from,address to,uint256 tokenId,uint256 amount,uint256 gasFee,uint8 metaTransactionType)"
-    );
+    bytes32 private constant CURVY_META_TRANSACTION_TYPE_HASH =
+        keccak256(
+            "CurvyMetaTransaction(uint256 nonce,address from,address to,uint256 tokenId,uint256 amount,uint256 gasFee,uint8 metaTransactionType)"
+        );
 
     //#endregion
 
@@ -70,7 +71,7 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
     //#region Owner functions
 
     function registerToken(address tokenAddress) external onlyOwner {
-        require(_tokenAddressToTokenId[tokenAddress] == 0, "CurvyVault#registerToken: Token already registered!");
+        if (_tokenAddressToTokenId[tokenAddress] == 0) revert TokenAllreadyRegistered();
 
         // Register ID
         _numberOfTokens++;
@@ -83,7 +84,7 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
 
     function unsupportToken(address tokenAddress) external onlyOwner {
         uint256 tokenId = _tokenAddressToTokenId[tokenAddress];
-        require(tokenId != 0, "CurvyVault#unsupportToken: Token not registered!");
+        if (tokenId == 0) revert TokenNotRegistered();
 
         // Remove from both mappings
         _tokenAddressToTokenId[tokenAddress] = 0;
@@ -93,13 +94,9 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
     }
 
     function setFeeAmount(CurvyTypes.FeeUpdate calldata feeUpdate) external onlyOwner {
-        if (feeUpdate.depositFee != 0) {
-            depositFee = feeUpdate.depositFee;
-        } else if (feeUpdate.withdrawalFee != 0) {
-            withdrawalFee = feeUpdate.withdrawalFee;
-        } else {
-            revert("CurvyVault#setFeeAmount: No fee update!");
-        }
+        if (feeUpdate.depositFee != 0) depositFee = feeUpdate.depositFee;
+        else if (feeUpdate.withdrawalFee != 0) withdrawalFee = feeUpdate.withdrawalFee;
+        else revert NoFeeUpdate();
 
         emit FeeChange(feeUpdate);
     }
@@ -110,20 +107,22 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
     }
 
     function forceWithdrawal(uint256 amount, address destinationAddress, uint256 tokenId) external onlyOwner {
-        require(destinationAddress != address(0), "CurvyVault#forceWithdrawal: Invalid destination address!");
+        if (destinationAddress == address(0)) revert InvalidDestinationAddress();
 
         // Burn wrapped tokens
         _balances[destinationAddress][tokenId] -= amount;
 
         address tokenAddress = _tokenIdToTokenAddress[tokenId];
-        require(tokenAddress != address(0), "CurvyVault#forceWithdrawal: Token not registered!");
+        if (tokenAddress == address(0)) {
+            revert TokenNotRegistered();
+        }
 
         if (tokenId != ETH_ID) {
             // We are withdrawing ERC20s
             IERC20(tokenAddress).safeTransfer(destinationAddress, amount);
         } else {
             // We are withdrawing ETH
-            (bool success,) = destinationAddress.call{value: amount}("");
+            (bool success, ) = destinationAddress.call{ value: amount }("");
             if (!success) revert ETHTransferFailed();
         }
     }
@@ -137,7 +136,7 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
     }
 
     function deposit(address tokenAddress, address to, uint256 amount, uint256 gasSponsorshipAmount) public payable {
-        require(msg.sender == _curvyAggregator, "Only CurvyAggregator can do vault deposits through portal autoShield");
+        if (msg.sender != _curvyAggregator) revert NotCurvyAggregator();
 
         if (to == address(0x0)) revert InvalidRecipient();
 
@@ -145,7 +144,7 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
 
         if (tokenAddress != ETH_ADDRESS) {
             // We are depositing ERC20
-            require(msg.value == 0, "CurvyVault#deposit: Don't send ETH with ERC20 deposit!");
+            if (msg.value != 0) revert ERC20TransferFailed();
 
             IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), amount);
 
@@ -153,7 +152,7 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
             if (tokenId == 0) revert TokenNotRegistered();
         } else {
             // We are depositing ETH
-            require(amount == msg.value, "CurvyVault#deposit: Incorrect deposit value!");
+            if (amount != msg.value) revert ETHTransferFailed();
             tokenId = ETH_ID;
         }
 
@@ -173,9 +172,9 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
     }
 
     function withdraw(uint256 tokenId, address to, uint256 amount) external {
-        require(msg.sender == _curvyAggregator || msg.sender == owner(), "CurvyVault#withdraw: Unauthorized");
-        require(to != address(0), "CurvyVault#withdraw: Invalid withdraw recipient!");
-        require(withdrawalFee != 0, "CurvyVault#withdraw: Withdrawal fee not set!");
+        if (msg.sender != _curvyAggregator && msg.sender != owner()) revert NotCurvyAggregatorOrOwner();
+        if (to == address(0)) revert InvalidRecipient();
+        if (withdrawalFee == 0) revert NoFeeUpdate();
 
         uint256 feeAmount = (amount * withdrawalFee) / FEE_DENOMINATOR;
         // Burn wrapped tokens
@@ -183,7 +182,7 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
         _balances[owner()][tokenId] += feeAmount;
 
         address tokenAddress = _tokenIdToTokenAddress[tokenId];
-        require(tokenAddress != address(0), "CurvyVault#withdraw: Token not registered!");
+        if (tokenAddress == address(0)) revert TokenNotRegistered();
 
         // Withdraw
         if (tokenId != ETH_ID) {
@@ -191,7 +190,7 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
             IERC20(tokenAddress).safeTransfer(to, amount - feeAmount);
         } else {
             // We are withdrawing ETH
-            (bool success,) = to.call{value: amount - feeAmount}("");
+            (bool success, ) = to.call{ value: amount - feeAmount }("");
             if (!success) revert ETHTransferFailed();
         }
 
@@ -204,13 +203,13 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
 
     function getTokenAddress(uint256 tokenId) public view returns (address tokenAddress) {
         tokenAddress = _tokenIdToTokenAddress[tokenId];
-        require(tokenAddress != address(0x0), "CurvyVault:#getIdAddress: Unregistered token!");
+        if (tokenAddress == address(0)) revert TokenNotRegistered();
         return tokenAddress;
     }
 
     function getTokenId(address tokenAddress) public view returns (uint256 tokenId) {
         tokenId = _tokenAddressToTokenId[tokenAddress];
-        require(tokenId != 0, "CurvyVault:#getTokenId: Unregistered token!");
+        if (tokenId == 0) revert TokenNotRegistered();
         return tokenId;
     }
 
