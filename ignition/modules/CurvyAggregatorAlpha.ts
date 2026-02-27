@@ -122,7 +122,7 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
 
   const curvyAggregatorAlpha = m.contractAt("CurvyAggregatorAlphaV5", proxy);
 
-  const withdrawVerifierV3 = m.contract(`CurvyWithdrawVerifierAlpha_${maxWithdrawals}`, [], {
+  const withdrawVerifierV3 = m.contract(`CurvyWithdrawVerifierAlphaV3_${maxWithdrawals}`, [], {
     id: "withdrawVerifierV3",
     after: [curvyAggregatorAlpha],
   });
@@ -136,14 +136,15 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
         aggregationVerifier: "0x0000000000000000000000000000000000000000",
         withdrawVerifier: withdrawVerifierV3,
         curvyVault: "0x0000000000000000000000000000000000000000",
+        portalFactory: "0x0000000000000000000000000000000000000000",
         maxDeposits: 0,
         maxAggregations: 0,
         maxWithdrawals: 0,
       },
     ],
     {
-      id: "UpdateConfig_WithNewVerifiers",
-      after: [withdrawVerifierV3],
+      id: "UpdateConfig_withdrawVerifierV3",
+      after: [updateNewVerifiers],
     },
   );
 
