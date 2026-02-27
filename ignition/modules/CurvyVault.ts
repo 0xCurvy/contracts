@@ -36,5 +36,5 @@ export default buildModule("CurvyVault", (m) => {
   m.call(curvyVaultV4, "upgradeToAndCall", [implementationV5, "0x"]);
   const curvyVault = m.contractAt("CurvyVaultV5", proxy);
 
-  return { implementation: implementationV4, proxy, curvyVault };
+  return { implementation: implementationV5, proxy, curvyVault };
 });

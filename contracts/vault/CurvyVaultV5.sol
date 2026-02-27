@@ -175,28 +175,23 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
     function withdraw(uint256 tokenId, address to, uint256 amount) external {
         require(msg.sender == _curvyAggregator || msg.sender == owner(), "CurvyVault#withdraw: Unauthorized");
         require(to != address(0), "CurvyVault#withdraw: Invalid withdraw recipient!");
+        require(withdrawalFee != 0, "CurvyVault#withdraw: Withdrawal fee not set!");
 
+        uint256 feeAmount = (amount * withdrawalFee) / FEE_DENOMINATOR;
         // Burn wrapped tokens
         _balances[msg.sender][tokenId] -= amount;
+        _balances[owner()][tokenId] += feeAmount;
 
-        // Collect fees if they are set
-        if (withdrawalFee != 0) {
-            uint256 feeAmount = (amount * withdrawalFee) / FEE_DENOMINATOR;
-            _balances[msg.sender][tokenId] -= feeAmount;
-            _balances[owner()][tokenId] += feeAmount;
-        }
-
-        // TODO: See what to do when token is delisted
         address tokenAddress = _tokenIdToTokenAddress[tokenId];
         require(tokenAddress != address(0), "CurvyVault#withdraw: Token not registered!");
 
         // Withdraw
         if (tokenId != ETH_ID) {
             // We are withdrawing ERC20s
-            IERC20(tokenAddress).safeTransfer(to, amount);
+            IERC20(tokenAddress).safeTransfer(to, amount - feeAmount);
         } else {
             // We are withdrawing ETH
-            (bool success,) = to.call{value: amount}("");
+            (bool success,) = to.call{value: amount - feeAmount}("");
             if (!success) revert ETHTransferFailed();
         }
 
