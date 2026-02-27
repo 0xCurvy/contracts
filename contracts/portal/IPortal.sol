@@ -1,12 +1,45 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
 
-import { CurvyTypes } from "../utils/Types.sol";
+import {CurvyTypes} from "../utils/Types.sol";
 
 interface IPortal {
     //#region Errors
 
+    error InvalidOwnerHashOrExitBridgeData();
+    error InvalidLiFiAddress();
+    error InvalidRecoveryAddress();
+    error InvalidLiFiReceiver();
+    error InvalidLiFiDestinationChain();
     error InvalidOwnerHash();
+    error InsufficientAmountForLiFiBridging();
+    error InsufficientBalanceForLiFiBridging();
+    error InvalidSignatureOrTamperedData();
+    error BridgeCallFailed();
+
+    //#endregion
+
+    //#region Events
+
+    /// @notice Emitted when a shielding attempt fails
+    event ShieldingFailed(uint256 indexed ownerHash, address indexed token, uint256 amount, string reason);
+
+    //#endregion
+
+    //#region Structs
+
+    struct LiFiBridgeData {
+        bytes32 transactionId;
+        string bridge;
+        string integrator;
+        address referrer;
+        address sendingAssetId;
+        address receiver;
+        uint256 minAmount;
+        uint256 destinationChainId;
+        bool hasSourceSwaps;
+        bool hasDestinationCall;
+    }
 
     //#endregion
 
@@ -18,12 +51,9 @@ interface IPortal {
         address curvyVaultProxyAddress
     ) external;
 
-    function bridge(
-        address lifiDiamondAddress,
-        bytes calldata bridgeData,
-        CurvyTypes.Note memory note,
-        address tokenAddress
-    ) external;
+    function entryBridge(address lifiDiamondAddress, bytes calldata bridgeData, CurvyTypes.Note memory note) external;
+
+    function exitBridge(address lifiDiamondAddress, uint256 amount, bytes calldata bridgeData) external;
 
     /**
      * @notice Used by the user to recover funds from the Portal.

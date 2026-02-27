@@ -23,13 +23,18 @@ export default buildModule("CurvyVault", (m) => {
   const implementationV3 = m.contract("CurvyVaultV3", [], { id: "CurvyVaultV3Implementation" });
   m.call(curvyVaultV2, "upgradeToAndCall", [implementationV3, "0x"]);
 
-  const curvyVault3 = m.contractAt("CurvyVaultV3", proxy);
+  const curvyVaultV3 = m.contractAt("CurvyVaultV3", proxy);
 
   // This version fixes the bug with gas sponsorship when transferring
   const implementationV4 = m.contract("CurvyVaultV4", [], { id: "CurvyVaultV4Implementation" });
-  m.call(curvyVault3, "upgradeToAndCall", [implementationV4, "0x"]);
-  const curvyVault = m.contractAt("CurvyVaultV4", proxy);
+  m.call(curvyVaultV3, "upgradeToAndCall", [implementationV4, "0x"]);
 
+  const curvyVaultV4 = m.contractAt("CurvyVaultV4", proxy);
 
-  return { implementation: implementationV4, proxy, curvyVault };
+  // This version removes EIP712 metatractions, transfers, and fee structures in favor of a simpler generic interface.
+  const implementationV5 = m.contract("CurvyVaultV5", [], { id: "CurvyVaultV5Implementation" });
+  m.call(curvyVaultV4, "upgradeToAndCall", [implementationV5, "0x"]);
+  const curvyVault = m.contractAt("CurvyVaultV5", proxy);
+
+  return { implementation: implementationV5, proxy, curvyVault };
 });

@@ -105,9 +105,48 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
     after: [updateNewVerifiers],
   });
 
-  m.call(curvyAggregatorAlphaV3, "upgradeToAndCall", [implementationV4, "0x"]);
+  const upgradeV4 = m.call(curvyAggregatorAlphaV3, "upgradeToAndCall", [implementationV4, "0x"], { id: "CurvyAggregatorAlphaV4Upgrade", after: [implementationV4] });
 
-  const curvyAggregatorAlpha = m.contractAt("CurvyAggregatorAlphaV4", proxy);
+  const curvyAggregatorAlphaV4 = m.contractAt("CurvyAggregatorAlphaV4", proxy);
 
-  return { implementation: implementationV4, proxy, curvyAggregatorAlpha };
+  // This implementation relies on vault's withdraw instead of transfer and includes forceWithdrawal
+  const implementationV5 = m.contract("CurvyAggregatorAlphaV5", [], {
+    id: "CurvyAggregatorAlphaV5Implementation",
+    libraries: {
+      PoseidonT4: poseidonT4,
+    },
+    after: [upgradeV4],
+  });
+
+  const upgradeV5 = m.call(curvyAggregatorAlphaV4, "upgradeToAndCall", [implementationV5, "0x"]);
+
+  const curvyAggregatorAlpha = m.contractAt("CurvyAggregatorAlphaV5", proxy);
+
+  const withdrawVerifierV3 = m.contract(`CurvyWithdrawVerifierAlphaV3_${maxWithdrawals}`, [], {
+    id: "withdrawVerifierV3",
+    after: [upgradeV5],
+  });
+
+  m.call(
+    curvyAggregatorAlpha,
+    "updateConfig",
+    [
+      {
+        insertionVerifier: "0x0000000000000000000000000000000000000000",
+        aggregationVerifier: "0x0000000000000000000000000000000000000000",
+        withdrawVerifier: withdrawVerifierV3,
+        curvyVault: "0x0000000000000000000000000000000000000000",
+        portalFactory: "0x0000000000000000000000000000000000000000",
+        maxDeposits: 0,
+        maxAggregations: 0,
+        maxWithdrawals: 0,
+      },
+    ],
+    {
+      id: "UpdateConfig_withdrawVerifierV3",
+      after: [withdrawVerifierV3],
+    },
+  );
+
+  return { implementation: implementationV5, proxy, curvyAggregatorAlpha };
 });
