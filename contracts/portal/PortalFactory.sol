@@ -73,7 +73,7 @@ contract PortalFactory is IPortalFactory, Ownable {
 
     function deployShieldPortal(CurvyTypes.Note memory note, address recovery) public payable onlyOwner {
         if (_curvyVaultProxyAddress == address(0) || _curvyAggregatorAlphaProxyAddress == address(0)) {
-            revert UnsuppotedShielding();
+            revert UnsupportedShielding();
         }
 
         bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash, address(0), 0, recovery);

@@ -6,7 +6,7 @@ import { CurvyTypes } from "../utils/Types.sol";
 interface IPortalFactory {
     //#region Errors
 
-    error UnsuppotedShielding();
+    error UnsupportedShielding();
     error DeploymentFailed();
     error UnsupportedBridging();
 

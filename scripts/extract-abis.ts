@@ -28,8 +28,8 @@ async function main() {
   };
 
   const contractImplementations: Record<string, string> = {
-    CurvyAggregatorAlpha: "CurvyAggregatorAlphaV4Implementation",
-    CurvyVault: "CurvyVaultV3Implementation",
+    CurvyAggregatorAlpha: "CurvyAggregatorAlphaV5Implementation",
+    CurvyVault: "CurvyVaultV5Implementation",
     PortalFactory: "PortalFactory",
     Multicall3: "Multicall3",
   };

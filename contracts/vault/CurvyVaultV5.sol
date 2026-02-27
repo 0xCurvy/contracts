@@ -71,7 +71,7 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, UUPSUpgradeable, OwnableU
     //#region Owner functions
 
     function registerToken(address tokenAddress) external onlyOwner {
-        if (_tokenAddressToTokenId[tokenAddress] == 0) revert TokenAllreadyRegistered();
+        if (_tokenAddressToTokenId[tokenAddress] != 0) revert TokenAllreadyRegistered();
 
         // Register ID
         _numberOfTokens++;
