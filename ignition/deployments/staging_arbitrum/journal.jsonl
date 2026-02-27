@@ -415,3 +415,4 @@
 {"futureId":"MainDeploymentModule#CurvyVault~CurvyVaultV5.setCurvyAggregatorAddress","result":{"type":"SUCCESS"},"type":"CALL_EXECUTION_STATE_COMPLETE"}
 {"futureId":"MainDeploymentModule#PortalFactory~PortalFactory_ContractAt_V2.updateConfig","hash":"0x09dcc2a8a199fb3b29e66a56c222d2c9ddc35d2dc62ef2b410d481b3a20d9259","networkInteractionId":1,"receipt":{"blockHash":"0x7a38767ee68a4a34d9dc6739068f18aa673b62b71cb9c410f6c87191e099dbfe","blockNumber":436627663,"logs":[],"status":"SUCCESS"},"type":"TRANSACTION_CONFIRM"}
 {"futureId":"MainDeploymentModule#PortalFactory~PortalFactory_ContractAt_V2.updateConfig","result":{"type":"SUCCESS"},"type":"CALL_EXECUTION_STATE_COMPLETE"}
+{"futureId":"TokenBridgeModule#TokenBridge","type":"WIPE_APPLY"}

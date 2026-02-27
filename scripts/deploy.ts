@@ -28,6 +28,7 @@ async function main() {
         `${environment}_${networkName}`,
         "--network",
         networkName,
+        "--verify",
         "./ignition/modules/MainDeployment.ts",
       ]);
     } else {
