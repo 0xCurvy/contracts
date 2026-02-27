@@ -105,7 +105,7 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
     after: [updateNewVerifiers],
   });
 
-  m.call(curvyAggregatorAlphaV3, "upgradeToAndCall", [implementationV4, "0x"]);
+  const upgradeV4 = m.call(curvyAggregatorAlphaV3, "upgradeToAndCall", [implementationV4, "0x"], { id: "CurvyAggregatorAlphaV4Upgrade", after: [implementationV4] });
 
   const curvyAggregatorAlphaV4 = m.contractAt("CurvyAggregatorAlphaV4", proxy);
 
@@ -115,19 +115,19 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
     libraries: {
       PoseidonT4: poseidonT4,
     },
-    after: [curvyAggregatorAlphaV4],
+    after: [upgradeV4],
   });
 
-  m.call(curvyAggregatorAlphaV4, "upgradeToAndCall", [implementationV5, "0x"]);
+  const upgradeV5 = m.call(curvyAggregatorAlphaV4, "upgradeToAndCall", [implementationV5, "0x"]);
 
   const curvyAggregatorAlpha = m.contractAt("CurvyAggregatorAlphaV5", proxy);
 
   const withdrawVerifierV3 = m.contract(`CurvyWithdrawVerifierAlphaV3_${maxWithdrawals}`, [], {
     id: "withdrawVerifierV3",
-    after: [curvyAggregatorAlpha],
+    after: [upgradeV5],
   });
 
-  const updateWithdrawVerifier = m.call(
+  m.call(
     curvyAggregatorAlpha,
     "updateConfig",
     [
@@ -144,7 +144,7 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
     ],
     {
       id: "UpdateConfig_withdrawVerifierV3",
-      after: [updateNewVerifiers],
+      after: [withdrawVerifierV3],
     },
   );
 
