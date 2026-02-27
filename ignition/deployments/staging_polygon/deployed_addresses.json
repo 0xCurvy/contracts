@@ -1,5 +1,6 @@
 {
   "PortalFactoryModule#PortalFactory": "0xbaEF1916444145c7101B63A6cA5aCc9Aba39a99c",
   "PortalFactory#CreateX": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
-  "PortalFactory#PortalFactory": "0x0e25ECebf24A7bDE1655DEd9630a3e75A75Df6BD"
+  "PortalFactory#PortalFactory": "0x0e25ECebf24A7bDE1655DEd9630a3e75A75Df6BD",
+  "PortalFactory#PortalFactory_ContractAt_V2": "0xb10abCB62f50DefF589754db1d9B548eF808B101"
 }

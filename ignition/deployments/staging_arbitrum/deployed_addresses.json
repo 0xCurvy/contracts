@@ -28,5 +28,11 @@
   "CurvyVault#CurvyVaultV3Implementation": "0x462cCE3584E47380Ae71E08f4999d069C337F5B5",
   "PortalFactory#PortalFactory": "0x0e25ECebf24A7bDE1655DEd9630a3e75A75Df6BD",
   "CurvyVault#CurvyVaultV4": "0xB61F0c208356Df565Bde02dCEd33C896F6b0F939",
-  "CurvyVault#CurvyVaultV4Implementation": "0x17D28314B184e924574132E4454A345378bE5336"
+  "CurvyVault#CurvyVaultV4Implementation": "0x17D28314B184e924574132E4454A345378bE5336",
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV5": "0xE01eE56C613175502c8e677774eaCbBB2738674C",
+  "CurvyVault#CurvyVaultV5": "0xB61F0c208356Df565Bde02dCEd33C896F6b0F939",
+  "CurvyVault#CurvyVaultV5Implementation": "0xAf0A98Be297226425bb83D146D2bc51a90869983",
+  "CurvyAggregatorAlpha#CurvyAggregatorAlphaV5Implementation": "0xB1542b6b5A963301C64467FABB36C1F9A84b2dB5",
+  "CurvyAggregatorAlpha#withdrawVerifierV3": "0x3B81e33Aa5bE0FF8B8ae0C2fd3200450e3a8d477",
+  "PortalFactory#PortalFactory_ContractAt_V2": "0xb10abCB62f50DefF589754db1d9B548eF808B101"
 }
