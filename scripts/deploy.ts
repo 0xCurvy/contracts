@@ -9,7 +9,7 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
 }
 
 async function main() {
-  const networks = ["sepolia", "arbitrum", "ethereum", "base", "optimism", "polygon", "bsc", "gnosis", "linea"];
+  const networks = ["gnosis"];
   const environment = process.env.ENVIRONMENT;
 
   if (environment !== "staging" && environment !== "production") {

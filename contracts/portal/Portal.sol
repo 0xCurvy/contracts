@@ -56,13 +56,13 @@ contract Portal is IPortal, SingleUse {
         return abi.decode(txData[4:], (LiFiBridgeData));
     }
 
-    function _bridge(address lifiDiamondAddress, bytes calldata bridgeData, address sendingAssetId, uint256 amount) internal {
+    function _bridge(address lifiDiamondAddress, bytes calldata bridgeData, uint256 amount, address currency ) internal {
         if (lifiDiamondAddress == address(0)) {
             revert InvalidLiFiAddress();
         }
         
-        if (sendingAssetId != address(0) && sendingAssetId != NATIVE_ETH) {
-            IERC20 token = IERC20(sendingAssetId);
+        if (currency != address(0) && currency != NATIVE_ETH) {
+            IERC20 token = IERC20(currency);
 
             uint256 balance = token.balanceOf(address(this));
             if (balance < amount) {
@@ -129,7 +129,7 @@ contract Portal is IPortal, SingleUse {
         }
     }
 
-    function entryBridge(address lifiDiamondAddress, bytes calldata bridgeData, CurvyTypes.Note memory note)
+    function entryBridge(address lifiDiamondAddress, bytes calldata bridgeData, CurvyTypes.Note memory note, address currency)
         external
         onlyOnce
     {
@@ -151,10 +151,10 @@ contract Portal is IPortal, SingleUse {
             revert InsufficientAmountForLiFiBridging();
         }
 
-        _bridge(lifiDiamondAddress, bridgeData, data.sendingAssetId, note.amount);
+        _bridge(lifiDiamondAddress, bridgeData, note.amount,currency );
     }
 
-    function exitBridge(address lifiDiamondAddress, uint256 amount, bytes calldata bridgeData)
+    function exitBridge(address lifiDiamondAddress, bytes calldata bridgeData, uint256 amount, address currency)
         external
         onlyOnce
     {
@@ -168,6 +168,6 @@ contract Portal is IPortal, SingleUse {
             revert InvalidLiFiDestinationChain();
         }
 
-        _bridge(lifiDiamondAddress, bridgeData, data.sendingAssetId, amount);
+        _bridge(lifiDiamondAddress, bridgeData, amount,currency );
     }
 }

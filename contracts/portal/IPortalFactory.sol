@@ -33,12 +33,14 @@ interface IPortalFactory {
     function deployEntryBridgePortal(
         bytes calldata bridgeData,
         CurvyTypes.Note memory note,
+        address currency,
         address recovery
     ) external;
 
     function deployExitBridgePortal(
         bytes calldata bridgeData,
         uint256 amount,
+        address currency,
         address exitAddress,
         uint256 exitChainId,
         address recovery

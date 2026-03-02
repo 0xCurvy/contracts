@@ -51,9 +51,9 @@ interface IPortal {
         address curvyVaultProxyAddress
     ) external;
 
-    function entryBridge(address lifiDiamondAddress, bytes calldata bridgeData, CurvyTypes.Note memory note) external;
+    function entryBridge(address lifiDiamondAddress, bytes calldata bridgeData, CurvyTypes.Note memory note, address currency) external;
 
-    function exitBridge(address lifiDiamondAddress, uint256 amount, bytes calldata bridgeData) external;
+    function exitBridge(address lifiDiamondAddress, bytes calldata bridgeData, uint256 amount, address currency) external;
 
     /**
      * @notice Used by the user to recover funds from the Portal.

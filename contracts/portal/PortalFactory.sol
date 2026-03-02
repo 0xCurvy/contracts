@@ -99,7 +99,7 @@ contract PortalFactory is IPortalFactory, Ownable {
         IPortal(portalAddress).shield(note, _curvyAggregatorAlphaProxyAddress, _curvyVaultProxyAddress);
     }
 
-    function deployEntryBridgePortal(bytes calldata bridgeData, CurvyTypes.Note memory note, address recovery) public {
+    function deployEntryBridgePortal(bytes calldata bridgeData, CurvyTypes.Note memory note, address currency, address recovery) public {
         if (_lifiDiamondAddress == address(0)) {
             revert UnsupportedBridging();
         }
@@ -122,12 +122,13 @@ contract PortalFactory is IPortalFactory, Ownable {
             revert DeploymentFailed();
         }
 
-        IPortal(portalAddress).entryBridge(_lifiDiamondAddress, bridgeData, note);
+        IPortal(portalAddress).entryBridge(_lifiDiamondAddress, bridgeData, note, currency);
     }
 
     function deployExitBridgePortal(
         bytes calldata bridgeData,
         uint256 amount,
+        address currency,
         address exitAddress,
         uint256 exitChainId,
         address recovery
@@ -154,6 +155,6 @@ contract PortalFactory is IPortalFactory, Ownable {
             revert DeploymentFailed();
         }
 
-        IPortal(portalAddress).exitBridge(_lifiDiamondAddress, amount, bridgeData);
+        IPortal(portalAddress).exitBridge(_lifiDiamondAddress, bridgeData, amount, currency);
     }
 }

@@ -34,5 +34,6 @@
   "CurvyVault#CurvyVaultV5Implementation": "0xeBe1e53243717A8bf064BeE8fE5A643d8c276845",
   "CurvyAggregatorAlpha#CurvyAggregatorAlphaV5Implementation": "0xB1542b6b5A963301C64467FABB36C1F9A84b2dB5",
   "CurvyAggregatorAlpha#withdrawVerifierV3": "0x3B81e33Aa5bE0FF8B8ae0C2fd3200450e3a8d477",
-  "PortalFactory#PortalFactory_ContractAt_V2": "0xb10abCB62f50DefF589754db1d9B548eF808B101"
+  "PortalFactory#PortalFactory_ContractAt_V2": "0xb10abCB62f50DefF589754db1d9B548eF808B101",
+  "PortalFactory#PortalFactory_V3": "0xc20a3681b8fa35A68479DE698e65A6403B8031DE"
 }

@@ -105,7 +105,10 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
     after: [updateNewVerifiers],
   });
 
-  const upgradeV4 = m.call(curvyAggregatorAlphaV3, "upgradeToAndCall", [implementationV4, "0x"], { id: "CurvyAggregatorAlphaV4Upgrade", after: [implementationV4] });
+  const upgradeV4 = m.call(curvyAggregatorAlphaV3, "upgradeToAndCall", [implementationV4, "0x"], {
+    id: "CurvyAggregatorAlphaV4Upgrade",
+    after: [implementationV4],
+  });
 
   const curvyAggregatorAlphaV4 = m.contractAt("CurvyAggregatorAlphaV4", proxy);
 
@@ -127,26 +130,5 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
     after: [upgradeV5],
   });
 
-  m.call(
-    curvyAggregatorAlpha,
-    "updateConfig",
-    [
-      {
-        insertionVerifier: "0x0000000000000000000000000000000000000000",
-        aggregationVerifier: "0x0000000000000000000000000000000000000000",
-        withdrawVerifier: withdrawVerifierV3,
-        curvyVault: "0x0000000000000000000000000000000000000000",
-        portalFactory: "0x0000000000000000000000000000000000000000",
-        maxDeposits: 0,
-        maxAggregations: 0,
-        maxWithdrawals: 0,
-      },
-    ],
-    {
-      id: "UpdateConfig_withdrawVerifierV3",
-      after: [withdrawVerifierV3],
-    },
-  );
-
-  return { implementation: implementationV5, proxy, curvyAggregatorAlpha };
+  return { implementation: implementationV5, proxy, curvyAggregatorAlpha, withdrawVerifierV3 };
 });

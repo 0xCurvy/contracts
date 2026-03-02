@@ -6,7 +6,11 @@ import { getNetworkParameter } from "./utils/parameters";
 
 export default buildModule("MainDeploymentModule", (m) => {
   // Deploy the contracts
-  const { curvyAggregatorAlpha, proxy: curvyAggregatorAlphaProxy } = m.useModule(CurvyAggregatorAlpha);
+  const {
+    curvyAggregatorAlpha,
+    proxy: curvyAggregatorAlphaProxy,
+    withdrawVerifierV3,
+  } = m.useModule(CurvyAggregatorAlpha);
   const { curvyVault, proxy: curvyVaultProxy } = m.useModule(CurvyVault);
   const { portalFactory } = m.useModule(PortalFactory);
 
@@ -18,7 +22,7 @@ export default buildModule("MainDeploymentModule", (m) => {
     {
       insertionVerifier: "0x0000000000000000000000000000000000000000",
       aggregationVerifier: "0x0000000000000000000000000000000000000000",
-      withdrawVerifier: "0x0000000000000000000000000000000000000000",
+      withdrawVerifier: withdrawVerifierV3,
       curvyVault: curvyVaultProxy,
       portalFactory: portalFactory,
       maxDeposits: BigInt(0),
