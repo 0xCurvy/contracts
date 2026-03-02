@@ -40,14 +40,6 @@ contract Portal is IPortal, SingleUse {
     }
 
     /**
-     * @dev Use this if the bridgeCallData is purely the ABI-encoded struct
-     * (e.g., it was encoded using abi.encode(bridgeData))
-     */
-    function _decodeBridgeDataStruct(bytes calldata bridgeCallData) internal pure returns (LiFiBridgeData memory) {
-        return abi.decode(bridgeCallData, (LiFiBridgeData));
-    }
-
-    /**
      * @dev Use this if the bridgeCallData is a full transaction payload
      * where the struct is the very first parameter after the 4-byte function selector.
      */
@@ -158,7 +150,7 @@ contract Portal is IPortal, SingleUse {
         external
         onlyOnce
     {
-        LiFiBridgeData memory data = _decodeBridgeDataStruct(bridgeData);
+        LiFiBridgeData memory data = _decodeBridgeData(bridgeData);
 
         if (data.receiver != _exitAddress) {
             revert InvalidLiFiReceiver();

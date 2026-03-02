@@ -21,16 +21,16 @@ export default buildModule("PortalFactory", (m) => {
   }
 
   const deployCall = m.call(createX, "deployCreate2(bytes32,bytes)", [create2Salt, initCode], {
-    id: "CreateX_PortalFactory_V3",
+    id: "CreateX_PortalFactory_V4",
   });
 
   const deployedAddress = m.readEventArgument(deployCall, "ContractCreation(address,bytes32)", "newContract", {
-    id: "ReadEvent_PortalFactory_V3",
+    id: "ReadEvent_PortalFactory_V4",
     emitter: createX,
   });
 
   const portalFactory = m.contractAt("PortalFactory", deployedAddress, {
-    id: "PortalFactory_V3",
+    id: "PortalFactory_V4",
     after: [deployCall],
   });
 

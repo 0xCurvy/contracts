@@ -2,5 +2,6 @@
   "PortalFactoryModule#PortalFactory": "0xbaEF1916444145c7101B63A6cA5aCc9Aba39a99c",
   "PortalFactory#CreateX": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
   "PortalFactory#PortalFactory": "0x0e25ecebf24a7bde1655ded9630a3e75a75df6bd",
-  "PortalFactory#PortalFactory_ContractAt_V2": "0xb10abCB62f50DefF589754db1d9B548eF808B101"
+  "PortalFactory#PortalFactory_ContractAt_V2": "0xb10abCB62f50DefF589754db1d9B548eF808B101",
+  "PortalFactory#PortalFactory_V4": "0x9f3F6bD0067596FD05AbcA1A6A7D1298D6603730"
 }

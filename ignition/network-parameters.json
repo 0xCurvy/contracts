@@ -7,7 +7,7 @@
   },
   "arbitrum": {
     "mainDeployment": true,
-    "lifiDiamondAddress": "0x0000000000000000000000000000000000000000",
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
     "outputBridgeLifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
     "erc20Addresses": [
       "0xba5DdD1f9d7F570dc94a51479a000E3BCE967196",
