@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
 
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import { EIP712Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./ICurvyVaultV2.sol";
-import { CurvyTypes } from "../utils/Types.sol";
+import {CurvyTypes} from "../utils/Types.sol";
 
 contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUpgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
@@ -19,10 +19,10 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
 
     uint96 private constant FEE_DENOMINATOR = 10000;
 
-    bytes32 private constant CURVY_META_TRANSACTION_TYPE_HASH =
-        keccak256(
-            "CurvyMetaTransaction(uint256 nonce,address from,address to,uint256 tokenId,uint256 amount,uint256 gasFee,uint8 metaTransactionType)"
-        );
+    // DEPRECATED: This is no longer used, but because of storage layout it *MUST* not be deleted
+    bytes32 private constant CURVY_META_TRANSACTION_TYPE_HASH = keccak256(
+        "CurvyMetaTransaction(uint256 nonce,address from,address to,uint256 tokenId,uint256 amount,uint256 gasFee,uint8 metaTransactionType)"
+    );
 
     //#endregion
 
@@ -39,6 +39,7 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
     mapping(uint256 => address) private _tokenIdToTokenAddress;
 
     uint96 public depositFee;
+    // DEPRECATED: This is no longer used, but because of storage layout it *MUST* not be deleted
     uint96 public transferFee;
     uint96 public withdrawalFee;
 
@@ -53,6 +54,7 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
         _disableInitializers();
     }
 
+    // TODO: Write docs whether this should be here or not. Also return missing EIP712_Init even if we don't use it not to cause confusion
     function initialize(address initialOwner) public initializer {
         // Set native currency (ETH) in the token mappings
         _tokenAddressToTokenId[ETH_ADDRESS] = ETH_ID;
@@ -83,6 +85,7 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
         emit TokenRegistration(tokenAddress, _numberOfTokens);
     }
 
+    // TODO: Rename to deregisterToken
     function unsupportToken(address tokenAddress) external onlyOwner {
         uint256 tokenId = _tokenAddressToTokenId[tokenAddress];
         if (tokenId == 0) revert TokenNotRegistered();
@@ -91,6 +94,7 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
         _tokenAddressToTokenId[tokenAddress] = 0;
         _tokenIdToTokenAddress[tokenId] = address(0);
 
+        // TODO: Rename to TokenDeregistered
         emit TokenUnsupported(tokenAddress, tokenId);
     }
 
@@ -107,6 +111,11 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
         emit CurvyAggregatorAddressChange(curvyAggregator);
     }
 
+    // TODO: Mi smo forceWithdrawal ubacili da bi naterali odredjene korisnike da withdrawuju odredjena sredstva,
+    // medjutim trenutno sredstva ne mogu nikako da se ubace na Vault bez da budu u vlasnistvu aggregatora
+    // te se razmisljam da ili:
+    //   - ucinimo da forceWithdrawal za postojece korisnike moze iskljucivo da withdrawuje na istu FROM adresu (moramo da dodamo check da nikako nije agregator adresa!!!)
+    //   - da uklonimo forceWithdrawal
     function forceWithdrawal(uint256 amount, address destinationAddress, uint256 tokenId) external onlyOwner {
         if (destinationAddress == address(0)) revert InvalidDestinationAddress();
 
@@ -120,10 +129,11 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
 
         if (tokenId != ETH_ID) {
             // We are withdrawing ERC20s
+            // TODO: Da li ce ovo da revertuje?
             IERC20(tokenAddress).safeTransfer(destinationAddress, amount);
         } else {
             // We are withdrawing ETH
-            (bool success, ) = destinationAddress.call{ value: amount }("");
+            (bool success,) = destinationAddress.call{value: amount}("");
             if (!success) revert ETHTransferFailed();
         }
     }
@@ -132,10 +142,13 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
 
     //#region Public functions
 
+    // TODO: Da li ovo mozemo u potpunosti da uklonimo? Sta je fallback fallbcack receive funkcija?
+    // Mi svakako direktno zovemo deposit() iz agregatorovog autoShield, pa nam ovo i ne znaci za regularno koriscenje ali mozda je zgodno da ostavimo ako neko slucajno posalje pare? (ali ako slucajno posalje pare, realno sto bismo imali handling samo za ETH, lako cemo upgrade ako dodje do necega da treba da spasavamo)
     receive() external payable {
         deposit(ETH_ADDRESS, msg.sender, msg.value, 0);
     }
 
+    // TODO: gasSponsorshipAmount nam ne treba u ovom trenutku
     function deposit(address tokenAddress, address to, uint256 amount, uint256 gasSponsorshipAmount) public payable {
         if (msg.sender != _curvyAggregator) revert NotCurvyAggregator();
 
@@ -167,6 +180,7 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
             _balances[owner()][tokenId] += feeAmount;
         }
 
+        // TODO: Sta ovo znaci? Gore smo bukvalno fee uzeli od korisnika
         // No fees or gas sponsorship deducted from balance (removed per requirements)
 
         emit Deposit(tokenAddress, to, amount, gasSponsorshipAmount);
@@ -175,6 +189,7 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
     function withdraw(uint256 tokenId, address to, uint256 amount) external {
         if (msg.sender != _curvyAggregator && msg.sender != owner()) revert NotCurvyAggregatorOrOwner();
         if (to == address(0)) revert InvalidRecipient();
+        // TODO: Zasto nam je ovo bitan check? Ako zelimo da je withdrawal fee 0, moze biti 0 -> nije to korisnicki input
         if (withdrawalFee == 0) revert NoFeeUpdate();
 
         uint256 feeAmount = (amount * withdrawalFee) / FEE_DENOMINATOR;
@@ -188,10 +203,11 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
         // Withdraw
         if (tokenId != ETH_ID) {
             // We are withdrawing ERC20s
+            // TODO: Ekstrahovati amount - feeAmount u netAmount ili amountAfterFees da bi bilo citkije (kao sto je bilo)
             IERC20(tokenAddress).safeTransfer(to, amount - feeAmount);
         } else {
             // We are withdrawing ETH
-            (bool success, ) = to.call{ value: amount - feeAmount }("");
+            (bool success,) = to.call{value: amount - feeAmount}("");
             if (!success) revert ETHTransferFailed();
         }
 

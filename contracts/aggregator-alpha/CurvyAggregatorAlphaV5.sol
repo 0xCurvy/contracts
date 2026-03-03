@@ -3,10 +3,10 @@ pragma solidity ^0.8.28;
 
 import "../portal/IPortalFactory.sol";
 import {
-ICurvyInsertionVerifier,
-ICurvyAggregationVerifier,
-ICurvyWithdrawVerifier,
-ICurvyWithdrawVerifierV3
+    ICurvyInsertionVerifier,
+    ICurvyAggregationVerifier,
+    ICurvyWithdrawVerifier,
+    ICurvyWithdrawVerifierV3
 } from "./verifiers/ICurvyVerifiersAlpha.sol";
 import {CurvyTypes} from "../utils/Types.sol";
 import {ICurvyAggregatorAlpha} from "./ICurvyAggregatorAlpha.sol";
@@ -15,7 +15,7 @@ import {ICurvyVaultV2} from "../vault/ICurvyVaultV2.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {PoseidonT4} from "./utils/PoseidonT4.sol";
-import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**
@@ -37,11 +37,13 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
 
     // Maximum number of notes to commit in deposit
     uint256 public maxDeposits;
+    // TODO: Maximum number of notes to commit in aggregation or aggregation requests in one aggregation batch proof?
     // Maximum number of aggregations
     uint256 public maxAggregations;
     // Maximum number of withdrawals
     uint256 public maxWithdrawals;
 
+    // TODO: This is not waiting on deposit commitment, this *IS A COMMITMENT* waiting on proof verification in the future
     // Queue of note ids waiting for deposit commitment
     mapping(uint256 => bool) private _pendingIdsQueue;
 
@@ -63,6 +65,7 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
     // Curvy's portal factory contract;
     IPortalFactory public portalFactory;
 
+    // TODO: This doesn't need to be a completely separate storage var, as the underlying data type is address, just the interface is changed.
     ICurvyVaultV2 public curvyVaultV2;
 
     ICurvyWithdrawVerifierV3 public withdrawVerifierV3;
@@ -86,7 +89,11 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
 
     //#region Owner functions
 
-    function updateConfig(CurvyTypes.AggregatorConfigurationUpdateV2 memory _update) external onlyOwner returns (bool) {
+    function updateConfig(CurvyTypes.AggregatorConfigurationUpdateV2 memory _update)
+        external
+        onlyOwner
+        returns (bool)
+    {
         if (_update.insertionVerifier != address(0)) {
             insertionVerifier = ICurvyInsertionVerifier(_update.insertionVerifier);
         }
@@ -115,6 +122,7 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         return true;
     }
 
+    // TODO: Add commment
     function reset(uint256 newNotesTreeRoot, uint256 newNullifiersTreeRoot) external onlyOwner {
         _notesTreeRoot = newNotesTreeRoot;
         _nullifiersTreeRoot = newNullifiersTreeRoot;
@@ -133,7 +141,7 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
             IERC20(tokenAddress).forceApprove(address(curvyVaultV2), note.amount);
         }
 
-        curvyVaultV2.deposit{ value: msg.value }(tokenAddress, address(this), note.amount, 0);
+        curvyVaultV2.deposit{value: msg.value}(tokenAddress, address(this), note.amount, 0);
 
         uint256 noteId = PoseidonT4.hash([note.ownerHash, note.amount, note.token]);
 
@@ -190,6 +198,7 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         return true;
     }
 
+    // TODO: Why are we returning bool here? In which case do we return false? Same goes for other proofs being verified.
     function commitWithdrawalBatch(
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
@@ -230,6 +239,7 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         return _notesTreeRoot;
     }
 
+    // TODO: rename to nuillifierS
     function getNullifierTreeRoot() external view returns (uint256) {
         return _nullifiersTreeRoot;
     }
