@@ -31,7 +31,9 @@ contract Portal is IPortal, SingleUse {
     constructor(uint256 ownerHash, address exitAddress, uint256 exitChainId, address _recovery) {
         // TODO: add fee for deployment
         if (_recovery == address(0)) revert InvalidRecoveryAddress();
-        if ((ownerHash == 0) == (exitAddress == address(0)) || (ownerHash == 0) == (exitChainId == 0)) revert InvalidOwnerHashOrExitBridgeData();
+        if ((ownerHash == 0) == (exitAddress == address(0)) || (ownerHash == 0) == (exitChainId == 0)) {
+            revert InvalidOwnerHashOrExitBridgeData();
+        }
 
         _ownerHash = ownerHash;
         _exitAddress = exitAddress;
@@ -48,11 +50,13 @@ contract Portal is IPortal, SingleUse {
         return abi.decode(txData[4:], (LiFiBridgeData));
     }
 
-    function _bridge(address lifiDiamondAddress, bytes calldata bridgeData, uint256 amount, address currency ) internal {
+    function _bridge(address lifiDiamondAddress, bytes calldata bridgeData, uint256 amount, address currency)
+        internal
+    {
         if (lifiDiamondAddress == address(0)) {
             revert InvalidLiFiAddress();
         }
-        
+
         if (currency != address(0) && currency != NATIVE_ETH) {
             IERC20 token = IERC20(currency);
 
@@ -62,6 +66,7 @@ contract Portal is IPortal, SingleUse {
             }
 
             token.forceApprove(lifiDiamondAddress, amount);
+            // TODO: razmisliti o reentrancyju u uslucaju kompromitovanog LiFija
             (bool success,) = lifiDiamondAddress.call(bridgeData);
 
             if (!success) {
@@ -121,10 +126,12 @@ contract Portal is IPortal, SingleUse {
         }
     }
 
-    function entryBridge(address lifiDiamondAddress, bytes calldata bridgeData, CurvyTypes.Note memory note, address currency)
-        external
-        onlyOnce
-    {
+    function entryBridge(
+        address lifiDiamondAddress,
+        bytes calldata bridgeData,
+        CurvyTypes.Note memory note,
+        address currency
+    ) external onlyOnce {
         if (note.ownerHash != _ownerHash) {
             revert InvalidOwnerHash();
         }
@@ -143,7 +150,7 @@ contract Portal is IPortal, SingleUse {
             revert InsufficientAmountForLiFiBridging();
         }
 
-        _bridge(lifiDiamondAddress, bridgeData, note.amount,currency );
+        _bridge(lifiDiamondAddress, bridgeData, note.amount, currency);
     }
 
     function exitBridge(address lifiDiamondAddress, bytes calldata bridgeData, uint256 amount, address currency)
@@ -160,6 +167,6 @@ contract Portal is IPortal, SingleUse {
             revert InvalidLiFiDestinationChain();
         }
 
-        _bridge(lifiDiamondAddress, bridgeData, amount,currency );
+        _bridge(lifiDiamondAddress, bridgeData, amount, currency);
     }
 }
