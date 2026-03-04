@@ -4,11 +4,12 @@ pragma solidity ^0.8.28;
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 import { IPortal } from "./IPortal.sol";
-import { IPortalFactory } from "./IPortalFactory.sol";
+import { IPortalFactory, ILiFiCalldataVerification } from "./IPortalFactory.sol";
 import { Portal } from "./Portal.sol";
 import { CurvyTypes } from "../utils/Types.sol";
 
 contract PortalFactory is IPortalFactory, Ownable {
+    uint256 private constant AGGREGATOR_CHAIN_ID = 42161;
     bytes32 private _salt = keccak256(abi.encodePacked("curvy-portal-factory-salt"));
 
     address private _curvyVaultProxyAddress;
@@ -104,6 +105,18 @@ contract PortalFactory is IPortalFactory, Ownable {
             revert UnsupportedBridging();
         }
 
+        ILiFiCalldataVerification.LiFiBridgeData memory extractedData = ILiFiCalldataVerification(_lifiDiamondAddress).extractBridgeData(bridgeData);
+
+        if (extractedData.receiver != getEntryPortalAddress(note.ownerHash, recovery)) {
+            revert InvalidLiFiReceiver();
+        }
+        if (extractedData.destinationChainId != AGGREGATOR_CHAIN_ID) {
+            revert InvalidLiFiDestinationChain();
+        }
+        if (extractedData.minAmount > note.amount) {
+            revert InsufficientAmountForLiFiBridging();
+        }
+
         bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash, address(0), 0, recovery);
         address portalAddress;
 
@@ -122,7 +135,7 @@ contract PortalFactory is IPortalFactory, Ownable {
             revert DeploymentFailed();
         }
 
-        IPortal(portalAddress).entryBridge(_lifiDiamondAddress, bridgeData, note, currency);
+        IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, note.amount, currency);
     }
 
     function deployExitBridgePortal(
@@ -135,6 +148,22 @@ contract PortalFactory is IPortalFactory, Ownable {
     ) public {
         if (_lifiDiamondAddress == address(0)) {
             revert UnsupportedBridging();
+        }
+
+        if (exitChainId == block.chainid) {
+            ILiFiCalldataVerification.LiFiGenericSwapData memory extractedData = ILiFiCalldataVerification(_lifiDiamondAddress).extractGenericSwapParameters(bridgeData);
+            if (extractedData.receiver != exitAddress) {
+                revert InvalidLiFiReceiver();
+            }
+        } else {
+            ILiFiCalldataVerification.LiFiBridgeData memory extractedData = ILiFiCalldataVerification(_lifiDiamondAddress)
+                .extractBridgeData(bridgeData);
+            if (extractedData.receiver != exitAddress) {
+                revert InvalidLiFiReceiver();
+            }
+            if (extractedData.destinationChainId != exitChainId) {
+                revert InvalidLiFiDestinationChain();
+            }
         }
 
         bytes memory creationCodeWithArgs = getCreationCode(0, exitAddress, exitChainId, recovery);
@@ -155,6 +184,6 @@ contract PortalFactory is IPortalFactory, Ownable {
             revert DeploymentFailed();
         }
 
-        IPortal(portalAddress).exitBridge(_lifiDiamondAddress, bridgeData, amount, currency);
+        IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, amount, currency);
     }
 }

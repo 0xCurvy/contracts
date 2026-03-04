@@ -16,7 +16,6 @@ contract Portal is IPortal, SingleUse {
     uint256 private _exitChainId;
 
     address private constant NATIVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    uint256 private constant AGGREGATOR_CHAIN_ID = 42161;
 
     ICurvyAggregatorAlpha public curvyAggregator;
     ICurvyVault public curvyVault;
@@ -39,50 +38,6 @@ contract Portal is IPortal, SingleUse {
         _exitAddress = exitAddress;
         _exitChainId = exitChainId;
         recovery = _recovery;
-    }
-
-    /**
-     * @dev Use this if the bridgeCallData is a full transaction payload
-     * where the struct is the very first parameter after the 4-byte function selector.
-     */
-    function _decodeBridgeData(bytes calldata txData) internal pure returns (LiFiBridgeData memory) {
-        // The first 4 bytes are the function selector, so we skip them
-        return abi.decode(txData[4:], (LiFiBridgeData));
-    }
-
-    function _bridge(address lifiDiamondAddress, bytes calldata bridgeData, uint256 amount, address currency)
-        internal
-    {
-        if (lifiDiamondAddress == address(0)) {
-            revert InvalidLiFiAddress();
-        }
-
-        if (currency != address(0) && currency != NATIVE_ETH) {
-            IERC20 token = IERC20(currency);
-
-            uint256 balance = token.balanceOf(address(this));
-            if (balance < amount) {
-                revert InsufficientBalanceForLiFiBridging();
-            }
-
-            token.forceApprove(lifiDiamondAddress, amount);
-            (bool success,) = lifiDiamondAddress.call(bridgeData);
-
-            if (!success) {
-                revert BridgeCallFailed();
-            }
-        } else {
-            uint256 balance = address(this).balance;
-            if (balance < amount) {
-                revert InsufficientBalanceForLiFiBridging();
-            }
-
-            (bool success,) = lifiDiamondAddress.call{value: amount}(bridgeData);
-
-            if (!success) {
-                revert BridgeCallFailed();
-            }
-        }
     }
 
     function shield(
@@ -113,6 +68,35 @@ contract Portal is IPortal, SingleUse {
         }
     }
 
+    function bridge(address lifiDiamondAddress, bytes calldata bridgeData, uint256 amount, address currency) external onlyOnce {
+        if (currency != address(0) && currency != NATIVE_ETH) {
+            IERC20 token = IERC20(currency);
+
+            uint256 balance = token.balanceOf(address(this));
+            if (balance < amount) {
+                revert InsufficientBalanceForLiFiBridging();
+            }
+
+            token.forceApprove(lifiDiamondAddress, amount);
+            (bool success,) = lifiDiamondAddress.call(bridgeData);
+
+            if (!success) {
+                revert BridgeCallFailed();
+            }
+        } else {
+            uint256 balance = address(this).balance;
+            if (balance < amount) {
+                revert InsufficientBalanceForLiFiBridging();
+            }
+
+            (bool success,) = lifiDiamondAddress.call{value: amount}(bridgeData);
+
+            if (!success) {
+                revert BridgeCallFailed();
+            }
+        }
+    }
+
     function recover(address tokenAddress, address to) external onlyRecovery {
         if (tokenAddress == NATIVE_ETH) {
             uint256 balance = address(this).balance;
@@ -125,47 +109,4 @@ contract Portal is IPortal, SingleUse {
         }
     }
 
-    function entryBridge(
-        address lifiDiamondAddress,
-        bytes calldata bridgeData,
-        CurvyTypes.Note memory note,
-        address currency
-    ) external onlyOnce {
-        if (note.ownerHash != _ownerHash) {
-            revert InvalidOwnerHash();
-        }
-
-        LiFiBridgeData memory data = _decodeBridgeData(bridgeData);
-
-        if (data.receiver != address(this)) {
-            revert InvalidLiFiReceiver();
-        }
-
-        if (data.destinationChainId != AGGREGATOR_CHAIN_ID) {
-            revert InvalidLiFiDestinationChain();
-        }
-
-        if (data.minAmount > note.amount) {
-            revert InsufficientAmountForLiFiBridging();
-        }
-
-        _bridge(lifiDiamondAddress, bridgeData, note.amount, currency);
-    }
-
-    function exitBridge(address lifiDiamondAddress, bytes calldata bridgeData, uint256 amount, address currency)
-        external
-        onlyOnce
-    {
-        LiFiBridgeData memory data = _decodeBridgeData(bridgeData);
-
-        if (data.receiver != _exitAddress) {
-            revert InvalidLiFiReceiver();
-        }
-
-        if (data.destinationChainId != _exitChainId) {
-            revert InvalidLiFiDestinationChain();
-        }
-
-        _bridge(lifiDiamondAddress, bridgeData, amount, currency);
-    }
 }
