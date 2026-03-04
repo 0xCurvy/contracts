@@ -157,7 +157,7 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
         uint256[4] memory publicInputs
-    ) public returns (bool success) {
+    ) public {
         for (uint256 i = 0; i < maxDeposits; i += 1) {
             uint256 noteId = publicInputs[i];
             if (noteId != 0) {
@@ -173,8 +173,6 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         if (!insertionVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs)) revert InvalidProof();
 
         _notesTreeRoot = publicInputs[numPublicInputs - 1];
-
-        return true;
     }
 
     function commitAggregationBatch(
@@ -182,7 +180,7 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
         uint256[14] memory publicInputs
-    ) public returns (bool) {
+    ) public {
         uint256 oldNullifiersTreeRoot = publicInputs[2 * maxAggregations + 1];
         uint256 newNullifiersTreeRoot = publicInputs[2 * maxAggregations + 2];
         uint256 oldNotesTreeRoot = publicInputs[2 * maxAggregations + 3];
@@ -196,17 +194,14 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         // Update the roots of the trees
         _notesTreeRoot = newNotesTreeRoot;
         _nullifiersTreeRoot = newNullifiersTreeRoot;
-
-        return true;
     }
 
-    // TODO: Why are we returning bool here? In which case do we return false? Same goes for other proofs being verified.
     function commitWithdrawalBatch(
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
         uint256[9] memory publicInputs
-    ) public returns (bool) {
+    ) public {
         if (publicInputs[2] != _nullifiersTreeRoot) revert CurrentNullifierTreeRootMismatch();
         if (publicInputs[1] != _notesTreeRoot) revert CurrentNoteTreeRootMismatch();
 
@@ -229,8 +224,6 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
                 );
             }
         }
-
-        return true;
     }
 
     //#endregion
