@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 import { IPortal } from "./IPortal.sol";
-import { IPortalFactory } from "./IPortalFactory.sol";
+import { IPortalFactory, ILiFiCalldataVerification } from "./IPortalFactory.sol";
 import { Portal } from "./Portal.sol";
 import { CurvyTypes } from "../utils/Types.sol";
 
@@ -105,16 +105,15 @@ contract PortalFactory is IPortalFactory, Ownable {
             revert UnsupportedBridging();
         }
 
-        (address receiver, uint256 destinationChainId, uint256 minAmount, uint256 destinationChainId) = ILiFiCalldataVerification(_lifiDiamondAddress)
-            .extractLiFiBridgeData(bridgeData);
+        ILiFiCalldataVerification.LiFiBridgeData memory extractedData = ILiFiCalldataVerification(_lifiDiamondAddress).extractBridgeData(bridgeData);
 
-        if (receiver != getEntryPortalAddress(note.ownerHash, recovery)) {
+        if (extractedData.receiver != getEntryPortalAddress(note.ownerHash, recovery)) {
             revert InvalidLiFiReceiver();
         }
-        if (destinationChainId != AGGREGATOR_CHAIN_ID) {
+        if (extractedData.destinationChainId != AGGREGATOR_CHAIN_ID) {
             revert InvalidLiFiDestinationChain();
         }
-        if (minAmount > note.amount) {
+        if (extractedData.minAmount > note.amount) {
             revert InsufficientAmountForLiFiBridging();
         }
 
@@ -152,17 +151,17 @@ contract PortalFactory is IPortalFactory, Ownable {
         }
 
         if (exitChainId == block.chainid) {
-            (address receiver) = ILiFiCalldataVerification(_lifiDiamondAddress).extractLiFiGenericSwapParameters(bridgeData);
-            if (receiver != exitAddress) {
+            ILiFiCalldataVerification.LiFiGenericSwapData memory extractedData = ILiFiCalldataVerification(_lifiDiamondAddress).extractGenericSwapParameters(bridgeData);
+            if (extractedData.receiver != exitAddress) {
                 revert InvalidLiFiReceiver();
             }
         } else {
-            (address receiver, uint256 destinationChainId) = ILiFiCalldataVerification(_lifiDiamondAddress)
-                .extractLiFiBridgeData(bridgeData);
-            if (receiver != exitAddress) {
+            ILiFiCalldataVerification.LiFiBridgeData memory extractedData = ILiFiCalldataVerification(_lifiDiamondAddress)
+                .extractBridgeData(bridgeData);
+            if (extractedData.receiver != exitAddress) {
                 revert InvalidLiFiReceiver();
             }
-            if (destinationChainId != exitChainId) {
+            if (extractedData.destinationChainId != exitChainId) {
                 revert InvalidLiFiDestinationChain();
             }
         }

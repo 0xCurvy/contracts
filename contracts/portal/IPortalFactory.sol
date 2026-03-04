@@ -25,17 +25,9 @@ interface ILiFiCalldataVerification {
         uint256 receivingAmount;
     }
 
-    error InvalidLiFiCalldata();
+    function extractBridgeData(bytes calldata data) external pure returns (LiFiBridgeData memory);
 
-    function extractLiFiBridgeData(bytes calldata data)
-    external
-    view
-    returns (LiFiBridgeData memory);
-
-    function extractLiFiGenericSwapParameters(bytes calldata data)
-    external
-    view
-    returns (LiFiGenericSwapData memory);
+    function extractGenericSwapParameters(bytes calldata data) external pure returns (LiFiGenericSwapData memory);
 }
 
 interface IPortalFactory {
