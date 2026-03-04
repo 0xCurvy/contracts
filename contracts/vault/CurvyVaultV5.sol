@@ -54,16 +54,26 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
         _disableInitializers();
     }
 
-    // TODO: Write docs whether this should be here or not. Also return missing EIP712_Init even if we don't use it not to cause confusion
+    /**
+     * @dev DO NOT REMOVE THIS FUNCTION.
+     * This function does not affect existing deployments during an upgrade. The `initializer`
+     * modifier guarantees it can only be executed once per proxy. When an existing proxy is 
+     * upgraded to this version, its state is already marked as initialized, making this 
+     * function safely uncallable and preventing any accidental state resets.
+     * 
+     * The transferFee is unused anymore, but it is kept for storage layout reasons.
+     */
     function initialize(address initialOwner) public initializer {
         // Set native currency (ETH) in the token mappings
         _tokenAddressToTokenId[ETH_ADDRESS] = ETH_ID;
         _tokenIdToTokenAddress[ETH_ID] = ETH_ADDRESS;
         _numberOfTokens = 1;
 
+        __EIP712_init("Curvy Privacy Vault", "1.0");
         __Ownable_init(initialOwner);
 
         depositFee = 10;
+        transferFee = 0;
         withdrawalFee = 20;
     }
 
