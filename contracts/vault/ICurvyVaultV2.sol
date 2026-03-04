@@ -6,10 +6,10 @@ import {CurvyTypes} from "../utils/Types.sol";
 interface ICurvyVaultV2 {
     //#region Events
 
-    event Deposit(address indexed tokenAddress, address indexed to, uint256 amount, uint256 gasSponsorshipAmount);
+    event Deposit(address indexed tokenAddress, address indexed to, uint256 amount);
     event Withdraw(address indexed tokenAddress, address indexed to, uint256 amount);
     event TokenRegistration(address token_address, uint256 token_id);
-    event TokenUnsupported(address tokenAddress, uint256 tokenId);
+    event TokenDeregistered(address tokenAddress, uint256 tokenId);
     event FeeChange(CurvyTypes.FeeUpdate feeUpdate);
     event CurvyAggregatorAddressChange(address curvyAggregator);
 
@@ -24,7 +24,6 @@ interface ICurvyVaultV2 {
     error TokenNotRegistered();
     error ETHTransferFailed();
     error ERC20TransferFailed();
-    error NoFeeUpdate();
     error WithdrawalFeeNotSet();
     error NotCurvyAggregatorOrOwner();
 
@@ -33,8 +32,8 @@ interface ICurvyVaultV2 {
     //#region Public functions
 
     function withdraw(uint256 tokenId, address to, uint256 amount) external;
-    function deposit(address tokenAddress, address to, uint256 amount, uint256 gasSponsorshipAmount) external payable;
-    function unsupportToken(address tokenAddress) external;
+    function deposit(address tokenAddress, address to, uint256 amount) external payable;
+    function deregisterToken(address tokenAddress) external;
 
     //#endregion
 

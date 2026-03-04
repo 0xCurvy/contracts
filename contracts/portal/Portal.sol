@@ -66,7 +66,6 @@ contract Portal is IPortal, SingleUse {
             }
 
             token.forceApprove(lifiDiamondAddress, amount);
-            // TODO: razmisliti o reentrancyju u uslucaju kompromitovanog LiFija
             (bool success,) = lifiDiamondAddress.call(bridgeData);
 
             if (!success) {
