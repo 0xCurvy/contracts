@@ -122,29 +122,23 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
         emit CurvyAggregatorAddressChange(curvyAggregator);
     }
 
-    // TODO: Mi smo forceWithdrawal ubacili da bi naterali odredjene korisnike da withdrawuju odredjena sredstva,
-    // medjutim trenutno sredstva ne mogu nikako da se ubace na Vault bez da budu u vlasnistvu aggregatora
-    // te se razmisljam da ili:
-    //   - ucinimo da forceWithdrawal za postojece korisnike moze iskljucivo da withdrawuje na istu FROM adresu (moramo da dodamo check da nikako nije agregator adresa!!!)
-    //   - da uklonimo forceWithdrawal
-    function forceWithdrawal(uint256 amount, address destinationAddress, uint256 tokenId) external onlyOwner {
-        if (destinationAddress == address(0)) revert InvalidDestinationAddress();
-
+    function collectFees(uint256 tokenId) external onlyOwner {
         address tokenAddress = _tokenIdToTokenAddress[tokenId];
         if (tokenAddress == address(0)) {
             revert TokenNotRegistered();
         }
 
+        uint256 amount = _balances[msg.sender][tokenId];
+
         // Burn wrapped tokens
-        _balances[destinationAddress][tokenId] -= amount;
+        _balances[msg.sender][tokenId] = 0;
 
         if (tokenId != ETH_ID) {
             // We are withdrawing ERC20s
-            // TODO: Da li ce ovo da revertuje?
-            IERC20(tokenAddress).safeTransfer(destinationAddress, amount);
+            IERC20(tokenAddress).safeTransfer(msg.sender, amount);
         } else {
             // We are withdrawing ETH
-            (bool success,) = destinationAddress.call{value: amount}("");
+            (bool success,) = msg.sender.call{value: amount}("");
             if (!success) revert ETHTransferFailed();
         }
     }
