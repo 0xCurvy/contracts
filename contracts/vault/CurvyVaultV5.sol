@@ -153,12 +153,6 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
 
     //#region Public functions
 
-    // TODO: Da li ovo mozemo u potpunosti da uklonimo? Sta je fallback fallbcack receive funkcija?
-    // Mi svakako direktno zovemo deposit() iz agregatorovog autoShield, pa nam ovo i ne znaci za regularno koriscenje ali mozda je zgodno da ostavimo ako neko slucajno posalje pare? (ali ako slucajno posalje pare, realno sto bismo imali handling samo za ETH, lako cemo upgrade ako dodje do necega da treba da spasavamo)
-    receive() external payable {
-        deposit(ETH_ADDRESS, msg.sender, msg.value);
-    }
-
     function deposit(address tokenAddress, address to, uint256 amount) public payable {
         if (msg.sender != _curvyAggregator) revert NotCurvyAggregator();
 
