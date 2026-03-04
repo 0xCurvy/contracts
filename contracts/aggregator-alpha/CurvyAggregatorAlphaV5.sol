@@ -37,14 +37,12 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
 
     // Maximum number of notes to commit in deposit
     uint256 public maxDeposits;
-    // TODO: Maximum number of notes to commit in aggregation or aggregation requests in one aggregation batch proof?
-    // Maximum number of aggregations
+    // Maximum number of aggregations in one aggregation batch proof
     uint256 public maxAggregations;
-    // Maximum number of withdrawals
+    // Maximum number of withdrawals in one withdrawal batch proof
     uint256 public maxWithdrawals;
 
-    // TODO: This is not waiting on deposit commitment, this *IS A COMMITMENT* waiting on proof verification in the future
-    // Queue of note ids waiting for deposit commitment
+    // Queue of commited note ids waiting for proof verification and deposit batch commitment
     mapping(uint256 => bool) private _pendingIdsQueue;
 
     // Root of the tree containing all notes.
@@ -53,22 +51,17 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
     uint256 private _nullifiersTreeRoot;
 
     // Curvy's vault contract
-    ICurvyVault public curvyVault;
+    ICurvyVaultV2 public curvyVault;
 
     //Curvy's insertion verifier.
     ICurvyInsertionVerifier public insertionVerifier;
     //Curvy's aggregation verifier.
     ICurvyAggregationVerifier public aggregationVerifier;
     //Curvy's withdraw verifier.
-    ICurvyWithdrawVerifier public withdrawVerifier;
+    ICurvyWithdrawVerifierV3 public withdrawVerifier;
 
     // Curvy's portal factory contract;
     IPortalFactory public portalFactory;
-
-    // TODO: This doesn't need to be a completely separate storage var, as the underlying data type is address, just the interface is changed.
-    ICurvyVaultV2 public curvyVaultV2;
-
-    ICurvyWithdrawVerifierV3 public withdrawVerifierV3;
 
     //#endregion
 
@@ -101,10 +94,10 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
             aggregationVerifier = ICurvyAggregationVerifier(_update.aggregationVerifier);
         }
         if (_update.withdrawVerifier != address(0)) {
-            withdrawVerifierV3 = ICurvyWithdrawVerifierV3(_update.withdrawVerifier);
+            withdrawVerifier = ICurvyWithdrawVerifierV3(_update.withdrawVerifier);
         }
         if (_update.curvyVault != address(0)) {
-            curvyVaultV2 = ICurvyVaultV2(_update.curvyVault);
+            curvyVault = ICurvyVaultV2(_update.curvyVault);
         }
         if (_update.portalFactory != address(0)) {
             portalFactory = IPortalFactory(_update.portalFactory);
@@ -122,7 +115,11 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         return true;
     }
 
-    // TODO: Add commment
+    /*
+     * @dev This function allows the owner to reset the roots of the notes and nullifiers trees to a known state.
+     * @notice Only to be used in emergency cases where the contract is in a bad state and cannot be recovered
+     * through normal operation (i.e. proof verification and batch commitments).
+     */
     function reset(uint256 newNotesTreeRoot, uint256 newNullifiersTreeRoot) external onlyOwner {
         _notesTreeRoot = newNotesTreeRoot;
         _nullifiersTreeRoot = newNullifiersTreeRoot;
@@ -138,10 +135,10 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
 
         if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
             IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), note.amount);
-            IERC20(tokenAddress).forceApprove(address(curvyVaultV2), note.amount);
+            IERC20(tokenAddress).forceApprove(address(curvyVault), note.amount);
         }
 
-        curvyVaultV2.deposit{value: msg.value}(tokenAddress, address(this), note.amount);
+        curvyVault.deposit{value: msg.value}(tokenAddress, address(this), note.amount);
 
         uint256 noteId = PoseidonT4.hash([note.ownerHash, note.amount, note.token]);
 
@@ -155,7 +152,7 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
         uint256[4] memory publicInputs
-    ) public returns (bool success) {
+    ) public {
         for (uint256 i = 0; i < maxDeposits; i += 1) {
             uint256 noteId = publicInputs[i];
             if (noteId != 0) {
@@ -171,8 +168,6 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         if (!insertionVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs)) revert InvalidProof();
 
         _notesTreeRoot = publicInputs[numPublicInputs - 1];
-
-        return true;
     }
 
     function commitAggregationBatch(
@@ -180,7 +175,7 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
         uint256[14] memory publicInputs
-    ) public returns (bool) {
+    ) public {
         uint256 oldNullifiersTreeRoot = publicInputs[2 * maxAggregations + 1];
         uint256 newNullifiersTreeRoot = publicInputs[2 * maxAggregations + 2];
         uint256 oldNotesTreeRoot = publicInputs[2 * maxAggregations + 3];
@@ -194,21 +189,18 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         // Update the roots of the trees
         _notesTreeRoot = newNotesTreeRoot;
         _nullifiersTreeRoot = newNullifiersTreeRoot;
-
-        return true;
     }
 
-    // TODO: Why are we returning bool here? In which case do we return false? Same goes for other proofs being verified.
     function commitWithdrawalBatch(
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
         uint256[9] memory publicInputs
-    ) public returns (bool) {
+    ) public {
         if (publicInputs[2] != _nullifiersTreeRoot) revert CurrentNullifierTreeRootMismatch();
         if (publicInputs[1] != _notesTreeRoot) revert CurrentNoteTreeRootMismatch();
 
-        if (!withdrawVerifierV3.verifyProof(proof_a, proof_b, proof_c, publicInputs)) revert InvalidProof();
+        if (!withdrawVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs)) revert InvalidProof();
 
         // Update the root of the nullifier tree
         _nullifiersTreeRoot = publicInputs[0];
@@ -220,15 +212,13 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
             uint256 amount = publicInputs[3 + i];
             address destinationAddress = address(uint160(publicInputs[3 + maxWithdrawals + i]));
             if (amount != 0) {
-                curvyVaultV2.withdraw(
+                curvyVault.withdraw(
                     publicInputs[numPublicInputs - 1], // tokenId
                     destinationAddress,
                     amount
                 );
             }
         }
-
-        return true;
     }
 
     //#endregion
@@ -239,8 +229,7 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         return _notesTreeRoot;
     }
 
-    // TODO: rename to nuillifierS
-    function getNullifierTreeRoot() external view returns (uint256) {
+    function getNullifiersTreeRoot() external view returns (uint256) {
         return _nullifiersTreeRoot;
     }
 
