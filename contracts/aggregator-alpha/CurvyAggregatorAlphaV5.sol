@@ -234,8 +234,7 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         return _notesTreeRoot;
     }
 
-    // TODO: rename to nuillifierS
-    function getNullifierTreeRoot() external view returns (uint256) {
+    function getNullifiersTreeRoot() external view returns (uint256) {
         return _nullifiersTreeRoot;
     }
 
