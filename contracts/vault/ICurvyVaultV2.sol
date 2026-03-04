@@ -6,7 +6,7 @@ import {CurvyTypes} from "../utils/Types.sol";
 interface ICurvyVaultV2 {
     //#region Events
 
-    event Deposit(address indexed tokenAddress, address indexed to, uint256 amount, uint256 gasSponsorshipAmount);
+    event Deposit(address indexed tokenAddress, address indexed to, uint256 amount);
     event Withdraw(address indexed tokenAddress, address indexed to, uint256 amount);
     event TokenRegistration(address token_address, uint256 token_id);
     event TokenDeregistered(address tokenAddress, uint256 tokenId);
@@ -32,7 +32,7 @@ interface ICurvyVaultV2 {
     //#region Public functions
 
     function withdraw(uint256 tokenId, address to, uint256 amount) external;
-    function deposit(address tokenAddress, address to, uint256 amount, uint256 gasSponsorshipAmount) external payable;
+    function deposit(address tokenAddress, address to, uint256 amount) external payable;
     function deregisterToken(address tokenAddress) external;
 
     //#endregion

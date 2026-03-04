@@ -141,7 +141,7 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
             IERC20(tokenAddress).forceApprove(address(curvyVaultV2), note.amount);
         }
 
-        curvyVaultV2.deposit{value: msg.value}(tokenAddress, address(this), note.amount, 0);
+        curvyVaultV2.deposit{value: msg.value}(tokenAddress, address(this), note.amount);
 
         uint256 noteId = PoseidonT4.hash([note.ownerHash, note.amount, note.token]);
 

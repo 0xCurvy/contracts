@@ -156,11 +156,10 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
     // TODO: Da li ovo mozemo u potpunosti da uklonimo? Sta je fallback fallbcack receive funkcija?
     // Mi svakako direktno zovemo deposit() iz agregatorovog autoShield, pa nam ovo i ne znaci za regularno koriscenje ali mozda je zgodno da ostavimo ako neko slucajno posalje pare? (ali ako slucajno posalje pare, realno sto bismo imali handling samo za ETH, lako cemo upgrade ako dodje do necega da treba da spasavamo)
     receive() external payable {
-        deposit(ETH_ADDRESS, msg.sender, msg.value, 0);
+        deposit(ETH_ADDRESS, msg.sender, msg.value);
     }
 
-    // TODO: gasSponsorshipAmount nam ne treba u ovom trenutku
-    function deposit(address tokenAddress, address to, uint256 amount, uint256 gasSponsorshipAmount) public payable {
+    function deposit(address tokenAddress, address to, uint256 amount) public payable {
         if (msg.sender != _curvyAggregator) revert NotCurvyAggregator();
 
         if (to == address(0x0)) revert InvalidRecipient();
@@ -191,10 +190,7 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
             _balances[owner()][tokenId] += feeAmount;
         }
 
-        // TODO: Sta ovo znaci? Gore smo bukvalno fee uzeli od korisnika
-        // No fees or gas sponsorship deducted from balance (removed per requirements)
-
-        emit Deposit(tokenAddress, to, amount, gasSponsorshipAmount);
+        emit Deposit(tokenAddress, to, amount);
     }
 
     function withdraw(uint256 tokenId, address to, uint256 amount) external {
