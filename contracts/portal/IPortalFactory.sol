@@ -3,12 +3,50 @@ pragma solidity ^0.8.28;
 
 import { CurvyTypes } from "../utils/Types.sol";
 
+interface ILiFiCalldataVerification {
+    struct LiFiBridgeData {
+        bytes32 transactionId;
+        string bridge;
+        string integrator;
+        address referrer;
+        address sendingAssetId;
+        address receiver;
+        uint256 minAmount;
+        uint256 destinationChainId;
+        bool hasSourceSwaps;
+        bool hasDestinationCall;
+    }
+
+    struct LiFiGenericSwapData {
+        address sendingAssetId;
+        uint256 amount;
+        address receiver;
+        address receivingAssetId;
+        uint256 receivingAmount;
+    }
+
+    error InvalidLiFiCalldata();
+
+    function extractLiFiBridgeData(bytes calldata data)
+    external
+    view
+    returns (LiFiBridgeData memory);
+
+    function extractLiFiGenericSwapParameters(bytes calldata data)
+    external
+    view
+    returns (LiFiGenericSwapData memory);
+}
+
 interface IPortalFactory {
     //#region Errors
 
     error UnsupportedShielding();
     error DeploymentFailed();
     error UnsupportedBridging();
+    error InvalidLiFiReceiver();
+    error InvalidLiFiDestinationChain();
+    error InsufficientAmountForLiFiBridging();
 
     //#endregion
 

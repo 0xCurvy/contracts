@@ -9,10 +9,7 @@ interface IPortal {
     error InvalidOwnerHashOrExitBridgeData();
     error InvalidLiFiAddress();
     error InvalidRecoveryAddress();
-    error InvalidLiFiReceiver();
-    error InvalidLiFiDestinationChain();
     error InvalidOwnerHash();
-    error InsufficientAmountForLiFiBridging();
     error InsufficientBalanceForLiFiBridging();
     error InvalidSignatureOrTamperedData();
     error BridgeCallFailed();
@@ -26,23 +23,6 @@ interface IPortal {
 
     //#endregion
 
-    //#region Structs
-
-    struct LiFiBridgeData {
-        bytes32 transactionId;
-        string bridge;
-        string integrator;
-        address referrer;
-        address sendingAssetId;
-        address receiver;
-        uint256 minAmount;
-        uint256 destinationChainId;
-        bool hasSourceSwaps;
-        bool hasDestinationCall;
-    }
-
-    //#endregion
-
     //#region Public functions
 
     function shield(
@@ -51,9 +31,7 @@ interface IPortal {
         address curvyVaultProxyAddress
     ) external;
 
-    function entryBridge(address lifiDiamondAddress, bytes calldata bridgeData, CurvyTypes.Note memory note, address currency) external;
-
-    function exitBridge(address lifiDiamondAddress, bytes calldata bridgeData, uint256 amount, address currency) external;
+    function bridge(address lifiDiamondAddress, bytes calldata bridgeData, uint256 amount, address currency) external;
 
     /**
      * @notice Used by the user to recover funds from the Portal.
