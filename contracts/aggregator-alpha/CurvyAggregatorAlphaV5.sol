@@ -37,14 +37,12 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
 
     // Maximum number of notes to commit in deposit
     uint256 public maxDeposits;
-    // TODO: Maximum number of notes to commit in aggregation or aggregation requests in one aggregation batch proof?
-    // Maximum number of aggregations
+    // Maximum number of aggregations in one aggregation batch proof
     uint256 public maxAggregations;
-    // Maximum number of withdrawals
+    // Maximum number of withdrawals in one withdrawal batch proof
     uint256 public maxWithdrawals;
 
-    // TODO: This is not waiting on deposit commitment, this *IS A COMMITMENT* waiting on proof verification in the future
-    // Queue of note ids waiting for deposit commitment
+    // Queue of commited note ids waiting for proof verification and deposit batch commitment
     mapping(uint256 => bool) private _pendingIdsQueue;
 
     // Root of the tree containing all notes.
