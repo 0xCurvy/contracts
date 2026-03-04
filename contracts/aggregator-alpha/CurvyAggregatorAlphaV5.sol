@@ -122,7 +122,11 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         return true;
     }
 
-    // TODO: Add commment
+    /*
+     * @dev This function allows the owner to reset the roots of the notes and nullifiers trees to a known state.
+     * @notice Only to be used in emergency cases where the contract is in a bad state and cannot be recovered
+     * through normal operation (i.e. proof verification and batch commitments).
+     */
     function reset(uint256 newNotesTreeRoot, uint256 newNullifiersTreeRoot) external onlyOwner {
         _notesTreeRoot = newNotesTreeRoot;
         _nullifiersTreeRoot = newNullifiersTreeRoot;
