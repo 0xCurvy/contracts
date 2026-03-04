@@ -1,4 +1,5 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import { getNetworkParameter } from "./utils/parameters";
 
 export default buildModule("CurvyVault", (m) => {
   const implementation = m.contract("CurvyVaultV1", [], { id: "CurvyVaultV1Implementation" });
@@ -30,6 +31,26 @@ export default buildModule("CurvyVault", (m) => {
   m.call(curvyVaultV3, "upgradeToAndCall", [implementationV4, "0x"]);
 
   const curvyVaultV4 = m.contractAt("CurvyVaultV4", proxy);
+
+  // Register tokens in vault
+
+  let previousRegistration: any;
+
+  const erc20Addresses = getNetworkParameter<string[]>("erc20Addresses");
+
+  for (let i = 0; i < erc20Addresses.length; i++) {
+    const address = erc20Addresses[i];
+
+    const after = [];
+    if (previousRegistration) {
+      after.push(previousRegistration);
+    }
+
+    previousRegistration = m.call(curvyVaultV4, "registerToken", [address], {
+      id: `RegisterVaultToken_${i}`,
+      after,
+    });
+  }
 
   // This version removes EIP712 metatractions, transfers, and fee structures in favor of a simpler generic interface.
   const implementationV5 = m.contract("CurvyVaultV5", [], { id: "CurvyVaultV5Implementation" });

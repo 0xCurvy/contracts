@@ -36,28 +36,5 @@ export default buildModule("MainDeploymentModule", (m) => {
 
   m.call(portalFactory, "updateConfig", [curvyVaultProxy, curvyAggregatorAlphaProxy, lifiDiamondAddress]);
 
-  // Register tokens in vault
-
-  // TODO: Reorganize deployment so that this is done inside the vault module itself
-  /*
-  let previousRegistration: any;
-
-  const erc20Addresses = getNetworkParameter<string[]>("erc20Addresses");
-
-  for (let i = 0; i < erc20Addresses.length; i++) {
-    const address = erc20Addresses[i];
-
-    const after = [];
-    if (previousRegistration) {
-      after.push(previousRegistration);
-    }
-
-    previousRegistration = m.call(curvyVault, "registerToken", [address], {
-      id: `RegisterVaultToken_${i}`,
-      after,
-    });
-  }
-  */
-
   return { curvyAggregatorAlpha, curvyVault, portalFactory };
 });
