@@ -130,13 +130,13 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
     function forceWithdrawal(uint256 amount, address destinationAddress, uint256 tokenId) external onlyOwner {
         if (destinationAddress == address(0)) revert InvalidDestinationAddress();
 
-        // Burn wrapped tokens
-        _balances[destinationAddress][tokenId] -= amount;
-
         address tokenAddress = _tokenIdToTokenAddress[tokenId];
         if (tokenAddress == address(0)) {
             revert TokenNotRegistered();
         }
+
+        // Burn wrapped tokens
+        _balances[destinationAddress][tokenId] -= amount;
 
         if (tokenId != ETH_ID) {
             // We are withdrawing ERC20s
@@ -170,10 +170,10 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
             // We are depositing ERC20
             if (msg.value != 0) revert ERC20TransferFailed();
 
-            IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), amount);
-
             tokenId = _tokenAddressToTokenId[tokenAddress];
             if (tokenId == 0) revert TokenNotRegistered();
+
+            IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), amount);
         } else {
             // We are depositing ETH
             if (amount != msg.value) revert ETHTransferFailed();
@@ -196,25 +196,28 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
     function withdraw(uint256 tokenId, address to, uint256 amount) external {
         if (msg.sender != _curvyAggregator && msg.sender != owner()) revert NotCurvyAggregatorOrOwner();
         if (to == address(0)) revert InvalidRecipient();
-        // TODO: Zasto nam je ovo bitan check? Ako zelimo da je withdrawal fee 0, moze biti 0 -> nije to korisnicki input
-        if (withdrawalFee == 0) revert NoFeeUpdate();
-
-        uint256 feeAmount = (amount * withdrawalFee) / FEE_DENOMINATOR;
-        // Burn wrapped tokens
-        _balances[msg.sender][tokenId] -= amount;
-        _balances[owner()][tokenId] += feeAmount;
 
         address tokenAddress = _tokenIdToTokenAddress[tokenId];
         if (tokenAddress == address(0)) revert TokenNotRegistered();
 
+        _balances[msg.sender][tokenId] -= amount;
+
+        uint256 amountAfterFees = amount;
+
+        if (withdrawalFee != 0) {
+            uint256 feeAmount = (amount * withdrawalFee) / FEE_DENOMINATOR;
+            _balances[owner()][tokenId] += feeAmount;
+
+            amountAfterFees -= feeAmount;
+        }
+
         // Withdraw
         if (tokenId != ETH_ID) {
             // We are withdrawing ERC20s
-            // TODO: Ekstrahovati amount - feeAmount u netAmount ili amountAfterFees da bi bilo citkije (kao sto je bilo)
-            IERC20(tokenAddress).safeTransfer(to, amount - feeAmount);
+            IERC20(tokenAddress).safeTransfer(to, amountAfterFees);
         } else {
             // We are withdrawing ETH
-            (bool success,) = to.call{value: amount - feeAmount}("");
+            (bool success,) = to.call{value: amountAfterFees}("");
             if (!success) revert ETHTransferFailed();
         }
 
