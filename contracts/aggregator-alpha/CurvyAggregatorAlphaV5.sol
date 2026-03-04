@@ -51,22 +51,17 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
     uint256 private _nullifiersTreeRoot;
 
     // Curvy's vault contract
-    ICurvyVault public curvyVault;
+    ICurvyVaultV2 public curvyVault;
 
     //Curvy's insertion verifier.
     ICurvyInsertionVerifier public insertionVerifier;
     //Curvy's aggregation verifier.
     ICurvyAggregationVerifier public aggregationVerifier;
     //Curvy's withdraw verifier.
-    ICurvyWithdrawVerifier public withdrawVerifier;
+    ICurvyWithdrawVerifierV3 public withdrawVerifier;
 
     // Curvy's portal factory contract;
     IPortalFactory public portalFactory;
-
-    // TODO: This doesn't need to be a completely separate storage var, as the underlying data type is address, just the interface is changed.
-    ICurvyVaultV2 public curvyVaultV2;
-
-    ICurvyWithdrawVerifierV3 public withdrawVerifierV3;
 
     //#endregion
 
@@ -99,10 +94,10 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
             aggregationVerifier = ICurvyAggregationVerifier(_update.aggregationVerifier);
         }
         if (_update.withdrawVerifier != address(0)) {
-            withdrawVerifierV3 = ICurvyWithdrawVerifierV3(_update.withdrawVerifier);
+            withdrawVerifier = ICurvyWithdrawVerifierV3(_update.withdrawVerifier);
         }
         if (_update.curvyVault != address(0)) {
-            curvyVaultV2 = ICurvyVaultV2(_update.curvyVault);
+            curvyVault = ICurvyVaultV2(_update.curvyVault);
         }
         if (_update.portalFactory != address(0)) {
             portalFactory = IPortalFactory(_update.portalFactory);
@@ -140,10 +135,10 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
 
         if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
             IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), note.amount);
-            IERC20(tokenAddress).forceApprove(address(curvyVaultV2), note.amount);
+            IERC20(tokenAddress).forceApprove(address(curvyVault), note.amount);
         }
 
-        curvyVaultV2.deposit{value: msg.value}(tokenAddress, address(this), note.amount, 0);
+        curvyVault.deposit{value: msg.value}(tokenAddress, address(this), note.amount, 0);
 
         uint256 noteId = PoseidonT4.hash([note.ownerHash, note.amount, note.token]);
 
@@ -205,7 +200,7 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         if (publicInputs[2] != _nullifiersTreeRoot) revert CurrentNullifierTreeRootMismatch();
         if (publicInputs[1] != _notesTreeRoot) revert CurrentNoteTreeRootMismatch();
 
-        if (!withdrawVerifierV3.verifyProof(proof_a, proof_b, proof_c, publicInputs)) revert InvalidProof();
+        if (!withdrawVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs)) revert InvalidProof();
 
         // Update the root of the nullifier tree
         _nullifiersTreeRoot = publicInputs[0];
@@ -217,7 +212,7 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
             uint256 amount = publicInputs[3 + i];
             address destinationAddress = address(uint160(publicInputs[3 + maxWithdrawals + i]));
             if (amount != 0) {
-                curvyVaultV2.withdraw(
+                curvyVault.withdraw(
                     publicInputs[numPublicInputs - 1], // tokenId
                     destinationAddress,
                     amount
