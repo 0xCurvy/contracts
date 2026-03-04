@@ -106,10 +106,13 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
         emit TokenDeregistered(tokenAddress, tokenId);
     }
 
+    /**
+     * @dev This function is used to set the fees for the vault.
+     * @notice If you want to keep the current fee, pass the current fee values.
+     */
     function setFeeAmount(CurvyTypes.FeeUpdate calldata feeUpdate) external onlyOwner {
-        if (feeUpdate.depositFee != 0) depositFee = feeUpdate.depositFee;
-        else if (feeUpdate.withdrawalFee != 0) withdrawalFee = feeUpdate.withdrawalFee;
-        else revert NoFeeUpdate();
+        depositFee = feeUpdate.depositFee;
+        withdrawalFee = feeUpdate.withdrawalFee;
 
         emit FeeChange(feeUpdate);
     }

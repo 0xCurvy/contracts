@@ -24,7 +24,6 @@ interface ICurvyVaultV2 {
     error TokenNotRegistered();
     error ETHTransferFailed();
     error ERC20TransferFailed();
-    error NoFeeUpdate();
     error WithdrawalFeeNotSet();
     error NotCurvyAggregatorOrOwner();
 
