@@ -95,8 +95,7 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
         emit TokenRegistration(tokenAddress, _numberOfTokens);
     }
 
-    // TODO: Rename to deregisterToken
-    function unsupportToken(address tokenAddress) external onlyOwner {
+    function deregisterToken(address tokenAddress) external onlyOwner {
         uint256 tokenId = _tokenAddressToTokenId[tokenAddress];
         if (tokenId == 0) revert TokenNotRegistered();
 
@@ -104,8 +103,7 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
         _tokenAddressToTokenId[tokenAddress] = 0;
         _tokenIdToTokenAddress[tokenId] = address(0);
 
-        // TODO: Rename to TokenDeregistered
-        emit TokenUnsupported(tokenAddress, tokenId);
+        emit TokenDeregistered(tokenAddress, tokenId);
     }
 
     function setFeeAmount(CurvyTypes.FeeUpdate calldata feeUpdate) external onlyOwner {

@@ -9,7 +9,7 @@ interface ICurvyVaultV2 {
     event Deposit(address indexed tokenAddress, address indexed to, uint256 amount, uint256 gasSponsorshipAmount);
     event Withdraw(address indexed tokenAddress, address indexed to, uint256 amount);
     event TokenRegistration(address token_address, uint256 token_id);
-    event TokenUnsupported(address tokenAddress, uint256 tokenId);
+    event TokenDeregistered(address tokenAddress, uint256 tokenId);
     event FeeChange(CurvyTypes.FeeUpdate feeUpdate);
     event CurvyAggregatorAddressChange(address curvyAggregator);
 
@@ -34,7 +34,7 @@ interface ICurvyVaultV2 {
 
     function withdraw(uint256 tokenId, address to, uint256 amount) external;
     function deposit(address tokenAddress, address to, uint256 amount, uint256 gasSponsorshipAmount) external payable;
-    function unsupportToken(address tokenAddress) external;
+    function deregisterToken(address tokenAddress) external;
 
     //#endregion
 
