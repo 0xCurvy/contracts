@@ -28,7 +28,6 @@ contract Portal is IPortal, SingleUse {
     }
 
     constructor(uint256 ownerHash, address exitAddress, uint256 exitChainId, address _recovery) {
-        // TODO: add fee for deployment
         if (_recovery == address(0)) revert InvalidRecoveryAddress();
         if ((ownerHash == 0) == (exitAddress == address(0)) || (ownerHash == 0) == (exitChainId == 0)) {
             revert InvalidOwnerHashOrExitBridgeData();
@@ -68,7 +67,10 @@ contract Portal is IPortal, SingleUse {
         }
     }
 
-    function bridge(address lifiDiamondAddress, bytes calldata bridgeData, uint256 amount, address currency) external onlyOnce {
+    function bridge(address lifiDiamondAddress, bytes calldata bridgeData, uint256 amount, address currency)
+        external
+        onlyOnce
+    {
         if (currency != address(0) && currency != NATIVE_ETH) {
             IERC20 token = IERC20(currency);
 
@@ -108,5 +110,4 @@ contract Portal is IPortal, SingleUse {
             token.safeTransfer(to, balance);
         }
     }
-
 }

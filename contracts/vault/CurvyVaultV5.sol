@@ -57,10 +57,10 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
     /**
      * @dev DO NOT REMOVE THIS FUNCTION.
      * This function does not affect existing deployments during an upgrade. The `initializer`
-     * modifier guarantees it can only be executed once per proxy. When an existing proxy is 
-     * upgraded to this version, its state is already marked as initialized, making this 
+     * modifier guarantees it can only be executed once per proxy. When an existing proxy is
+     * upgraded to this version, its state is already marked as initialized, making this
      * function safely uncallable and preventing any accidental state resets.
-     * 
+     *
      * The transferFee is unused anymore, but it is kept for storage layout reasons.
      */
     function initialize(address initialOwner) public initializer {
@@ -84,7 +84,7 @@ contract CurvyVaultV5 is ICurvyVaultV2, Initializable, EIP712Upgradeable, UUPSUp
     //#region Owner functions
 
     function registerToken(address tokenAddress) external onlyOwner {
-        if (_tokenAddressToTokenId[tokenAddress] != 0) revert TokenAllreadyRegistered();
+        if (_tokenAddressToTokenId[tokenAddress] != 0) revert TokenAlreadyRegistered();
 
         // Register ID
         _numberOfTokens++;

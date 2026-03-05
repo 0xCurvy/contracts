@@ -19,7 +19,7 @@ interface ICurvyVaultV2 {
 
     error InvalidRecipient();
     error NotCurvyAggregator();
-    error TokenAllreadyRegistered();
+    error TokenAlreadyRegistered();
     error InvalidDestinationAddress();
     error TokenNotRegistered();
     error ETHTransferFailed();
