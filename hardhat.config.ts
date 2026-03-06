@@ -3,8 +3,16 @@ import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import hardhatVerifyPlugin from "@nomicfoundation/hardhat-verify";
 import { configVariable, type HardhatUserConfig } from "hardhat/config";
 
+
+const isDevenv = () => {
+  return process.argv.includes("devenv");
+}
+
 const config: HardhatUserConfig = {
   plugins: [hardhatToolboxViemPlugin, hardhatIgnitionViemPlugin, hardhatVerifyPlugin],
+  paths: {
+    sources: isDevenv() ? 'devenv' : 'contracts'
+  },
   solidity: {
     npmFilesToBuild: ["@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol"],
     profiles: {
