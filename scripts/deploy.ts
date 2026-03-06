@@ -15,14 +15,14 @@ function getPortalFactoryAddress(deploymentId: string) {
   return deployedAddresses["PortalFactory#PortalFactory"];
 }
 async function main() {
-  const networks = ["ethereum", "base", "optimism", "polygon", "bsc", "gnosis", "linea"];
+  const networks = ["sepolia", "arbitrum", "ethereum", "base", "optimism", "polygon", "bsc", "gnosis", "linea"];
   const environment = process.env.ENVIRONMENT;
 
   if (environment !== "staging" && environment !== "production") {
     throw new Error("process.env.ENVIRONMENT must be set to either staging or production");
   }
 
-  const ownerAddress = getEnvironmentParameter("ownerAddress", environment);
+  const ownerAddress = getEnvironmentParameter("owner", environment);
 
   for (const networkName of networks) {
     const mainDeployment = getNetworkParameter("mainDeployment", networkName);
