@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import {CurvyTypes} from "../utils/Types.sol";
-import {ICurvyAggregatorAlpha} from "../aggregator-alpha/ICurvyAggregatorAlpha.sol";
+import {ICurvyAggregatorAlphaV2} from "../aggregator-alpha/ICurvyAggregatorAlphaV2.sol";
 import {ICurvyVault} from "../vault/ICurvyVault.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IPortal} from "./IPortal.sol";
@@ -17,7 +17,7 @@ contract Portal is IPortal, SingleUse {
 
     address private constant NATIVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    ICurvyAggregatorAlpha public curvyAggregator;
+    ICurvyAggregatorAlphaV2 public curvyAggregator;
     ICurvyVault public curvyVault;
 
     address public recovery;
@@ -48,7 +48,7 @@ contract Portal is IPortal, SingleUse {
             revert InvalidOwnerHash();
         }
 
-        curvyAggregator = ICurvyAggregatorAlpha(curvyAggregatorAlphaProxyAddress);
+        curvyAggregator = ICurvyAggregatorAlphaV2(curvyAggregatorAlphaProxyAddress);
         curvyVault = ICurvyVault(curvyVaultProxyAddress);
 
         address tokenAddress;
@@ -61,9 +61,9 @@ contract Portal is IPortal, SingleUse {
         }
         if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
             IERC20(tokenAddress).forceApprove(address(curvyAggregator), note.amount);
-            curvyAggregator.autoShield(note, tokenAddress);
+            curvyAggregator.autoShield(note);
         } else {
-            curvyAggregator.autoShield{value: note.amount}(note, tokenAddress);
+            curvyAggregator.autoShield{value: note.amount}(note);
         }
     }
 

@@ -9,7 +9,7 @@ import {
     ICurvyWithdrawVerifierV3
 } from "./verifiers/ICurvyVerifiersAlpha.sol";
 import {CurvyTypes} from "../utils/Types.sol";
-import {ICurvyAggregatorAlpha} from "./ICurvyAggregatorAlpha.sol";
+import {ICurvyAggregatorAlphaV2} from "./ICurvyAggregatorAlphaV2.sol";
 import {ICurvyVault} from "../vault/ICurvyVault.sol";
 import {ICurvyVaultV2} from "../vault/ICurvyVaultV2.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -23,7 +23,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
  * @author Curvy Protocol (https://curvy.box)
  * @dev Curvy's Aggregator contract.
  */
-contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlphaV2, Initializable, UUPSUpgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
     //#region Events
 
@@ -82,11 +82,7 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
 
     //#region Owner functions
 
-    function updateConfig(CurvyTypes.AggregatorConfigurationUpdateV2 memory _update)
-        external
-        onlyOwner
-        returns (bool)
-    {
+    function updateConfig(CurvyTypes.AggregatorConfigurationUpdateV2 memory _update) external onlyOwner returns (bool) {
         if (_update.insertionVerifier != address(0)) {
             insertionVerifier = ICurvyInsertionVerifier(_update.insertionVerifier);
         }
@@ -129,11 +125,14 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
 
     //#region Public functions
 
-    function autoShield(CurvyTypes.Note memory note, address tokenAddress) external payable {
+    function autoShield(CurvyTypes.Note memory note) external payable {
         // Only allow auto shielding of portals that were deployed through the portalFactory
         if (!portalFactory.portalIsRegistered(msg.sender)) revert PortalNotRegistered();
 
-        if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
+        // This will revert if tokenId is not found.
+        address tokenAddress = curvyVault.getTokenAddress(note.token);
+
+        if (tokenAddress != NATIVE_ETH) {
             IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), note.amount);
             IERC20(tokenAddress).forceApprove(address(curvyVault), note.amount);
         }
@@ -197,7 +196,9 @@ contract CurvyAggregatorAlphaV5 is ICurvyAggregatorAlpha, Initializable, UUPSUpg
         uint256[2] memory proof_c,
         uint256[9] memory publicInputs
     ) public {
-        if (publicInputs[2] != _nullifiersTreeRoot) revert CurrentNullifierTreeRootMismatch();
+        if (publicInputs[2] != _nullifiersTreeRoot) {
+            revert CurrentNullifierTreeRootMismatch();
+        }
         if (publicInputs[1] != _notesTreeRoot) revert CurrentNoteTreeRootMismatch();
 
         if (!withdrawVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs)) revert InvalidProof();
