@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
-import { getNetworkParameter } from "../ignition/modules/utils/parameters";
+import { getEnvironmentParameter, getNetworkParameter } from "../ignition/modules/utils/parameters";
+import fs from "node:fs";
 
 function run(cmd: string, args: readonly string[]): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -8,13 +9,20 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
   });
 }
 
+function getPortalFactoryAddress(deploymentId: string) {
+  const deployedAddressesPath = `./ignition/deployments/${deploymentId}/deployed_addresses.json`;
+  const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
+  return deployedAddresses["PortalFactory#PortalFactory"];
+}
 async function main() {
-  const networks = ["sepolia", "arbitrum", "ethereum", "base", "optimism", "polygon", "bsc", "gnosis", "linea"];
+  const networks = ["ethereum", "base", "optimism", "polygon", "bsc", "gnosis", "linea"];
   const environment = process.env.ENVIRONMENT;
 
   if (environment !== "staging" && environment !== "production") {
     throw new Error("process.env.ENVIRONMENT must be set to either staging or production");
   }
+
+  const ownerAddress = getEnvironmentParameter("ownerAddress", environment);
 
   for (const networkName of networks) {
     const mainDeployment = getNetworkParameter("mainDeployment", networkName);
@@ -31,6 +39,16 @@ async function main() {
         "--verify",
         "./ignition/modules/MainDeployment.ts",
       ]);
+
+      console.log(`Manually verifying PortalFactory...`)
+      await run("pnpm", [
+        "hardhat",
+        "verify",
+        "--network",
+        networkName,
+        await getPortalFactoryAddress(`${environment}_${networkName}`),
+        ownerAddress
+      ]);
     } else {
       console.log(`==== ${environment}_${networkName} portal factory only deployment ====`);
       await run("pnpm", [
@@ -41,7 +59,18 @@ async function main() {
         `${environment}_${networkName}`,
         "--network",
         networkName,
+        "--verify",
         "./ignition/modules/Deployment.ts",
+      ]);
+
+      console.log(`Manually verifying PortalFactory...`)
+      await run("pnpm", [
+        "hardhat",
+        "verify",
+        "--network",
+        networkName,
+        await getPortalFactoryAddress(`${environment}_${networkName}`),
+        ownerAddress
       ]);
     }
   }
