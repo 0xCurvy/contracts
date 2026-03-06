@@ -6,9 +6,8 @@ import {ICurvyAggregatorAlphaV2} from "../aggregator-alpha/ICurvyAggregatorAlpha
 import {ICurvyVault} from "../vault/ICurvyVault.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IPortal} from "./IPortal.sol";
-import {SingleUse} from "../utils/SingleUse.sol";
 
-contract Portal is IPortal, SingleUse {
+contract Portal is IPortal {
     using SafeERC20 for IERC20;
 
     uint256 private _ownerHash;
@@ -22,9 +21,17 @@ contract Portal is IPortal, SingleUse {
 
     address public recovery;
 
+    bool private _used;
+
     modifier onlyRecovery() {
         require(msg.sender == recovery, "Portal: Only recovery");
         _;
+    }
+
+    modifier onlyOnce() {
+        require(!_used, "SingleUse: Already used");
+        _;
+        _used = true;
     }
 
     constructor(uint256 ownerHash, address exitAddress, uint256 exitChainId, address _recovery) {
@@ -57,6 +64,7 @@ contract Portal is IPortal, SingleUse {
         } catch {
             emit ShieldingFailed(note.ownerHash, tokenAddress, note.amount, "Failed to get token address from vault");
             // Here we just do a return because we want the deployment to pass so that the user can call the recover method.
+            _used = false; // We also set the used to false so that if the token gets registered in the near future, the user may reattempt shielding.
             return;
         }
         if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
