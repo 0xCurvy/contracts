@@ -19,7 +19,7 @@ async function main() {
   for (const networkName of networks) {
     const mainDeployment = getNetworkParameter("mainDeployment", networkName);
     if (mainDeployment) {
-      console.log(`==== MAIN DEPLOYMENT: ${networkName.toUpperCase()} ====`);
+      console.log(`==== ${environment}_${networkName} main deployment ====`);
       await run("pnpm", [
         "hardhat",
         "ignition",
@@ -32,7 +32,7 @@ async function main() {
         "./ignition/modules/MainDeployment.ts",
       ]);
     } else {
-      console.log(`== ${networkName.toUpperCase()} ==`);
+      console.log(`==== ${environment}_${networkName} portal factory only deployment ====`);
       await run("pnpm", [
         "hardhat",
         "ignition",
