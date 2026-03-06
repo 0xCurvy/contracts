@@ -115,3 +115,5 @@
 {"futureId":"DeploymentModule#PortalFactory~PortalFactory_V5.updateConfig","networkInteractionId":1,"nonce":34,"transaction":{"fees":{"maxFeePerGas":{"_kind":"bigint","value":"1009104"},"maxPriorityFeePerGas":{"_kind":"bigint","value":"1000000"}},"hash":"0xab06d1076b000e445cfed2c9f2cc17025bbb221d427a0d87c547e2e36a1c31d5"},"type":"TRANSACTION_SEND"}
 {"futureId":"DeploymentModule#PortalFactory~PortalFactory_V5.updateConfig","hash":"0xab06d1076b000e445cfed2c9f2cc17025bbb221d427a0d87c547e2e36a1c31d5","networkInteractionId":1,"receipt":{"blockHash":"0x116ba265af15d7f0a5e5d82553fdfc0dc748a0ba1fc2ef02f91588955c6043de","blockNumber":148610286,"logs":[],"status":"SUCCESS"},"type":"TRANSACTION_CONFIRM"}
 {"futureId":"DeploymentModule#PortalFactory~PortalFactory_V5.updateConfig","result":{"type":"SUCCESS"},"type":"CALL_EXECUTION_STATE_COMPLETE"}
+{"futureId":"DeploymentModule#PortalFactory~PortalFactory.updateConfig","type":"WIPE_APPLY"}
+{"futureId":"PortalFactory#PortalFactory","type":"WIPE_APPLY"}
