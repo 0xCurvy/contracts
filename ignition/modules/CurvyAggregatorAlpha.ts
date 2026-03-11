@@ -123,12 +123,24 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
 
   const upgradeV5 = m.call(curvyAggregatorAlphaV4, "upgradeToAndCall", [implementationV5, "0x"]);
 
-  const curvyAggregatorAlpha = m.contractAt("CurvyAggregatorAlphaV5", proxy);
+  const curvyAggregatorAlphaV5 = m.contractAt("CurvyAggregatorAlphaV5", proxy);
 
   const withdrawVerifierV3 = m.contract(`CurvyWithdrawVerifierAlphaV3_${maxWithdrawals}`, [], {
     id: "withdrawVerifierV3",
     after: [upgradeV5],
   });
 
-  return { implementation: implementationV5, proxy, curvyAggregatorAlpha, withdrawVerifierV3 };
+  const implementationV6 = m.contract("CurvyAggregatorAlphaV6", [], {
+    id: "CurvyAggregatorAlphaV6Implementation",
+    libraries: {
+      PoseidonT4: poseidonT4,
+    },
+    after: [upgradeV5],
+  });
+
+  const upgradeV6 = m.call(curvyAggregatorAlphaV5, "upgradeToAndCall", [implementationV6, "0x"]);
+
+  const curvyAggregatorAlpha = m.contractAt("CurvyAggregatorAlphaV6", proxy);
+
+  return { implementation: implementationV6, proxy, curvyAggregatorAlpha, withdrawVerifierV3 };
 });

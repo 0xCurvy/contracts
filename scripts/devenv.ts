@@ -10,6 +10,8 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
 }
 
 (async () => {
+  process.env.HARDHAT_DEVENV = "true";
+
   await run("pnpm", ["hardhat", "clean"]);
   await run("pnpm", ["hardhat", "build"]);
 
