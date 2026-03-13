@@ -38,7 +38,6 @@ interface IPortalFactory {
     error UnsupportedBridging();
     error InvalidLiFiReceiver();
     error InvalidLiFiDestinationChain();
-    error InsufficientAmountForLiFiBridging();
 
     //#endregion
 

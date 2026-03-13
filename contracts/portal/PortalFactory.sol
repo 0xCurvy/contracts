@@ -113,9 +113,6 @@ contract PortalFactory is IPortalFactory, Ownable {
         if (extractedData.destinationChainId != AGGREGATOR_CHAIN_ID) {
             revert InvalidLiFiDestinationChain();
         }
-        if (extractedData.minAmount > note.amount) {
-            revert InsufficientAmountForLiFiBridging();
-        }
 
         bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash, address(0), 0, recovery);
         address portalAddress;
