@@ -14,11 +14,12 @@ set -ex
 
 ## Wiping PortalFactory
 
-#pnpm hardhat ignition wipe staging_linea MainDeploymentModule#PortalFactory~PortalFactory_V5.updateConfig
-#pnpm hardhat ignition wipe staging_linea MainDeploymentModule#CurvyAggregatorAlpha~CurvyAggregatorAlphaV5.updateConfig
-#pnpm hardhat ignition wipe staging_linea PortalFactory#PortalFactory_V5
-#pnpm hardhat ignition wipe staging_linea PortalFactory#ReadEvent_PortalFactory_V5
-#pnpm hardhat ignition wipe staging_linea PortalFactory#CreateX_PortalFactory_V5
+# pnpm hardhat ignition wipe production_arbitrum MainDeploymentModule#PortalFactory~PortalFactory.updateConfig
+# pnpm hardhat ignition wipe production_arbitrum MainDeploymentModule#CurvyAggregatorAlpha~CurvyAggregatorAlphaV6.updateConfig
+# pnpm hardhat ignition wipe production_arbitrum MainDeploymentModule#CurvyAggregatorAlpha~CurvyAggregatorAlphaV5.updateConfig
+# pnpm hardhat ignition wipe production_arbitrum PortalFactory#PortalFactory
+# pnpm hardhat ignition wipe production_arbitrum PortalFactory#ReadEvent_PortalFactory
+# pnpm hardhat ignition wipe production_arbitrum PortalFactory#CreateX_PortalFactory
 
 ## Wiping Aggregator
 
@@ -39,7 +40,7 @@ set -ex
 
 # Portal factory only
 
-#pnpm hardhat ignition wipe staging_linea DeploymentModule#PortalFactory~PortalFactory.updateConfig
-#pnpm hardhat ignition wipe staging_linea PortalFactory#PortalFactory
-#pnpm hardhat ignition wipe staging_linea PortalFactory#ReadEvent_PortalFactory
-#pnpm hardhat ignition wipe staging_linea PortalFactory#CreateX_PortalFactory
+# pnpm hardhat ignition wipe production_gnosis DeploymentModule#PortalFactory~PortalFactory.updateConfig
+# pnpm hardhat ignition wipe production_gnosis PortalFactory#PortalFactory
+# pnpm hardhat ignition wipe production_gnosis PortalFactory#ReadEvent_PortalFactory
+# pnpm hardhat ignition wipe production_gnosis PortalFactory#CreateX_PortalFactory
