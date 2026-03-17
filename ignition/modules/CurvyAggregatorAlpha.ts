@@ -142,5 +142,28 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
 
   const curvyAggregatorAlpha = m.contractAt("CurvyAggregatorAlphaV6", proxy);
 
-  return { implementation: implementationV6, proxy, curvyAggregatorAlpha, withdrawVerifierV3 };
+  const insertionVerifierDepth30 = m.contract("CurvyInsertionVerifierAlpha_2_30", [], {
+    id: "insertionVerifierDepth30",
+    after: [upgradeV6],
+  });
+
+  const aggregationVerifierDepth30 = m.contract("CurvyAggregationVerifierAlpha_2_2_2_30", [], {
+    id: "aggregationVerifierDepth30",
+    after: [insertionVerifierDepth30],
+  });
+
+  const withdrawVerifierDepth30 = m.contract("CurvyWithdrawVerifierAlpha_2_2_30", [], {
+    id: "withdrawVerifierDepth30",
+    after: [aggregationVerifierDepth30],
+  });
+
+  return { 
+    implementation: implementationV6, 
+    proxy, 
+    curvyAggregatorAlpha, 
+    withdrawVerifierV3,
+    insertionVerifierDepth30,
+    aggregationVerifierDepth30,
+    withdrawVerifierDepth30
+  };
 });
