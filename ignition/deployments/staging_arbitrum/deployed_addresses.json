@@ -34,5 +34,8 @@
   "CurvyAggregatorAlpha#CurvyAggregatorAlphaV6": "0xE01eE56C613175502c8e677774eaCbBB2738674C",
   "CurvyVault#CurvyVaultV6": "0xB61F0c208356Df565Bde02dCEd33C896F6b0F939",
   "CurvyAggregatorAlpha#CurvyAggregatorAlphaV6Implementation": "0x34371A30a9634B6b0c95F34bcDF76b7a6Fc53d37",
-  "CurvyVault#CurvyVaultV6Implementation": "0x52D578E440F590BD588e63E941E6053FaCd324c1"
+  "CurvyVault#CurvyVaultV6Implementation": "0x52D578E440F590BD588e63E941E6053FaCd324c1",
+  "CurvyAggregatorAlpha#insertionVerifierDepth30": "0x4a4434F8fFA7D5a917554c2584B1e1a4851F265e",
+  "CurvyAggregatorAlpha#aggregationVerifierDepth30": "0xd0B943918d8F7362dCb2E80FD50D373F450Fa473",
+  "CurvyAggregatorAlpha#withdrawVerifierDepth30": "0x05b8675641d44ca1402ae66cB8412cda4cb1402D"
 }

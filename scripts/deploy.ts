@@ -40,14 +40,14 @@ async function main() {
         "./ignition/modules/MainDeployment.ts",
       ]);
 
-      console.log(`Manually verifying PortalFactory...`)
+      console.log(`Manually verifying PortalFactory...`);
       await run("pnpm", [
         "hardhat",
         "verify",
         "--network",
         networkName,
         await getPortalFactoryAddress(`${environment}_${networkName}`),
-        ownerAddress
+        ownerAddress,
       ]);
     } else {
       console.log(`==== ${environment}_${networkName} portal factory only deployment ====`);
@@ -63,14 +63,14 @@ async function main() {
         "./ignition/modules/Deployment.ts",
       ]);
 
-      console.log(`Manually verifying PortalFactory...`)
+      console.log(`Manually verifying PortalFactory...`);
       await run("pnpm", [
         "hardhat",
         "verify",
         "--network",
         networkName,
         await getPortalFactoryAddress(`${environment}_${networkName}`),
-        ownerAddress
+        ownerAddress,
       ]);
     }
   }
