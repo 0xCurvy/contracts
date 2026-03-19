@@ -1,0 +1,28 @@
+[package]
+name = "curvy_portal"
+version = "0.1.0"
+description = "Curvy Portal - Solana entry bridge to Arbitrum via LiFi"
+edition = "2021"
+
+[features]
+seeds = false
+skip-lint = false
+
+[programs.localnet]
+curvy_portal = "5YHYjrHecckQdqdF9iEmkfcLj5s73RSUS7uiLJvvA9nP"
+
+[programs.devnet]
+curvy_portal = "5YHYjrHecckQdqdF9iEmkfcLj5s73RSUS7uiLJvvA9nP"
+
+[programs.mainnet-beta]
+curvy_portal = "5YHYjrHecckQdqdF9iEmkfcLj5s73RSUS7uiLJvvA9nP"
+
+[registry]
+url = "https://api.dev.secondstate.io"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "npx ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
