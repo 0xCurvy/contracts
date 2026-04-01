@@ -24,12 +24,14 @@ async function main() {
     CurvyAggregatorAlpha: "aggregator-alpha",
     CurvyVault: "vault",
     PortalFactory: "portal-factory",
+    Portal: "portal",
   };
 
   const contractImplementations: Record<string, string> = {
-    CurvyAggregatorAlpha: "CurvyAggregatorAlphaV5",
-    CurvyVault: "CurvyVaultV5",
+    CurvyAggregatorAlpha: "CurvyAggregatorAlphaV6",
+    CurvyVault: "CurvyVaultV6",
     PortalFactory: "PortalFactory",
+    Portal: "Portal",
   };
 
   for (const contract in contractImplementations) {
