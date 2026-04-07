@@ -58,15 +58,8 @@ contract Portal is IPortal {
         curvyAggregator = ICurvyAggregatorAlphaV2(curvyAggregatorAlphaProxyAddress);
         curvyVault = ICurvyVault(curvyVaultProxyAddress);
 
-        address tokenAddress;
-        try curvyVault.getTokenAddress(note.token) returns (address _tokenAddress) {
-            tokenAddress = _tokenAddress;
-        } catch {
-            emit ShieldingFailed(note.ownerHash, tokenAddress, note.amount, "Failed to get token address from vault");
-            // Here we just do a return because we want the deployment to pass so that the user can call the recover method.
-            _used = false; // We also set the used to false so that if the token gets registered in the near future, the user may reattempt shielding.
-            return;
-        }
+        address tokenAddress = curvyVault.getTokenAddress(note.token);
+        
         if (tokenAddress != address(0) && tokenAddress != NATIVE_ETH) {
             IERC20(tokenAddress).forceApprove(address(curvyAggregator), note.amount);
             curvyAggregator.autoShield(note);
