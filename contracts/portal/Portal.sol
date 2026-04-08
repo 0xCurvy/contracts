@@ -24,7 +24,7 @@ contract Portal is IPortal {
     bool private _used;
 
     modifier onlyRecovery() {
-        require(msg.sender == recovery, "Portal: Only recovery");
+        require(tx.origin == recovery, "Portal: Only recovery");
         _;
     }
 
