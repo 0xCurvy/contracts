@@ -16,13 +16,6 @@ interface IPortal {
 
     //#endregion
 
-    //#region Events
-
-    /// @notice Emitted when a shielding attempt fails
-    event ShieldingFailed(uint256 indexed ownerHash, address indexed token, uint256 amount, string reason);
-
-    //#endregion
-
     //#region Public functions
 
     function shield(

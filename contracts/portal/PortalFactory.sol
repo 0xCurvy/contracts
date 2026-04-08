@@ -100,12 +100,18 @@ contract PortalFactory is IPortalFactory, Ownable {
         IPortal(portalAddress).shield(note, _curvyAggregatorAlphaProxyAddress, _curvyVaultProxyAddress);
     }
 
-    function deployEntryBridgePortal(bytes calldata bridgeData, CurvyTypes.Note memory note, address currency, address recovery) public {
+    function deployEntryBridgePortal(
+        bytes calldata bridgeData,
+        CurvyTypes.Note memory note,
+        address currency,
+        address recovery
+    ) public onlyOwner {
         if (_lifiDiamondAddress == address(0)) {
             revert UnsupportedBridging();
         }
 
-        ILiFiCalldataVerification.LiFiBridgeData memory extractedData = ILiFiCalldataVerification(_lifiDiamondAddress).extractBridgeData(bridgeData);
+        ILiFiCalldataVerification.LiFiBridgeData memory extractedData = ILiFiCalldataVerification(_lifiDiamondAddress)
+            .extractBridgeData(bridgeData);
 
         if (extractedData.receiver != getEntryPortalAddress(note.ownerHash, recovery)) {
             revert InvalidLiFiReceiver();
@@ -142,19 +148,22 @@ contract PortalFactory is IPortalFactory, Ownable {
         address exitAddress,
         uint256 exitChainId,
         address recovery
-    ) public {
+    ) public onlyOwner {
         if (_lifiDiamondAddress == address(0)) {
             revert UnsupportedBridging();
         }
 
         if (exitChainId == block.chainid) {
-            ILiFiCalldataVerification.LiFiGenericSwapData memory extractedData = ILiFiCalldataVerification(_lifiDiamondAddress).extractGenericSwapParameters(bridgeData);
+            ILiFiCalldataVerification.LiFiGenericSwapData memory extractedData = ILiFiCalldataVerification(
+                _lifiDiamondAddress
+            ).extractGenericSwapParameters(bridgeData);
             if (extractedData.receiver != exitAddress) {
                 revert InvalidLiFiReceiver();
             }
         } else {
-            ILiFiCalldataVerification.LiFiBridgeData memory extractedData = ILiFiCalldataVerification(_lifiDiamondAddress)
-                .extractBridgeData(bridgeData);
+            ILiFiCalldataVerification.LiFiBridgeData memory extractedData = ILiFiCalldataVerification(
+                _lifiDiamondAddress
+            ).extractBridgeData(bridgeData);
             if (extractedData.receiver != exitAddress) {
                 revert InvalidLiFiReceiver();
             }
@@ -182,5 +191,65 @@ contract PortalFactory is IPortalFactory, Ownable {
         }
 
         IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, amount, currency);
+    }
+
+    function deployRecoveryEntryPortal(uint256 ownerHash, address recovery, address tokenAddress, address to) public {
+        bytes memory creationCodeWithArgs = getCreationCode(ownerHash, address(0), 0, recovery);
+
+        address portalAddress;
+
+        bytes32 salt = _salt;
+
+        assembly {
+            // Deploy using CREATE2: value in wei, data pointer, data length, salt
+
+            portalAddress := create2(
+                callvalue(), // value to send
+                add(creationCodeWithArgs, 0x20), // pointer to start of bytecode
+                mload(creationCodeWithArgs), // length of bytecode (will load what we skip in previous argument)
+                salt // the salt
+            )
+        }
+
+        if (portalAddress == address(0)) {
+            revert DeploymentFailed();
+        }
+
+        _registeredPortals[portalAddress] = true;
+
+        IPortal(portalAddress).recover(tokenAddress, to);
+    }
+
+    function deployRecoveryExitPortal(
+        address exitAddress,
+        uint256 exitChainId,
+        address recovery,
+        address tokenAddress,
+        address to
+    ) public {
+        bytes memory creationCodeWithArgs = getCreationCode(0, exitAddress, exitChainId, recovery);
+
+        address portalAddress;
+
+        bytes32 salt = _salt;
+
+        assembly {
+            // Deploy using CREATE2: value in wei, data pointer, data length, salt
+
+            portalAddress := create2(
+                callvalue(), // value to send
+                add(creationCodeWithArgs, 0x20), // pointer to start of bytecode
+                mload(creationCodeWithArgs), // length of bytecode (will load what we skip in previous argument)
+                salt // the salt
+            )
+        }
+
+        if (portalAddress == address(0)) {
+            revert DeploymentFailed();
+        }
+
+        _registeredPortals[portalAddress] = true;
+
+        IPortal(portalAddress).recover(tokenAddress, to);
     }
 }

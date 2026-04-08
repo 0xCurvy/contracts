@@ -15,7 +15,8 @@ const core = new Core();
 const ownerHash = 104523775061865081978688333206914837947832712051815280022934306837594910208413n;
 const tokenAddress = "0xabc";
 const viewTag = "2a";
-const ephemeralPublicKey = "216163113738129077026981082324476512393870475034151261972342073686655368504.17738778503081880329520898390562451499239148980806015804088882169172728886181";
+const ephemeralPublicKey =
+  "216163113738129077026981082324476512393870475034151261972342073686655368504.17738778503081880329520898390562451499239148980806015804088882169172728886181";
 const announcement = {
   createdAt: "2026-01-22T09:15:53.168Z",
   id: "49",
@@ -51,7 +52,7 @@ if (!portalFactoryAddress) {
 const portalFactory = await viem.getContractAt("PortalFactory", portalFactoryAddress);
 
 console.log("Calculating expected Portal address...");
-const expectedPortalAddress = await portalFactory.read.getPortalAddress([ownerHash, recoveryAccount.address]);
+const expectedPortalAddress = await portalFactory.read.getEntryPortalAddress([ownerHash, recoveryAccount.address]);
 console.log(`Target Portal Address: ${expectedPortalAddress}`);
 
 const bytecode = await publicClient.getCode({ address: expectedPortalAddress });
@@ -67,7 +68,7 @@ if (!isDeployed) {
     amount: 0n,
   };
 
-  const deployHash = await portalFactory.write.deployAndShield([dummyNote, recoveryAccount.address], {
+  const deployHash = await portalFactory.write.deployShieldPortal([dummyNote, recoveryAccount.address], {
     account: deployerClient.account,
   });
 
