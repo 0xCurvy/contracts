@@ -59,6 +59,10 @@
     "lifiDiamondAddress": "0xde1e598b81620773454588b85d6b5d4eec32573e",
     "mainDeployment": false
   },
+  "tempo": {
+    "lifiDiamondAddress": "0x2cAcAE8e22418E65dcf7651c67aEbe6288EB8243",
+    "mainDeployment": false
+  },
   "anvil": {
     "lifiDiamondAddress": "0x0000000000000000000000000000000000000000",
     "mainDeployment": true,
