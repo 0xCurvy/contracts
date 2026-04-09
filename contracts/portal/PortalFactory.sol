@@ -21,6 +21,27 @@ contract PortalFactory is IPortalFactory, Ownable {
 
     constructor(address initialOwner) Ownable(initialOwner) {}
 
+    function deployPortal(bytes memory creationCodeWithArgs) private returns (address) {
+        address portalAddress;
+
+        bytes32 salt = _salt;
+
+        assembly {
+            // Deploy using CREATE2: value in wei, data pointer, data length, salt
+            portalAddress := create2(
+                callvalue(), // value to send
+                add(creationCodeWithArgs, 0x20), // pointer to start of bytecode
+                mload(creationCodeWithArgs), // length of bytecode (will load what we skip in previous argument)
+                salt // the salt
+            )
+        }
+        if (portalAddress == address(0)) {
+            revert DeploymentFailed();
+        }
+
+        return portalAddress;
+    }
+
     function updateConfig(
         address curvyVaultProxyAddress,
         address curvyAggregatorAlphaProxyAddress,
@@ -78,22 +99,8 @@ contract PortalFactory is IPortalFactory, Ownable {
         }
 
         bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash, address(0), 0, recovery);
-        address portalAddress;
 
-        bytes32 salt = _salt;
-
-        assembly {
-            // Deploy using CREATE2: value in wei, data pointer, data length, salt
-            portalAddress := create2(
-                callvalue(), // value to send
-                add(creationCodeWithArgs, 0x20), // pointer to start of bytecode
-                mload(creationCodeWithArgs), // length of bytecode
-                salt // the salt
-            )
-        }
-        if (portalAddress == address(0)) {
-            revert DeploymentFailed();
-        }
+        address portalAddress = deployPortal(creationCodeWithArgs);
 
         _registeredPortals[portalAddress] = true;
 
@@ -121,22 +128,8 @@ contract PortalFactory is IPortalFactory, Ownable {
         }
 
         bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash, address(0), 0, recovery);
-        address portalAddress;
 
-        bytes32 salt = _salt;
-
-        assembly {
-            // Deploy using CREATE2: value in wei, data pointer, data length, salt
-            portalAddress := create2(
-                callvalue(), // value to send
-                add(creationCodeWithArgs, 0x20), // pointer to start of bytecode
-                mload(creationCodeWithArgs), // length of bytecode (will load what we skip in previous argument)
-                salt // the salt
-            )
-        }
-        if (portalAddress == address(0)) {
-            revert DeploymentFailed();
-        }
+        address portalAddress = deployPortal(creationCodeWithArgs);
 
         IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, note.amount, currency);
     }
@@ -173,22 +166,8 @@ contract PortalFactory is IPortalFactory, Ownable {
         }
 
         bytes memory creationCodeWithArgs = getCreationCode(0, exitAddress, exitChainId, recovery);
-        address portalAddress;
 
-        bytes32 salt = _salt;
-
-        assembly {
-            // Deploy using CREATE2: value in wei, data pointer, data length, salt
-            portalAddress := create2(
-                callvalue(), // value to send
-                add(creationCodeWithArgs, 0x20), // pointer to start of bytecode
-                mload(creationCodeWithArgs), // length of bytecode (will load what we skip in previous argument)
-                salt // the salt
-            )
-        }
-        if (portalAddress == address(0)) {
-            revert DeploymentFailed();
-        }
+        address portalAddress = deployPortal(creationCodeWithArgs);
 
         IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, amount, currency);
     }
@@ -196,26 +175,7 @@ contract PortalFactory is IPortalFactory, Ownable {
     function deployRecoveryEntryPortal(uint256 ownerHash, address recovery, address tokenAddress, address to) public {
         bytes memory creationCodeWithArgs = getCreationCode(ownerHash, address(0), 0, recovery);
 
-        address portalAddress;
-
-        bytes32 salt = _salt;
-
-        assembly {
-            // Deploy using CREATE2: value in wei, data pointer, data length, salt
-
-            portalAddress := create2(
-                callvalue(), // value to send
-                add(creationCodeWithArgs, 0x20), // pointer to start of bytecode
-                mload(creationCodeWithArgs), // length of bytecode (will load what we skip in previous argument)
-                salt // the salt
-            )
-        }
-
-        if (portalAddress == address(0)) {
-            revert DeploymentFailed();
-        }
-
-        _registeredPortals[portalAddress] = true;
+        address portalAddress = deployPortal(creationCodeWithArgs);
 
         IPortal(portalAddress).recover(tokenAddress, to);
     }
@@ -229,26 +189,7 @@ contract PortalFactory is IPortalFactory, Ownable {
     ) public {
         bytes memory creationCodeWithArgs = getCreationCode(0, exitAddress, exitChainId, recovery);
 
-        address portalAddress;
-
-        bytes32 salt = _salt;
-
-        assembly {
-            // Deploy using CREATE2: value in wei, data pointer, data length, salt
-
-            portalAddress := create2(
-                callvalue(), // value to send
-                add(creationCodeWithArgs, 0x20), // pointer to start of bytecode
-                mload(creationCodeWithArgs), // length of bytecode (will load what we skip in previous argument)
-                salt // the salt
-            )
-        }
-
-        if (portalAddress == address(0)) {
-            revert DeploymentFailed();
-        }
-
-        _registeredPortals[portalAddress] = true;
+        address portalAddress = deployPortal(creationCodeWithArgs);
 
         IPortal(portalAddress).recover(tokenAddress, to);
     }
