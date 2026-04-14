@@ -109,6 +109,11 @@ const config: HardhatUserConfig = {
       url: configVariable("ALCHEMY_API_KEY", "https://gnosis-mainnet.g.alchemy.com/v2/{variable}"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
     },
+    tempo: {
+      type: "http",
+      url: configVariable("ALCHEMY_API_KEY", "https://tempo-mainnet.g.alchemy.com/v2/{variable}"),
+      accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+    },
   },
   verify: {
     etherscan: {

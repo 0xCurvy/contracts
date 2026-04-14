@@ -75,5 +75,9 @@ interface IPortalFactory {
         address recovery
     ) external;
 
+    function deployRecoveryEntryPortal(uint256 ownerHash, address recovery, address tokenAddress, address to) external;
+
+    function deployRecoveryExitPortal(address exitAddress, uint256 exitChainId, address recovery, address tokenAddress, address to) external;
+
     //#endregion
 }

@@ -33,6 +33,5 @@ export default buildModule("PortalFactory", (m) => {
     after: [deployCall],
   });
 
-
   return { portalFactory };
 });

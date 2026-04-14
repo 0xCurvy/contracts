@@ -15,7 +15,18 @@ function getPortalFactoryAddress(deploymentId: string) {
   return deployedAddresses["PortalFactory#PortalFactory"];
 }
 async function main() {
-  const networks = ["sepolia", "arbitrum"];
+  const networks = [
+    "sepolia",
+    "arbitrum",
+    "ethereum",
+    "optimism",
+    "base",
+    "linea",
+    "polygon",
+    "bsc",
+    "gnosis",
+    "tempo",
+  ];
   const environment = process.env.ENVIRONMENT;
 
   if (environment !== "staging" && environment !== "production") {
