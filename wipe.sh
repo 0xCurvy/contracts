@@ -16,7 +16,6 @@ set -ex
 
 # pnpm hardhat ignition wipe production_arbitrum MainDeploymentModule#PortalFactory~PortalFactory.updateConfig
 # pnpm hardhat ignition wipe production_arbitrum MainDeploymentModule#CurvyAggregatorAlpha~CurvyAggregatorAlphaV6.updateConfig
-# pnpm hardhat ignition wipe production_arbitrum MainDeploymentModule#CurvyAggregatorAlpha~CurvyAggregatorAlphaV5.updateConfig
 # pnpm hardhat ignition wipe production_arbitrum PortalFactory#PortalFactory
 # pnpm hardhat ignition wipe production_arbitrum PortalFactory#ReadEvent_PortalFactory
 # pnpm hardhat ignition wipe production_arbitrum PortalFactory#CreateX_PortalFactory
