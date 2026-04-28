@@ -2,14 +2,22 @@
 pragma solidity ^0.8.28;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+// audit(operator/authority): role-based access control via OZ AccessControl
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 
 import { IPortal } from "./IPortal.sol";
 import { IPortalFactory, ILiFiCalldataVerification } from "./IPortalFactory.sol";
 import { Portal } from "./Portal.sol";
 import { CurvyTypes } from "../utils/Types.sol";
 
-contract PortalFactory is IPortalFactory, Ownable {
+contract PortalFactory is IPortalFactory, Ownable, AccessControl {
     uint256 private constant AGGREGATOR_CHAIN_ID = 42161;
+
+    // audit(operator/authority): operational role (portal deployment); rotated by AUTHORITY_ROLE
+    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+    // audit(operator/authority): security-critical role (updateConfig)
+    bytes32 public constant AUTHORITY_ROLE = keccak256("AUTHORITY_ROLE");
+
     bytes32 private _salt = keccak256(abi.encodePacked("curvy-portal-factory-salt"));
 
     address private _curvyVaultProxyAddress;
@@ -19,7 +27,13 @@ contract PortalFactory is IPortalFactory, Ownable {
     // Portals checked for compliance and deployed
     mapping(address => bool) private _registeredPortals;
 
-    constructor(address initialOwner) Ownable(initialOwner) {}
+    constructor(address initialOwner) Ownable(initialOwner) {
+        // audit(operator/authority): seed roles. AUTHORITY_ROLE administers both itself and OPERATOR_ROLE.
+        _setRoleAdmin(OPERATOR_ROLE, AUTHORITY_ROLE);
+        _setRoleAdmin(AUTHORITY_ROLE, AUTHORITY_ROLE);
+        _grantRole(AUTHORITY_ROLE, initialOwner);
+        _grantRole(OPERATOR_ROLE, initialOwner);
+    }
 
     function deployPortal(bytes memory creationCodeWithArgs) private returns (address) {
         address portalAddress;
@@ -42,11 +56,12 @@ contract PortalFactory is IPortalFactory, Ownable {
         return portalAddress;
     }
 
+    // audit(operator/authority): authority-gated
     function updateConfig(
         address curvyVaultProxyAddress,
         address curvyAggregatorAlphaProxyAddress,
         address lifiDiamondAddress
-    ) external onlyOwner returns (bool) {
+    ) external onlyRole(AUTHORITY_ROLE) returns (bool) {
         // audit(2026-Q1): Missing Smart Contract address check - require code at address (also rejects EOAs and address(0))
         if (curvyVaultProxyAddress.code.length > 0) {
             _curvyVaultProxyAddress = curvyVaultProxyAddress;
@@ -99,7 +114,8 @@ contract PortalFactory is IPortalFactory, Ownable {
         return _registeredPortals[portalAddress];
     }
 
-    function deployShieldPortal(CurvyTypes.Note memory note, address recovery) public payable onlyOwner {
+    // audit(operator/authority): operator-gated (operational portal deployment)
+    function deployShieldPortal(CurvyTypes.Note memory note, address recovery) public payable onlyRole(OPERATOR_ROLE) {
         if (_curvyVaultProxyAddress == address(0) || _curvyAggregatorAlphaProxyAddress == address(0)) {
             revert UnsupportedShielding();
         }
@@ -116,12 +132,13 @@ contract PortalFactory is IPortalFactory, Ownable {
         emit ShieldPortalDeployed(portalAddress, note.ownerHash, recovery);
     }
 
+    // audit(operator/authority): operator-gated (operational portal deployment)
     function deployEntryBridgePortal(
         bytes calldata bridgeData,
         CurvyTypes.Note memory note,
         address currency,
         address recovery
-    ) public onlyOwner {
+    ) public onlyRole(OPERATOR_ROLE) {
         if (_lifiDiamondAddress == address(0)) {
             revert UnsupportedBridging();
         }
@@ -146,6 +163,7 @@ contract PortalFactory is IPortalFactory, Ownable {
         emit EntryBridgePortalDeployed(portalAddress, note.ownerHash, recovery, currency);
     }
 
+    // audit(operator/authority): operator-gated (operational portal deployment)
     function deployExitBridgePortal(
         bytes calldata bridgeData,
         uint256 amount,
@@ -153,7 +171,7 @@ contract PortalFactory is IPortalFactory, Ownable {
         address exitAddress,
         uint256 exitChainId,
         address recovery
-    ) public onlyOwner {
+    ) public onlyRole(OPERATOR_ROLE) {
         if (_lifiDiamondAddress == address(0)) {
             revert UnsupportedBridging();
         }

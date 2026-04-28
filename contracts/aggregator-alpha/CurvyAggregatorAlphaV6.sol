@@ -13,6 +13,8 @@ import {ICurvyAggregatorAlphaV2} from "./ICurvyAggregatorAlphaV2.sol";
 import {ICurvyVaultV3} from "../vault/ICurvyVaultV3.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+// audit(operator/authority): role-based access control via OZ AccessControl
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {PoseidonT4} from "./utils/PoseidonT4.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -22,7 +24,13 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
  * @author Curvy Protocol (https://curvy.box)
  * @dev Curvy's Aggregator contract.
  */
-contract CurvyAggregatorAlphaV6 is ICurvyAggregatorAlphaV2, Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract CurvyAggregatorAlphaV6 is
+    ICurvyAggregatorAlphaV2,
+    Initializable,
+    UUPSUpgradeable,
+    OwnableUpgradeable,
+    AccessControlUpgradeable
+{
     using SafeERC20 for IERC20;
     //#region Events
 
@@ -31,6 +39,11 @@ contract CurvyAggregatorAlphaV6 is ICurvyAggregatorAlphaV2, Initializable, UUPSU
     //#endregion
 
     address constant NATIVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+    // audit(operator/authority): operational role; rotated by AUTHORITY_ROLE
+    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+    // audit(operator/authority): security-critical role (upgrades, updateConfig)
+    bytes32 public constant AUTHORITY_ROLE = keccak256("AUTHORITY_ROLE");
 
     //#region State variables
 
@@ -73,15 +86,35 @@ contract CurvyAggregatorAlphaV6 is ICurvyAggregatorAlphaV2, Initializable, UUPSU
 
     function initialize(address initialOwner) public initializer {
         __Ownable_init(initialOwner);
+
+        // audit(operator/authority): seed roles on first deploy
+        __AccessControl_init();
+        _setRoleAdmin(OPERATOR_ROLE, AUTHORITY_ROLE);
+        _setRoleAdmin(AUTHORITY_ROLE, AUTHORITY_ROLE);
+        _grantRole(AUTHORITY_ROLE, initialOwner);
+        _grantRole(OPERATOR_ROLE, initialOwner);
     }
 
-    function _authorizeUpgrade(address) internal override onlyOwner {}
+    // audit(operator/authority): bootstraps AccessControl on existing V6 proxies (initialize already ran).
+    // Pre-AC `_authorizeUpgrade` (onlyOwner) gates the upgrade itself; this reinitializer runs atomically
+    // with the upgrade and seeds OPERATOR_ROLE + AUTHORITY_ROLE on the current owner.
+    function bootstrapAccessControl() external reinitializer(2) onlyOwner {
+        __AccessControl_init();
+        _setRoleAdmin(OPERATOR_ROLE, AUTHORITY_ROLE);
+        _setRoleAdmin(AUTHORITY_ROLE, AUTHORITY_ROLE);
+        _grantRole(AUTHORITY_ROLE, owner());
+        _grantRole(OPERATOR_ROLE, owner());
+    }
+
+    // audit(operator/authority): upgrades gated by AUTHORITY_ROLE
+    function _authorizeUpgrade(address) internal override onlyRole(AUTHORITY_ROLE) {}
 
     //#endregion
 
     //#region Owner functions
 
-    function updateConfig(CurvyTypes.AggregatorConfigurationUpdateV2 memory _update) external onlyOwner returns (bool) {
+    // audit(operator/authority): authority-gated
+    function updateConfig(CurvyTypes.AggregatorConfigurationUpdateV2 memory _update) external onlyRole(AUTHORITY_ROLE) returns (bool) {
         // audit(2026-Q1): Missing Smart Contract address check - require code at address (also rejects EOAs and address(0))
         if (_update.insertionVerifier.code.length > 0) {
             insertionVerifier = ICurvyInsertionVerifier(_update.insertionVerifier);
@@ -120,7 +153,8 @@ contract CurvyAggregatorAlphaV6 is ICurvyAggregatorAlphaV2, Initializable, UUPSU
      * @notice Only to be used in emergency cases where the contract is in a bad state and cannot be recovered
      * through normal operation (i.e. proof verification and batch commitments).
      */
-    function reset(uint256 newNotesTreeRoot, uint256 newNullifiersTreeRoot) external onlyOwner {
+    // audit(operator/authority): authority-gated (emergency state reset)
+    function reset(uint256 newNotesTreeRoot, uint256 newNullifiersTreeRoot) external onlyRole(AUTHORITY_ROLE) {
         _notesTreeRoot = newNotesTreeRoot;
         _nullifiersTreeRoot = newNullifiersTreeRoot;
     }

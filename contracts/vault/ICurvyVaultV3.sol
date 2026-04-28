@@ -12,6 +12,8 @@ interface ICurvyVaultV3 {
     event TokenDeregistered(address tokenAddress, uint256 tokenId);
     event FeeChange(CurvyTypes.FeeUpdate feeUpdate);
     event CurvyAggregatorAddressChange(address curvyAggregator);
+    // audit(operator/authority): fees now accumulate at _feeCollectorAddress instead of owner()
+    event FeeCollectorAddressChange(address indexed feeCollectorAddress);
 
     //#endregion
 
@@ -34,6 +36,8 @@ interface ICurvyVaultV3 {
     error TokenHasOutstandingBalance();
     // audit(2026-Q1): No upper limit for fee
     error FeeTooHigh();
+    // audit(operator/authority): fee collector address cannot be zero
+    error InvalidFeeCollectorAddress();
 
     //#endregion
 
