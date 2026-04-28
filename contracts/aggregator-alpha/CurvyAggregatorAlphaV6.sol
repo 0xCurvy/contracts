@@ -191,11 +191,17 @@ contract CurvyAggregatorAlphaV6 is
 
         uint256 numPublicInputs = publicInputs.length;
 
-        if (_notesTreeRoot != publicInputs[numPublicInputs - 2]) revert InvalidNotesRoot();
+        // audit: emit before mutating root so the event captures the transition
+        uint256 oldNotesRoot = _notesTreeRoot;
+        if (oldNotesRoot != publicInputs[numPublicInputs - 2]) revert InvalidNotesRoot();
 
         if (!insertionVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs)) revert InvalidProof();
 
-        _notesTreeRoot = publicInputs[numPublicInputs - 1];
+        uint256 newNotesRoot = publicInputs[numPublicInputs - 1];
+        _notesTreeRoot = newNotesRoot;
+
+        // audit: batch-commit visibility for indexers
+        emit DepositBatchCommitted(oldNotesRoot, newNotesRoot);
     }
 
     function commitAggregationBatch(
