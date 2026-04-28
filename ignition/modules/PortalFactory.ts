@@ -1,13 +1,20 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { encodeDeployData } from "viem";
 import artifact from "../../artifacts/contracts/portal/PortalFactory.sol/PortalFactory.json";
-import { getEnvironmentParameter } from "./utils/parameters";
+// audit(2026-Q1): Moving constant to JSON
+import { getAddressParameter, getEnvironmentParameter } from "./utils/parameters";
 
 export default buildModule("PortalFactory", (m) => {
-  const ownerAddress = getEnvironmentParameter<`0x{string}`>("owner");
+  const ownerAddress = getEnvironmentParameter<`0x${string}`>("owner");
 
-  const CREATEX_ADDRESS = "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed";
-  const createX = m.contractAt("ICreateX", CREATEX_ADDRESS, { id: "CreateX" });
+  // audit(2026-Q1): Moving constant to JSON - CreateX address now sourced per-network from network-parameters.json
+  const createXAddress = getAddressParameter("createXAddress", "network");
+  const createX = m.contractAt("ICreateX", createXAddress, { id: "CreateX" });
+
+  // audit(2026-Q1): Moving constant to JSON - error message if artifact is malformed
+  if (!artifact.abi || !artifact.bytecode) {
+    throw new Error("PortalFactory artifact is malformed: missing abi or bytecode");
+  }
 
   const initCode = encodeDeployData({
     abi: artifact.abi,
@@ -15,7 +22,7 @@ export default buildModule("PortalFactory", (m) => {
     args: [ownerAddress as `0x${string}`],
   });
 
-  const create2Salt = getEnvironmentParameter<`0x{string}`>("create2_salt");
+  const create2Salt = getEnvironmentParameter<`0x${string}`>("create2_salt");
   if (!create2Salt) {
     throw new Error("Missing create2_salt environment variable");
   }
