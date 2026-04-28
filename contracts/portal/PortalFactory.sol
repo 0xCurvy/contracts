@@ -10,6 +10,11 @@ import { CurvyTypes } from "../utils/Types.sol";
 
 contract PortalFactory is IPortalFactory, Ownable {
     uint256 private constant AGGREGATOR_CHAIN_ID = 42161;
+    // audit(2026-Q1): Difference between amount and note.amount - LiFi quotes vary slightly between
+    // generation and execution (dynamic fees, gas pricing). Allow up to 10% deviation between the
+    // expected amount and what LiFi will actually pull.
+    uint256 private constant MAX_SLIPPAGE_BPS = 1000;
+    uint256 private constant SLIPPAGE_DENOMINATOR = 10000;
     bytes32 private _salt = keccak256(abi.encodePacked("curvy-portal-factory-salt"));
 
     address private _curvyVaultProxyAddress;
@@ -136,6 +141,9 @@ contract PortalFactory is IPortalFactory, Ownable {
             revert InvalidLiFiDestinationChain();
         }
 
+        // audit(2026-Q1): Difference between amount and note.amount - verify LiFi will pull exactly note.amount
+        _verifyBridgeAmount(extractedData, bridgeData, note.amount);
+
         bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash, address(0), 0, recovery);
 
         address portalAddress = deployPortal(creationCodeWithArgs);
@@ -165,6 +173,8 @@ contract PortalFactory is IPortalFactory, Ownable {
             if (extractedData.receiver != exitAddress) {
                 revert InvalidLiFiReceiver();
             }
+            // audit(2026-Q1): Difference between amount and note.amount - same-chain swap: verify swap input within slippage
+            _checkAmountWithinSlippage(amount, extractedData.amount);
         } else {
             ILiFiCalldataVerification.LiFiBridgeData memory extractedData = ILiFiCalldataVerification(
                 _lifiDiamondAddress
@@ -175,6 +185,8 @@ contract PortalFactory is IPortalFactory, Ownable {
             if (extractedData.destinationChainId != exitChainId) {
                 revert InvalidLiFiDestinationChain();
             }
+            // audit(2026-Q1): Difference between amount and note.amount - verify LiFi will pull exactly amount
+            _verifyBridgeAmount(extractedData, bridgeData, amount);
         }
 
         bytes memory creationCodeWithArgs = getCreationCode(0, exitAddress, exitChainId, recovery);
@@ -185,6 +197,36 @@ contract PortalFactory is IPortalFactory, Ownable {
 
         // audit(2026-Q1): No way to query which portals were deployed and when - emitted after success
         emit ExitBridgePortalDeployed(portalAddress, exitAddress, exitChainId, recovery, currency);
+    }
+
+    // audit(2026-Q1): Difference between amount and note.amount - bridge-side amount verification
+    // For bridge calls, the amount LiFi will pull from the Portal depends on whether a source-chain
+    // swap precedes the bridge:
+    //   - hasSourceSwaps == true  → swapData[0].fromAmount is the input being pulled
+    //   - hasSourceSwaps == false → bridgeData.minAmount is the input being pulled
+    // Both are checked within MAX_SLIPPAGE_BPS of expectedAmount to allow for LiFi quote drift.
+    function _verifyBridgeAmount(
+        ILiFiCalldataVerification.LiFiBridgeData memory extractedData,
+        bytes calldata bridgeData,
+        uint256 expectedAmount
+    ) private view {
+        if (extractedData.hasSourceSwaps) {
+            ILiFiCalldataVerification.SwapData[] memory swaps = ILiFiCalldataVerification(_lifiDiamondAddress)
+                .extractSwapData(bridgeData);
+            if (swaps.length == 0) revert AmountMismatch();
+            _checkAmountWithinSlippage(expectedAmount, swaps[0].fromAmount);
+        } else {
+            _checkAmountWithinSlippage(expectedAmount, extractedData.minAmount);
+        }
+    }
+
+    // audit(2026-Q1): Difference between amount and note.amount - reverts if actualAmount drifts more
+    // than MAX_SLIPPAGE_BPS from expectedAmount in either direction.
+    function _checkAmountWithinSlippage(uint256 expectedAmount, uint256 actualAmount) private pure {
+        uint256 maxDeviation = (expectedAmount * MAX_SLIPPAGE_BPS) / SLIPPAGE_DENOMINATOR;
+        uint256 minAcceptable = expectedAmount > maxDeviation ? expectedAmount - maxDeviation : 0;
+        uint256 maxAcceptable = expectedAmount + maxDeviation;
+        if (actualAmount < minAcceptable || actualAmount > maxAcceptable) revert AmountMismatch();
     }
 
     function deployRecoveryEntryPortal(uint256 ownerHash, address recovery, address tokenAddress, address to) public {

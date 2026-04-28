@@ -25,9 +25,23 @@ interface ILiFiCalldataVerification {
         uint256 receivingAmount;
     }
 
+    // audit(2026-Q1): swap-then-bridge needs SwapData[].fromAmount instead of bridgeData.minAmount
+    struct SwapData {
+        address callTo;
+        address approveTo;
+        address sendingAssetId;
+        address receivingAssetId;
+        uint256 fromAmount;
+        bytes callData;
+        bool requiresDeposit;
+    }
+
     function extractBridgeData(bytes calldata data) external pure returns (LiFiBridgeData memory);
 
     function extractGenericSwapParameters(bytes calldata data) external pure returns (LiFiGenericSwapData memory);
+
+    // audit(2026-Q1): used to read source-chain swap input amount when hasSourceSwaps == true
+    function extractSwapData(bytes calldata data) external pure returns (SwapData[] memory);
 }
 
 interface IPortalFactory {
@@ -38,6 +52,8 @@ interface IPortalFactory {
     error UnsupportedBridging();
     error InvalidLiFiReceiver();
     error InvalidLiFiDestinationChain();
+    // audit(2026-Q1): Difference between amount and note.amount - LiFi calldata amount mismatches expected
+    error AmountMismatch();
 
     //#endregion
 

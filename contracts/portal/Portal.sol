@@ -68,13 +68,13 @@ contract Portal is IPortal {
         }
     }
 
+    // audit(2026-Q1): Difference between amount and note.amount - all LiFi calldata verification
+    // (address validity, receiver, destination, amount, hasSourceSwaps handling) is performed by
+    // PortalFactory before this call.
     function bridge(address lifiDiamondAddress, bytes calldata bridgeData, uint256 amount, address currency)
         external
         onlyOnce
     {
-        // audit(2026-Q1): Missing Address Validation for LiFi Diamond - reject EOAs/zero address
-        if (lifiDiamondAddress.code.length == 0) revert InvalidLiFiAddress();
-
         if (currency != address(0) && currency != NATIVE_ETH) {
             IERC20 token = IERC20(currency);
 
@@ -86,6 +86,9 @@ contract Portal is IPortal {
             token.forceApprove(lifiDiamondAddress, amount);
             // audit(2026-Q1): LiFi error message not propagated - capture revert data
             (bool success, bytes memory result) = lifiDiamondAddress.call(bridgeData);
+            // audit(2026-Q1): Difference between amount and note.amount - clear residual approval
+            // in case LiFi consumed less than `amount` (refund tokens, partial fill, etc.)
+            token.forceApprove(lifiDiamondAddress, 0);
 
             if (!success) {
                 // audit(2026-Q1): LiFi error message not propagated - bubble up the underlying revert
