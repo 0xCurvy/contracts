@@ -179,15 +179,18 @@ contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUp
         }
 
         // audit(2026-Q1): Gas optimization - single balance write per recipient instead of `+=` then `-=`
+        // audit(2026-Q1): Wrong data in event - emit truly deposited (post-fee) amount
+        uint256 depositedAmount = amount;
         if (depositFee != 0) {
             uint256 feeAmount = (amount * depositFee) / FEE_DENOMINATOR;
-            _balances[to][tokenId] += amount - feeAmount;
+            depositedAmount = amount - feeAmount;
+            _balances[to][tokenId] += depositedAmount;
             _balances[owner()][tokenId] += feeAmount;
         } else {
             _balances[to][tokenId] += amount;
         }
 
-        emit Deposit(tokenAddress, to, amount);
+        emit Deposit(tokenAddress, to, depositedAmount);
     }
 
     // audit(2026-Q1): Modifier instead of error - replaced inline check with onlyCurvyAggregatorOrOwner
