@@ -62,6 +62,9 @@ contract PortalFactory is IPortalFactory, Ownable {
             _lifiDiamondAddress = lifiDiamondAddress;
         }
 
+        // audit(2026-Q1): No way to query which portals were deployed and when
+        emit ConfigUpdated(_curvyVaultProxyAddress, _curvyAggregatorAlphaProxyAddress, _lifiDiamondAddress);
+
         return true;
     }
 
@@ -108,6 +111,9 @@ contract PortalFactory is IPortalFactory, Ownable {
         _registeredPortals[portalAddress] = true;
 
         IPortal(portalAddress).shield(note, _curvyAggregatorAlphaProxyAddress, _curvyVaultProxyAddress);
+
+        // audit(2026-Q1): No way to query which portals were deployed and when - emitted after success
+        emit ShieldPortalDeployed(portalAddress, note.ownerHash, recovery);
     }
 
     function deployEntryBridgePortal(
@@ -135,6 +141,9 @@ contract PortalFactory is IPortalFactory, Ownable {
         address portalAddress = deployPortal(creationCodeWithArgs);
 
         IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, note.amount, currency);
+
+        // audit(2026-Q1): No way to query which portals were deployed and when - emitted after success
+        emit EntryBridgePortalDeployed(portalAddress, note.ownerHash, recovery, currency);
     }
 
     function deployExitBridgePortal(
@@ -173,6 +182,9 @@ contract PortalFactory is IPortalFactory, Ownable {
         address portalAddress = deployPortal(creationCodeWithArgs);
 
         IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, amount, currency);
+
+        // audit(2026-Q1): No way to query which portals were deployed and when - emitted after success
+        emit ExitBridgePortalDeployed(portalAddress, exitAddress, exitChainId, recovery, currency);
     }
 
     function deployRecoveryEntryPortal(uint256 ownerHash, address recovery, address tokenAddress, address to) public {
@@ -181,6 +193,9 @@ contract PortalFactory is IPortalFactory, Ownable {
         address portalAddress = deployPortal(creationCodeWithArgs);
 
         IPortal(portalAddress).recover(tokenAddress, to);
+
+        // audit(2026-Q1): No way to query which portals were deployed and when - emitted after success
+        emit RecoveryPortalDeployed(portalAddress, tokenAddress, to);
     }
 
     function deployRecoveryExitPortal(
@@ -195,5 +210,8 @@ contract PortalFactory is IPortalFactory, Ownable {
         address portalAddress = deployPortal(creationCodeWithArgs);
 
         IPortal(portalAddress).recover(tokenAddress, to);
+
+        // audit(2026-Q1): No way to query which portals were deployed and when - emitted after success
+        emit RecoveryPortalDeployed(portalAddress, tokenAddress, to);
     }
 }

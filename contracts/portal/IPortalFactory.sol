@@ -41,6 +41,17 @@ interface IPortalFactory {
 
     //#endregion
 
+    //#region Events
+
+    // audit(2026-Q1): No way to query which portals were deployed and when
+    event ShieldPortalDeployed(address indexed portalAddress, uint256 indexed ownerHash, address indexed recovery);
+    event EntryBridgePortalDeployed(address indexed portalAddress, uint256 indexed ownerHash, address indexed recovery, address currency);
+    event ExitBridgePortalDeployed(address indexed portalAddress, address indexed exitAddress, uint256 exitChainId, address indexed recovery, address currency);
+    event RecoveryPortalDeployed(address indexed portalAddress, address indexed tokenAddress, address indexed to);
+    event ConfigUpdated(address curvyVaultProxyAddress, address curvyAggregatorAlphaProxyAddress, address lifiDiamondAddress);
+
+    //#endregion
+
     //#region Public functions
 
     function updateConfig(
