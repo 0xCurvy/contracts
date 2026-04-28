@@ -14,6 +14,9 @@ interface ICurvyAggregatorAlphaV2 {
     error CurrentNullifierTreeRootMismatch();
     error InvalidWithdrawProof();
 
+    // audit: deposit-batch-commit visibility for off-chain indexers and monitoring
+    event DepositBatchCommitted(uint256 indexed oldNotesRoot, uint256 indexed newNotesRoot);
+
     //#endregion
 
     //#region Public functions

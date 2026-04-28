@@ -5,11 +5,20 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+// audit(operator/authority): role-based access control via OZ AccessControl
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./ICurvyVaultV3.sol";
 import {CurvyTypes} from "../utils/Types.sol";
 
-contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUpgradeable, OwnableUpgradeable {
+contract CurvyVaultV6 is
+    ICurvyVaultV3,
+    Initializable,
+    EIP712Upgradeable,
+    UUPSUpgradeable,
+    OwnableUpgradeable,
+    AccessControlUpgradeable
+{
     using SafeERC20 for IERC20;
 
     //#region Constants
@@ -18,11 +27,13 @@ contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUp
     address private constant ETH_ADDRESS = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
     uint96 private constant FEE_DENOMINATOR = 10000;
+    // audit(2026-Q1): No upper limit for fee - cap at 10% (1000 / 10000)
+    uint96 private constant MAX_FEE = 1000;
 
-    // DEPRECATED: This is no longer used, but because of storage layout it *MUST* not be deleted
-    bytes32 private constant CURVY_META_TRANSACTION_TYPE_HASH = keccak256(
-        "CurvyMetaTransaction(uint256 nonce,address from,address to,uint256 tokenId,uint256 amount,uint256 gasFee,uint8 metaTransactionType)"
-    );
+    // audit(operator/authority): operational role (collectFees etc.); rotated by AUTHORITY_ROLE
+    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+    // audit(operator/authority): security-critical role (upgrades, registerToken, fees, aggregator address)
+    bytes32 public constant AUTHORITY_ROLE = keccak256("AUTHORITY_ROLE");
 
     //#endregion
 
@@ -39,11 +50,21 @@ contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUp
     mapping(uint256 => address) private _tokenIdToTokenAddress;
 
     uint96 public depositFee;
-    // DEPRECATED: This is no longer used, but because of storage layout it *MUST* not be deleted
-    uint96 public transferFee;
+    // audit(2026-Q1): Deprecated fields - was `transferFee`; kept in storage layout, renamed for clarity
+    uint96 public __deprecated_transaction_fee;
     uint96 public withdrawalFee;
 
     address private _curvyAggregator;
+
+    //#endregion
+
+    //#region Modifiers
+
+    // audit(2026-Q1): Modifier instead of error - encode caller restriction in the function signature
+    modifier onlyCurvyAggregatorOrOwner() {
+        if (msg.sender != _curvyAggregator && msg.sender != owner()) revert NotCurvyAggregatorOrOwner();
+        _;
+    }
 
     //#endregion
 
@@ -61,7 +82,7 @@ contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUp
      * upgraded to this version, its state is already marked as initialized, making this
      * function safely uncallable and preventing any accidental state resets.
      *
-     * The transferFee is unused anymore, but it is kept for storage layout reasons.
+     * The transferFee (now __deprecated_transaction_fee) is unused anymore, but it is kept for storage layout reasons.
      */
     function initialize(address initialOwner) public initializer {
         // Set native currency (ETH) in the token mappings
@@ -72,19 +93,44 @@ contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUp
         __EIP712_init("Curvy Privacy Vault", "1.0");
         __Ownable_init(initialOwner);
 
+        // audit(operator/authority): seed roles on first deploy. AUTHORITY_ROLE administers both roles
+        // (including itself) so the deployer can rotate either without a separate DEFAULT_ADMIN_ROLE.
+        __AccessControl_init();
+        _setRoleAdmin(OPERATOR_ROLE, AUTHORITY_ROLE);
+        _setRoleAdmin(AUTHORITY_ROLE, AUTHORITY_ROLE);
+        _grantRole(AUTHORITY_ROLE, initialOwner);
+        _grantRole(OPERATOR_ROLE, initialOwner);
+
         depositFee = 10;
-        transferFee = 0;
+        // audit(2026-Q1): Deprecated fields - was `transferFee = 0`
+        __deprecated_transaction_fee = 0;
         withdrawalFee = 20;
     }
 
-    function _authorizeUpgrade(address) internal override onlyOwner {}
+    // audit(operator/authority): bootstraps AccessControl on existing V6 proxies. The pre-AC
+    // implementation's `_authorizeUpgrade` (onlyOwner) gates the upgrade itself; this reinitializer
+    // runs atomically with the upgrade and seeds OPERATOR_ROLE + AUTHORITY_ROLE on the current owner
+    // so the next upgrade can use AUTHORITY_ROLE.
+    function bootstrapAccessControl() external reinitializer(2) onlyOwner {
+        __AccessControl_init();
+        _setRoleAdmin(OPERATOR_ROLE, AUTHORITY_ROLE);
+        _setRoleAdmin(AUTHORITY_ROLE, AUTHORITY_ROLE);
+        _grantRole(AUTHORITY_ROLE, owner());
+        _grantRole(OPERATOR_ROLE, owner());
+    }
+
+    // audit(operator/authority): upgrades gated by AUTHORITY_ROLE
+    function _authorizeUpgrade(address) internal override onlyRole(AUTHORITY_ROLE) {}
 
     //#endregion
 
     //#region Owner functions
 
-    function registerToken(address tokenAddress) external onlyOwner {
+    // audit(operator/authority): authority-gated
+    function registerToken(address tokenAddress) external onlyRole(AUTHORITY_ROLE) {
         if (_tokenAddressToTokenId[tokenAddress] != 0) revert TokenAlreadyRegistered();
+        // audit(2026-Q1): EOA as tokenAddress - require a deployed contract at the address
+        if (tokenAddress.code.length == 0) revert NotAContract();
 
         // Register ID
         _numberOfTokens++;
@@ -95,9 +141,14 @@ contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUp
         emit TokenRegistration(tokenAddress, _numberOfTokens);
     }
 
-    function deregisterToken(address tokenAddress) external onlyOwner {
+    // audit(operator/authority): authority-gated
+    function deregisterToken(address tokenAddress) external onlyRole(AUTHORITY_ROLE) {
         uint256 tokenId = _tokenAddressToTokenId[tokenAddress];
         if (tokenId == 0) revert TokenNotRegistered();
+
+        // audit(2026-Q1): Deregister token does not check vault balance - prevent stranding funds
+        uint256 vaultBalance = IERC20(tokenAddress).balanceOf(address(this));
+        if (vaultBalance != 0) revert TokenHasOutstandingBalance();
 
         // Remove from both mappings
         _tokenAddressToTokenId[tokenAddress] = 0;
@@ -110,25 +161,34 @@ contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUp
      * @dev This function is used to set the fees for the vault.
      * @notice If you want to keep the current fee, pass the current fee values.
      */
-    function setFeeAmount(CurvyTypes.FeeUpdate calldata feeUpdate) external onlyOwner {
+    // audit(operator/authority): authority-gated
+    function setFeeAmount(CurvyTypes.FeeUpdate calldata feeUpdate) external onlyRole(AUTHORITY_ROLE) {
+        // audit(2026-Q1): No upper limit for fee - reject fees above MAX_FEE (10%)
+        if (feeUpdate.depositFee > MAX_FEE) revert FeeTooHigh();
+        if (feeUpdate.withdrawalFee > MAX_FEE) revert FeeTooHigh();
+
         depositFee = feeUpdate.depositFee;
         withdrawalFee = feeUpdate.withdrawalFee;
 
         emit FeeChange(feeUpdate);
     }
 
-    function setCurvyAggregatorAddress(address curvyAggregator) external onlyOwner {
+    // audit(operator/authority): authority-gated
+    function setCurvyAggregatorAddress(address curvyAggregator) external onlyRole(AUTHORITY_ROLE) {
         _curvyAggregator = curvyAggregator;
         emit CurvyAggregatorAddressChange(curvyAggregator);
     }
 
-    function collectFees(uint256 tokenId) external onlyOwner {
+    // audit(operator/authority): operator-gated (fee collection is operational)
+    function collectFees(uint256 tokenId) external onlyRole(OPERATOR_ROLE) {
         address tokenAddress = _tokenIdToTokenAddress[tokenId];
         if (tokenAddress == address(0)) {
             revert TokenNotRegistered();
         }
 
         uint256 amount = _balances[msg.sender][tokenId];
+        // audit(2026-Q1): Collecting zero fees - skip transfer when nothing to collect
+        if (amount == 0) revert NoFeesToCollect();
 
         // Burn wrapped tokens
         _balances[msg.sender][tokenId] = 0;
@@ -168,21 +228,23 @@ contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUp
             tokenId = ETH_ID;
         }
 
-        // Mint wrapped tokens
-        _balances[to][tokenId] += amount;
-
-        // Collect fees if they are set
+        // audit(2026-Q1): Gas optimization - single balance write per recipient instead of `+=` then `-=`
+        // audit(2026-Q1): Wrong data in event - emit truly deposited (post-fee) amount
+        uint256 depositedAmount = amount;
         if (depositFee != 0) {
             uint256 feeAmount = (amount * depositFee) / FEE_DENOMINATOR;
-            _balances[to][tokenId] -= feeAmount;
+            depositedAmount = amount - feeAmount;
+            _balances[to][tokenId] += depositedAmount;
             _balances[owner()][tokenId] += feeAmount;
+        } else {
+            _balances[to][tokenId] += amount;
         }
 
-        emit Deposit(tokenAddress, to, amount);
+        emit Deposit(tokenAddress, to, depositedAmount);
     }
 
-    function withdraw(uint256 tokenId, address to, uint256 amount) external {
-        if (msg.sender != _curvyAggregator && msg.sender != owner()) revert NotCurvyAggregatorOrOwner();
+    // audit(2026-Q1): Modifier instead of error - replaced inline check with onlyCurvyAggregatorOrOwner
+    function withdraw(uint256 tokenId, address to, uint256 amount) external onlyCurvyAggregatorOrOwner {
         if (to == address(0)) revert InvalidRecipient();
 
         address tokenAddress = _tokenIdToTokenAddress[tokenId];

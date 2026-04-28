@@ -2,14 +2,28 @@
 pragma solidity ^0.8.28;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+// audit(operator/authority): role-based access control via OZ AccessControl
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 
 import { IPortal } from "./IPortal.sol";
 import { IPortalFactory, ILiFiCalldataVerification } from "./IPortalFactory.sol";
 import { Portal } from "./Portal.sol";
+import {SolanaPortal} from "./SolanaPortal.sol";
 import { CurvyTypes } from "../utils/Types.sol";
 
-contract PortalFactory is IPortalFactory, Ownable {
+contract PortalFactory is IPortalFactory, Ownable, AccessControl {
     uint256 private constant AGGREGATOR_CHAIN_ID = 42161;
+    // audit(2026-Q1): Difference between amount and note.amount - LiFi quotes vary slightly between
+    // generation and execution (dynamic fees, gas pricing). Allow up to 10% deviation between the
+    // expected amount and what LiFi will actually pull.
+    uint256 private constant MAX_SLIPPAGE_BPS = 1000;
+    uint256 private constant SLIPPAGE_DENOMINATOR = 10000;
+
+    // audit(operator/authority): operational role (portal deployment); rotated by AUTHORITY_ROLE
+    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+    // audit(operator/authority): security-critical role (updateConfig)
+    bytes32 public constant AUTHORITY_ROLE = keccak256("AUTHORITY_ROLE");
+
     bytes32 private _salt = keccak256(abi.encodePacked("curvy-portal-factory-salt"));
 
     address private _curvyVaultProxyAddress;
@@ -19,7 +33,13 @@ contract PortalFactory is IPortalFactory, Ownable {
     // Portals checked for compliance and deployed
     mapping(address => bool) private _registeredPortals;
 
-    constructor(address initialOwner) Ownable(initialOwner) {}
+    constructor(address initialOwner) Ownable(initialOwner) {
+        // audit(operator/authority): seed roles. AUTHORITY_ROLE administers both itself and OPERATOR_ROLE.
+        _setRoleAdmin(OPERATOR_ROLE, AUTHORITY_ROLE);
+        _setRoleAdmin(AUTHORITY_ROLE, AUTHORITY_ROLE);
+        _grantRole(AUTHORITY_ROLE, initialOwner);
+        _grantRole(OPERATOR_ROLE, initialOwner);
+    }
 
     function deployPortal(bytes memory creationCodeWithArgs) private returns (address) {
         address portalAddress;
@@ -42,22 +62,29 @@ contract PortalFactory is IPortalFactory, Ownable {
         return portalAddress;
     }
 
+    // audit(operator/authority): authority-gated
     function updateConfig(
         address curvyVaultProxyAddress,
         address curvyAggregatorAlphaProxyAddress,
         address lifiDiamondAddress
-    ) external onlyOwner returns (bool) {
-        if (curvyVaultProxyAddress != address(0)) {
+    ) external onlyRole(AUTHORITY_ROLE) returns (bool) {
+        // audit(2026-Q1): Missing Smart Contract address check - require code at address (also rejects EOAs and address(0))
+        if (curvyVaultProxyAddress.code.length > 0) {
             _curvyVaultProxyAddress = curvyVaultProxyAddress;
         }
 
-        if (curvyAggregatorAlphaProxyAddress != address(0)) {
+        // audit(2026-Q1): Missing Smart Contract address check
+        if (curvyAggregatorAlphaProxyAddress.code.length > 0) {
             _curvyAggregatorAlphaProxyAddress = curvyAggregatorAlphaProxyAddress;
         }
 
-        if (lifiDiamondAddress != address(0)) {
+        // audit(2026-Q1): Missing Smart Contract address check
+        if (lifiDiamondAddress.code.length > 0) {
             _lifiDiamondAddress = lifiDiamondAddress;
         }
+
+        // audit(2026-Q1): No way to query which portals were deployed and when
+        emit ConfigUpdated(_curvyVaultProxyAddress, _curvyAggregatorAlphaProxyAddress, _lifiDiamondAddress);
 
         return true;
     }
@@ -93,7 +120,8 @@ contract PortalFactory is IPortalFactory, Ownable {
         return _registeredPortals[portalAddress];
     }
 
-    function deployShieldPortal(CurvyTypes.Note memory note, address recovery) public payable onlyOwner {
+    // audit(operator/authority): operator-gated (operational portal deployment)
+    function deployShieldPortal(CurvyTypes.Note memory note, address recovery) public payable onlyRole(OPERATOR_ROLE) {
         if (_curvyVaultProxyAddress == address(0) || _curvyAggregatorAlphaProxyAddress == address(0)) {
             revert UnsupportedShielding();
         }
@@ -105,14 +133,18 @@ contract PortalFactory is IPortalFactory, Ownable {
         _registeredPortals[portalAddress] = true;
 
         IPortal(portalAddress).shield(note, _curvyAggregatorAlphaProxyAddress, _curvyVaultProxyAddress);
+
+        // audit(2026-Q1): No way to query which portals were deployed and when - emitted after success
+        emit ShieldPortalDeployed(portalAddress, note.ownerHash, recovery);
     }
 
+    // audit(operator/authority): operator-gated (operational portal deployment)
     function deployEntryBridgePortal(
         bytes calldata bridgeData,
         CurvyTypes.Note memory note,
         address currency,
         address recovery
-    ) public onlyOwner {
+    ) public onlyRole(OPERATOR_ROLE) {
         if (_lifiDiamondAddress == address(0)) {
             revert UnsupportedBridging();
         }
@@ -127,13 +159,20 @@ contract PortalFactory is IPortalFactory, Ownable {
             revert InvalidLiFiDestinationChain();
         }
 
+        // audit(2026-Q1): Difference between amount and note.amount - verify LiFi will pull exactly note.amount
+        _verifyBridgeAmount(extractedData, bridgeData, note.amount);
+
         bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash, address(0), 0, recovery);
 
         address portalAddress = deployPortal(creationCodeWithArgs);
 
         IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, note.amount, currency);
+
+        // audit(2026-Q1): No way to query which portals were deployed and when - emitted after success
+        emit EntryBridgePortalDeployed(portalAddress, note.ownerHash, recovery, currency);
     }
 
+    // audit(operator/authority): operator-gated (operational portal deployment)
     function deployExitBridgePortal(
         bytes calldata bridgeData,
         uint256 amount,
@@ -141,7 +180,7 @@ contract PortalFactory is IPortalFactory, Ownable {
         address exitAddress,
         uint256 exitChainId,
         address recovery
-    ) public onlyOwner {
+    ) public onlyRole(OPERATOR_ROLE) {
         if (_lifiDiamondAddress == address(0)) {
             revert UnsupportedBridging();
         }
@@ -153,6 +192,8 @@ contract PortalFactory is IPortalFactory, Ownable {
             if (extractedData.receiver != exitAddress) {
                 revert InvalidLiFiReceiver();
             }
+            // audit(2026-Q1): Difference between amount and note.amount - same-chain swap: verify swap input within slippage
+            _checkAmountWithinSlippage(amount, extractedData.amount);
         } else {
             ILiFiCalldataVerification.LiFiBridgeData memory extractedData = ILiFiCalldataVerification(
                 _lifiDiamondAddress
@@ -163,6 +204,8 @@ contract PortalFactory is IPortalFactory, Ownable {
             if (extractedData.destinationChainId != exitChainId) {
                 revert InvalidLiFiDestinationChain();
             }
+            // audit(2026-Q1): Difference between amount and note.amount - verify LiFi will pull exactly amount
+            _verifyBridgeAmount(extractedData, bridgeData, amount);
         }
 
         bytes memory creationCodeWithArgs = getCreationCode(0, exitAddress, exitChainId, recovery);
@@ -170,6 +213,39 @@ contract PortalFactory is IPortalFactory, Ownable {
         address portalAddress = deployPortal(creationCodeWithArgs);
 
         IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, amount, currency);
+
+        // audit(2026-Q1): No way to query which portals were deployed and when - emitted after success
+        emit ExitBridgePortalDeployed(portalAddress, exitAddress, exitChainId, recovery, currency);
+    }
+
+    // audit(2026-Q1): Difference between amount and note.amount - bridge-side amount verification
+    // For bridge calls, the amount LiFi will pull from the Portal depends on whether a source-chain
+    // swap precedes the bridge:
+    //   - hasSourceSwaps == true  → swapData[0].fromAmount is the input being pulled
+    //   - hasSourceSwaps == false → bridgeData.minAmount is the input being pulled
+    // Both are checked within MAX_SLIPPAGE_BPS of expectedAmount to allow for LiFi quote drift.
+    function _verifyBridgeAmount(
+        ILiFiCalldataVerification.LiFiBridgeData memory extractedData,
+        bytes calldata bridgeData,
+        uint256 expectedAmount
+    ) private view {
+        if (extractedData.hasSourceSwaps) {
+            ILiFiCalldataVerification.SwapData[] memory swaps = ILiFiCalldataVerification(_lifiDiamondAddress)
+                .extractSwapData(bridgeData);
+            if (swaps.length == 0) revert AmountMismatch();
+            _checkAmountWithinSlippage(expectedAmount, swaps[0].fromAmount);
+        } else {
+            _checkAmountWithinSlippage(expectedAmount, extractedData.minAmount);
+        }
+    }
+
+    // audit(2026-Q1): Difference between amount and note.amount - reverts if actualAmount drifts more
+    // than MAX_SLIPPAGE_BPS from expectedAmount in either direction.
+    function _checkAmountWithinSlippage(uint256 expectedAmount, uint256 actualAmount) private pure {
+        uint256 maxDeviation = (expectedAmount * MAX_SLIPPAGE_BPS) / SLIPPAGE_DENOMINATOR;
+        uint256 minAcceptable = expectedAmount > maxDeviation ? expectedAmount - maxDeviation : 0;
+        uint256 maxAcceptable = expectedAmount + maxDeviation;
+        if (actualAmount < minAcceptable || actualAmount > maxAcceptable) revert AmountMismatch();
     }
 
     function deployRecoveryEntryPortal(uint256 ownerHash, address recovery, address tokenAddress, address to) public {
@@ -178,6 +254,9 @@ contract PortalFactory is IPortalFactory, Ownable {
         address portalAddress = deployPortal(creationCodeWithArgs);
 
         IPortal(portalAddress).recover(tokenAddress, to);
+
+        // audit(2026-Q1): No way to query which portals were deployed and when - emitted after success
+        emit RecoveryPortalDeployed(portalAddress, tokenAddress, to);
     }
 
     function deployRecoveryExitPortal(
@@ -192,5 +271,108 @@ contract PortalFactory is IPortalFactory, Ownable {
         address portalAddress = deployPortal(creationCodeWithArgs);
 
         IPortal(portalAddress).recover(tokenAddress, to);
+
+        // audit(2026-Q1): No way to query which portals were deployed and when - emitted after success
+        emit RecoveryPortalDeployed(portalAddress, tokenAddress, to);
     }
+
+    //#region Solana exit
+
+    function getSolanaExitCreationCode(
+        bytes32 exitAddress,
+        uint256 exitChainId,
+        address recovery
+    ) public pure returns (bytes memory) {
+        bytes memory bytecode = type(SolanaPortal).creationCode;
+        bytes memory encodedArgs = abi.encode(exitAddress, exitChainId, recovery);
+        return abi.encodePacked(bytecode, encodedArgs);
+    }
+
+    function getSolanaExitPortalAddress(
+        bytes32 exitAddress,
+        uint256 exitChainId,
+        address recovery
+    ) public view returns (address) {
+        bytes memory code = getSolanaExitCreationCode(exitAddress, exitChainId, recovery);
+        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), _salt, keccak256(code)));
+        return address(uint160(uint256(hash)));
+    }
+
+    function deploySolanaExitBridgePortal(
+        bytes calldata bridgeData,
+        uint256 amount,
+        address currency,
+        bytes32 exitAddress,
+        uint256 exitChainId,
+        address recovery
+    ) public onlyOwner {
+        if (_lifiDiamondAddress == address(0)) {
+            revert UnsupportedBridging();
+        }
+
+        ILiFiCalldataVerification.LiFiBridgeData memory extractedData = ILiFiCalldataVerification(
+            _lifiDiamondAddress
+        ).extractBridgeData(bridgeData);
+        if (extractedData.destinationChainId != exitChainId) {
+            revert InvalidLiFiDestinationChain();
+        }
+        if (_extractNonEVMAddress(bridgeData, extractedData.hasSourceSwaps) != exitAddress) {
+            revert InvalidLiFiReceiver();
+        }
+
+        // audit(2026-Q1): Difference between amount and note.amount - verify LiFi will pull exactly amount
+        _verifyBridgeAmount(extractedData, bridgeData, amount);
+
+        bytes memory creationCodeWithArgs = getSolanaExitCreationCode(exitAddress, exitChainId, recovery);
+
+        address portalAddress = deployPortal(creationCodeWithArgs);
+
+        IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, amount, currency);
+
+        // audit(2026-Q1): No way to query which portals were deployed and when - emitted after success
+        emit SolanaExitBridgePortalDeployed(portalAddress, exitAddress, exitChainId, recovery, currency);
+    }
+
+    /// @dev Mirrors LiFi's `CalldataVerificationFacet.extractNonEVMAddress`.
+    /// That function is not deployed on the live diamond, so the logic is
+    /// replicated here so the Solana exit path can verify the destination
+    /// matches the user-declared `exitAddress`. The receiver is the first
+    /// parameter of the bridge-specific data; the head slot that points to it
+    /// is `head[2]` when the calldata carries source swaps, otherwise `head[1]`.
+    function _extractNonEVMAddress(
+        bytes calldata data,
+        bool hasSourceSwaps
+    ) private pure returns (bytes32 nonEVMAddress) {
+        bytes memory callData = data;
+        if (hasSourceSwaps) {
+            assembly {
+                let offset := mload(add(callData, 0x64)) // bridge-specific data offset (head[2])
+                nonEVMAddress := mload(add(callData, add(offset, 0x24))) // first word of the bridge-specific struct
+            }
+        } else {
+            assembly {
+                let offset := mload(add(callData, 0x44)) // bridge-specific data offset (head[1])
+                nonEVMAddress := mload(add(callData, add(offset, 0x24))) // first word of the bridge-specific struct
+            }
+        }
+    }
+
+    function deploySolanaRecoveryExitPortal(
+        bytes32 exitAddress,
+        uint256 exitChainId,
+        address recovery,
+        address tokenAddress,
+        address to
+    ) public {
+        bytes memory creationCodeWithArgs = getSolanaExitCreationCode(exitAddress, exitChainId, recovery);
+
+        address portalAddress = deployPortal(creationCodeWithArgs);
+
+        IPortal(portalAddress).recover(tokenAddress, to);
+
+        // audit(2026-Q1): No way to query which portals were deployed and when - emitted after success
+        emit SolanaRecoveryPortalDeployed(portalAddress, exitAddress, tokenAddress, to);
+    }
+
+    //#endregion
 }

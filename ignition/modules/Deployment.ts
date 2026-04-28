@@ -1,15 +1,13 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import PortalFactory from "./PortalFactory";
-import { getNetworkParameter } from "./utils/parameters";
+// audit(2026-Q1): No Validation of Address Format - use validated address parameter helper
+import { getAddressParameter } from "./utils/parameters";
 
 export default buildModule("DeploymentModule", (m) => {
   const { portalFactory } = m.useModule(PortalFactory);
 
-  const lifiDiamondAddress = getNetworkParameter<`0x{string}`>("lifiDiamondAddress");
-
-  if (!lifiDiamondAddress) {
-    throw new Error("Missing lifiDiamondAddress network parameter");
-  }
+  // audit(2026-Q1): No Validation of Address Format - validates 0x-prefixed 20-byte hex
+  const lifiDiamondAddress = getAddressParameter("lifiDiamondAddress", "network");
 
   m.call(portalFactory, "updateConfig", [
     "0x0000000000000000000000000000000000000000",

@@ -13,6 +13,8 @@ import {ICurvyAggregatorAlphaV2} from "./ICurvyAggregatorAlphaV2.sol";
 import {ICurvyVaultV3} from "../vault/ICurvyVaultV3.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+// audit(operator/authority): role-based access control via OZ AccessControl
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {PoseidonT4} from "./utils/PoseidonT4.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -22,7 +24,13 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
  * @author Curvy Protocol (https://curvy.box)
  * @dev Curvy's Aggregator contract.
  */
-contract CurvyAggregatorAlphaV6 is ICurvyAggregatorAlphaV2, Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract CurvyAggregatorAlphaV6 is
+    ICurvyAggregatorAlphaV2,
+    Initializable,
+    UUPSUpgradeable,
+    OwnableUpgradeable,
+    AccessControlUpgradeable
+{
     using SafeERC20 for IERC20;
     //#region Events
 
@@ -31,6 +39,11 @@ contract CurvyAggregatorAlphaV6 is ICurvyAggregatorAlphaV2, Initializable, UUPSU
     //#endregion
 
     address constant NATIVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+    // audit(operator/authority): operational role; rotated by AUTHORITY_ROLE
+    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+    // audit(operator/authority): security-critical role (upgrades, updateConfig)
+    bytes32 public constant AUTHORITY_ROLE = keccak256("AUTHORITY_ROLE");
 
     //#region State variables
 
@@ -73,28 +86,53 @@ contract CurvyAggregatorAlphaV6 is ICurvyAggregatorAlphaV2, Initializable, UUPSU
 
     function initialize(address initialOwner) public initializer {
         __Ownable_init(initialOwner);
+
+        // audit(operator/authority): seed roles on first deploy
+        __AccessControl_init();
+        _setRoleAdmin(OPERATOR_ROLE, AUTHORITY_ROLE);
+        _setRoleAdmin(AUTHORITY_ROLE, AUTHORITY_ROLE);
+        _grantRole(AUTHORITY_ROLE, initialOwner);
+        _grantRole(OPERATOR_ROLE, initialOwner);
     }
 
-    function _authorizeUpgrade(address) internal override onlyOwner {}
+    // audit(operator/authority): bootstraps AccessControl on existing V6 proxies (initialize already ran).
+    // Pre-AC `_authorizeUpgrade` (onlyOwner) gates the upgrade itself; this reinitializer runs atomically
+    // with the upgrade and seeds OPERATOR_ROLE + AUTHORITY_ROLE on the current owner.
+    function bootstrapAccessControl() external reinitializer(2) onlyOwner {
+        __AccessControl_init();
+        _setRoleAdmin(OPERATOR_ROLE, AUTHORITY_ROLE);
+        _setRoleAdmin(AUTHORITY_ROLE, AUTHORITY_ROLE);
+        _grantRole(AUTHORITY_ROLE, owner());
+        _grantRole(OPERATOR_ROLE, owner());
+    }
+
+    // audit(operator/authority): upgrades gated by AUTHORITY_ROLE
+    function _authorizeUpgrade(address) internal override onlyRole(AUTHORITY_ROLE) {}
 
     //#endregion
 
     //#region Owner functions
 
-    function updateConfig(CurvyTypes.AggregatorConfigurationUpdateV2 memory _update) external onlyOwner returns (bool) {
-        if (_update.insertionVerifier != address(0)) {
+    // audit(operator/authority): authority-gated
+    function updateConfig(CurvyTypes.AggregatorConfigurationUpdateV2 memory _update) external onlyRole(AUTHORITY_ROLE) returns (bool) {
+        // audit(2026-Q1): Missing Smart Contract address check - require code at address (also rejects EOAs and address(0))
+        if (_update.insertionVerifier.code.length > 0) {
             insertionVerifier = ICurvyInsertionVerifier(_update.insertionVerifier);
         }
-        if (_update.aggregationVerifier != address(0)) {
+        // audit(2026-Q1): Missing Smart Contract address check
+        if (_update.aggregationVerifier.code.length > 0) {
             aggregationVerifier = ICurvyAggregationVerifier(_update.aggregationVerifier);
         }
-        if (_update.withdrawVerifier != address(0)) {
+        // audit(2026-Q1): Missing Smart Contract address check
+        if (_update.withdrawVerifier.code.length > 0) {
             withdrawVerifier = ICurvyWithdrawVerifierV3(_update.withdrawVerifier);
         }
-        if (_update.curvyVault != address(0)) {
+        // audit(2026-Q1): Missing Smart Contract address check
+        if (_update.curvyVault.code.length > 0) {
             curvyVault = ICurvyVaultV3(_update.curvyVault);
         }
-        if (_update.portalFactory != address(0)) {
+        // audit(2026-Q1): Missing Smart Contract address check
+        if (_update.portalFactory.code.length > 0) {
             portalFactory = IPortalFactory(_update.portalFactory);
         }
         if (_update.maxDeposits != 0) {
@@ -108,16 +146,6 @@ contract CurvyAggregatorAlphaV6 is ICurvyAggregatorAlphaV2, Initializable, UUPSU
         }
 
         return true;
-    }
-
-    /*
-     * @dev This function allows the owner to reset the roots of the notes and nullifiers trees to a known state.
-     * @notice Only to be used in emergency cases where the contract is in a bad state and cannot be recovered
-     * through normal operation (i.e. proof verification and batch commitments).
-     */
-    function reset(uint256 newNotesTreeRoot, uint256 newNullifiersTreeRoot) external onlyOwner {
-        _notesTreeRoot = newNotesTreeRoot;
-        _nullifiersTreeRoot = newNullifiersTreeRoot;
     }
 
     //#endregions
@@ -163,11 +191,17 @@ contract CurvyAggregatorAlphaV6 is ICurvyAggregatorAlphaV2, Initializable, UUPSU
 
         uint256 numPublicInputs = publicInputs.length;
 
-        if (_notesTreeRoot != publicInputs[numPublicInputs - 2]) revert InvalidNotesRoot();
+        // audit: emit before mutating root so the event captures the transition
+        uint256 oldNotesRoot = _notesTreeRoot;
+        if (oldNotesRoot != publicInputs[numPublicInputs - 2]) revert InvalidNotesRoot();
 
         if (!insertionVerifier.verifyProof(proof_a, proof_b, proof_c, publicInputs)) revert InvalidProof();
 
-        _notesTreeRoot = publicInputs[numPublicInputs - 1];
+        uint256 newNotesRoot = publicInputs[numPublicInputs - 1];
+        _notesTreeRoot = newNotesRoot;
+
+        // audit: batch-commit visibility for indexers
+        emit DepositBatchCommitted(oldNotesRoot, newNotesRoot);
     }
 
     function commitAggregationBatch(

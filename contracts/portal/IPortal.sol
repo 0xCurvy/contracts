@@ -20,7 +20,8 @@ interface IPortal {
 
     function shield(
         CurvyTypes.Note memory note,
-        address curvyAgrgegatorAlphaProxyAddress,
+        // audit(2026-Q1): Inconsistent Parameter Naming - fixed typo (was curvyAgrgegatorAlphaProxyAddress)
+        address curvyAggregatorAlphaProxyAddress,
         address curvyVaultProxyAddress
     ) external;
 
