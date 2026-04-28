@@ -42,6 +42,16 @@ contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUp
 
     //#endregion
 
+    //#region Modifiers
+
+    // audit(2026-Q1): Modifier instead of error - encode caller restriction in the function signature
+    modifier onlyCurvyAggregatorOrOwner() {
+        if (msg.sender != _curvyAggregator && msg.sender != owner()) revert NotCurvyAggregatorOrOwner();
+        _;
+    }
+
+    //#endregion
+
     //#region Init functions
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -181,8 +191,8 @@ contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUp
         emit Deposit(tokenAddress, to, amount);
     }
 
-    function withdraw(uint256 tokenId, address to, uint256 amount) external {
-        if (msg.sender != _curvyAggregator && msg.sender != owner()) revert NotCurvyAggregatorOrOwner();
+    // audit(2026-Q1): Modifier instead of error - replaced inline check with onlyCurvyAggregatorOrOwner
+    function withdraw(uint256 tokenId, address to, uint256 amount) external onlyCurvyAggregatorOrOwner {
         if (to == address(0)) revert InvalidRecipient();
 
         address tokenAddress = _tokenIdToTokenAddress[tokenId];
