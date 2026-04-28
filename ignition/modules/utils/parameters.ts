@@ -73,7 +73,12 @@ function readParameters(filename: "network-parameters.json" | "environment-param
   }
 
   const rawData = fs.readFileSync(filePath, "utf-8");
-  return JSON.parse(rawData);
+  // audit(2026-Q1): No Error Handling for Invalid JSON
+  try {
+    return JSON.parse(rawData);
+  } catch (error) {
+    throw new Error(`Failed to parse ${filename}: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 export { getNetworkParameter, getEnvironmentParameter };
