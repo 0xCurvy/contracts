@@ -36,6 +36,11 @@ export function getEnvironmentAndNetworkName(): { environment: string; networkNa
   return { environment, networkName };
 }
 
+// audit(2026-Q1): No Validation of Address Format
+function isValidAddress(value: unknown): value is `0x${string}` {
+  return typeof value === "string" && /^0x[0-9a-fA-F]{40}$/.test(value);
+}
+
 function getNetworkParameter<T>(parameterName: string, networkName?: string): T {
   if (!networkName) {
     networkName = getEnvironmentAndNetworkName().networkName;
@@ -77,6 +82,20 @@ function getEnvironmentParameter<T>(parameterName: string, environment?: string)
   return value;
 }
 
+// audit(2026-Q1): No Validation of Address Format
+function getAddressParameter(parameterName: string, source: "network" | "environment", scope?: string): `0x${string}` {
+  const value =
+    source === "network"
+      ? getNetworkParameter<unknown>(parameterName, scope)
+      : getEnvironmentParameter<unknown>(parameterName, scope);
+
+  if (!isValidAddress(value)) {
+    throw new Error(`Invalid ${parameterName} format: expected a 0x-prefixed 20-byte hex string`);
+  }
+
+  return value;
+}
+
 function readParameters(filename: "network-parameters.json" | "environment-parameters.json"): any {
   const filePath = path.resolve(process.cwd(), "ignition", filename);
 
@@ -93,4 +112,4 @@ function readParameters(filename: "network-parameters.json" | "environment-param
   }
 }
 
-export { getNetworkParameter, getEnvironmentParameter };
+export { getNetworkParameter, getEnvironmentParameter, getAddressParameter };

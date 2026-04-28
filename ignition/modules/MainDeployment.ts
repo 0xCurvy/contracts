@@ -2,7 +2,8 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import CurvyAggregatorAlpha from "./CurvyAggregatorAlpha";
 import CurvyVault from "./CurvyVault";
 import PortalFactory from "./PortalFactory";
-import { getNetworkParameter } from "./utils/parameters";
+// audit(2026-Q1): No Validation of Address Format - use validated address parameter helper
+import { getAddressParameter } from "./utils/parameters";
 
 export default buildModule("MainDeploymentModule", (m) => {
   // Deploy the contracts
@@ -34,7 +35,8 @@ export default buildModule("MainDeploymentModule", (m) => {
   ]);
 
   // Connect PortalFactory to LifiDiamond, Aggregator and Vault
-  const lifiDiamondAddress = getNetworkParameter<`0x{string}`>("lifiDiamondAddress");
+  // audit(2026-Q1): No Validation of Address Format - validates 0x-prefixed 20-byte hex
+  const lifiDiamondAddress = getAddressParameter("lifiDiamondAddress", "network");
 
   m.call(portalFactory, "updateConfig", [curvyVaultProxy, curvyAggregatorAlphaProxy, lifiDiamondAddress]);
 
