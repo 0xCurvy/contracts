@@ -72,6 +72,9 @@ contract Portal is IPortal {
         external
         onlyOnce
     {
+        // audit(2026-Q1): Missing Address Validation for LiFi Diamond - reject EOAs/zero address
+        if (lifiDiamondAddress.code.length == 0) revert InvalidLiFiAddress();
+
         if (currency != address(0) && currency != NATIVE_ETH) {
             IERC20 token = IERC20(currency);
 
