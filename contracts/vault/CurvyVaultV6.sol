@@ -19,11 +19,6 @@ contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUp
 
     uint96 private constant FEE_DENOMINATOR = 10000;
 
-    // DEPRECATED: This is no longer used, but because of storage layout it *MUST* not be deleted
-    bytes32 private constant CURVY_META_TRANSACTION_TYPE_HASH = keccak256(
-        "CurvyMetaTransaction(uint256 nonce,address from,address to,uint256 tokenId,uint256 amount,uint256 gasFee,uint8 metaTransactionType)"
-    );
-
     //#endregion
 
     //#region State variables
@@ -39,8 +34,8 @@ contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUp
     mapping(uint256 => address) private _tokenIdToTokenAddress;
 
     uint96 public depositFee;
-    // DEPRECATED: This is no longer used, but because of storage layout it *MUST* not be deleted
-    uint96 public transferFee;
+    // audit(2026-Q1): Deprecated fields - was `transferFee`; kept in storage layout, renamed for clarity
+    uint96 public __deprecated_transaction_fee;
     uint96 public withdrawalFee;
 
     address private _curvyAggregator;
@@ -61,7 +56,7 @@ contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUp
      * upgraded to this version, its state is already marked as initialized, making this
      * function safely uncallable and preventing any accidental state resets.
      *
-     * The transferFee is unused anymore, but it is kept for storage layout reasons.
+     * The transferFee (now __deprecated_transaction_fee) is unused anymore, but it is kept for storage layout reasons.
      */
     function initialize(address initialOwner) public initializer {
         // Set native currency (ETH) in the token mappings
@@ -73,7 +68,8 @@ contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUp
         __Ownable_init(initialOwner);
 
         depositFee = 10;
-        transferFee = 0;
+        // audit(2026-Q1): Deprecated fields - was `transferFee = 0`
+        __deprecated_transaction_fee = 0;
         withdrawalFee = 20;
     }
 
