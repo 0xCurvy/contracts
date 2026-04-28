@@ -47,7 +47,9 @@ interface IPortalFactory {
     event ShieldPortalDeployed(address indexed portalAddress, uint256 indexed ownerHash, address indexed recovery);
     event EntryBridgePortalDeployed(address indexed portalAddress, uint256 indexed ownerHash, address indexed recovery, address currency);
     event ExitBridgePortalDeployed(address indexed portalAddress, address indexed exitAddress, uint256 exitChainId, address indexed recovery, address currency);
+    event SolanaExitBridgePortalDeployed(address indexed portalAddress, bytes32 indexed exitAddress, uint256 exitChainId, address indexed recovery, address currency);
     event RecoveryPortalDeployed(address indexed portalAddress, address indexed tokenAddress, address indexed to);
+    event SolanaRecoveryPortalDeployed(address indexed portalAddress, bytes32 indexed exitAddress, address indexed tokenAddress, address to);
     event ConfigUpdated(address curvyVaultProxyAddress, address curvyAggregatorAlphaProxyAddress, address lifiDiamondAddress);
 
     //#endregion
@@ -62,9 +64,13 @@ interface IPortalFactory {
 
     function getCreationCode(uint256 ownerHash, address exitAddress, uint256 exitChainId, address recovery) external pure returns (bytes memory);
 
+    function getSolanaExitCreationCode(bytes32 exitAddress, uint256 exitChainId, address recovery) external pure returns (bytes memory);
+
     function getEntryPortalAddress(uint256 ownerHash, address recovery) external view returns (address);
 
     function getExitPortalAddress(address exitAddress, uint256 exitChainId, address recovery) external view returns (address);
+
+    function getSolanaExitPortalAddress(bytes32 exitAddress, uint256 exitChainId, address recovery) external view returns (address);
 
     function portalIsRegistered(address portalAddress) external view returns (bool);
 
@@ -86,9 +92,20 @@ interface IPortalFactory {
         address recovery
     ) external;
 
+    function deploySolanaExitBridgePortal(
+        bytes calldata bridgeData,
+        uint256 amount,
+        address currency,
+        bytes32 exitAddress,
+        uint256 exitChainId,
+        address recovery
+    ) external;
+
     function deployRecoveryEntryPortal(uint256 ownerHash, address recovery, address tokenAddress, address to) external;
 
     function deployRecoveryExitPortal(address exitAddress, uint256 exitChainId, address recovery, address tokenAddress, address to) external;
+
+    function deploySolanaRecoveryExitPortal(bytes32 exitAddress, uint256 exitChainId, address recovery, address tokenAddress, address to) external;
 
     //#endregion
 }

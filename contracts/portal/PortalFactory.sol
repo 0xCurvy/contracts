@@ -8,6 +8,7 @@ import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol"
 import { IPortal } from "./IPortal.sol";
 import { IPortalFactory, ILiFiCalldataVerification } from "./IPortalFactory.sol";
 import { Portal } from "./Portal.sol";
+import {SolanaPortal} from "./SolanaPortal.sol";
 import { CurvyTypes } from "../utils/Types.sol";
 
 contract PortalFactory is IPortalFactory, Ownable, AccessControl {
@@ -232,4 +233,101 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
         // audit(2026-Q1): No way to query which portals were deployed and when - emitted after success
         emit RecoveryPortalDeployed(portalAddress, tokenAddress, to);
     }
+
+    //#region Solana exit
+
+    function getSolanaExitCreationCode(
+        bytes32 exitAddress,
+        uint256 exitChainId,
+        address recovery
+    ) public pure returns (bytes memory) {
+        bytes memory bytecode = type(SolanaPortal).creationCode;
+        bytes memory encodedArgs = abi.encode(exitAddress, exitChainId, recovery);
+        return abi.encodePacked(bytecode, encodedArgs);
+    }
+
+    function getSolanaExitPortalAddress(
+        bytes32 exitAddress,
+        uint256 exitChainId,
+        address recovery
+    ) public view returns (address) {
+        bytes memory code = getSolanaExitCreationCode(exitAddress, exitChainId, recovery);
+        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), _salt, keccak256(code)));
+        return address(uint160(uint256(hash)));
+    }
+
+    function deploySolanaExitBridgePortal(
+        bytes calldata bridgeData,
+        uint256 amount,
+        address currency,
+        bytes32 exitAddress,
+        uint256 exitChainId,
+        address recovery
+    ) public onlyOwner {
+        if (_lifiDiamondAddress == address(0)) {
+            revert UnsupportedBridging();
+        }
+
+        ILiFiCalldataVerification.LiFiBridgeData memory extractedData = ILiFiCalldataVerification(
+            _lifiDiamondAddress
+        ).extractBridgeData(bridgeData);
+        if (extractedData.destinationChainId != exitChainId) {
+            revert InvalidLiFiDestinationChain();
+        }
+        if (_extractNonEVMAddress(bridgeData, extractedData.hasSourceSwaps) != exitAddress) {
+            revert InvalidLiFiReceiver();
+        }
+
+        bytes memory creationCodeWithArgs = getSolanaExitCreationCode(exitAddress, exitChainId, recovery);
+
+        address portalAddress = deployPortal(creationCodeWithArgs);
+
+        IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, amount, currency);
+
+        // audit(2026-Q1): No way to query which portals were deployed and when - emitted after success
+        emit SolanaExitBridgePortalDeployed(portalAddress, exitAddress, exitChainId, recovery, currency);
+    }
+
+    /// @dev Mirrors LiFi's `CalldataVerificationFacet.extractNonEVMAddress`.
+    /// That function is not deployed on the live diamond, so the logic is
+    /// replicated here so the Solana exit path can verify the destination
+    /// matches the user-declared `exitAddress`. The receiver is the first
+    /// parameter of the bridge-specific data; the head slot that points to it
+    /// is `head[2]` when the calldata carries source swaps, otherwise `head[1]`.
+    function _extractNonEVMAddress(
+        bytes calldata data,
+        bool hasSourceSwaps
+    ) private pure returns (bytes32 nonEVMAddress) {
+        bytes memory callData = data;
+        if (hasSourceSwaps) {
+            assembly {
+                let offset := mload(add(callData, 0x64)) // bridge-specific data offset (head[2])
+                nonEVMAddress := mload(add(callData, add(offset, 0x24))) // first word of the bridge-specific struct
+            }
+        } else {
+            assembly {
+                let offset := mload(add(callData, 0x44)) // bridge-specific data offset (head[1])
+                nonEVMAddress := mload(add(callData, add(offset, 0x24))) // first word of the bridge-specific struct
+            }
+        }
+    }
+
+    function deploySolanaRecoveryExitPortal(
+        bytes32 exitAddress,
+        uint256 exitChainId,
+        address recovery,
+        address tokenAddress,
+        address to
+    ) public {
+        bytes memory creationCodeWithArgs = getSolanaExitCreationCode(exitAddress, exitChainId, recovery);
+
+        address portalAddress = deployPortal(creationCodeWithArgs);
+
+        IPortal(portalAddress).recover(tokenAddress, to);
+
+        // audit(2026-Q1): No way to query which portals were deployed and when - emitted after success
+        emit SolanaRecoveryPortalDeployed(portalAddress, exitAddress, tokenAddress, to);
+    }
+
+    //#endregion
 }
