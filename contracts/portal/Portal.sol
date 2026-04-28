@@ -81,9 +81,16 @@ contract Portal is IPortal {
             }
 
             token.forceApprove(lifiDiamondAddress, amount);
-            (bool success,) = lifiDiamondAddress.call(bridgeData);
+            // audit(2026-Q1): LiFi error message not propagated - capture revert data
+            (bool success, bytes memory result) = lifiDiamondAddress.call(bridgeData);
 
             if (!success) {
+                // audit(2026-Q1): LiFi error message not propagated - bubble up the underlying revert
+                if (result.length > 0) {
+                    assembly {
+                        revert(add(32, result), mload(result))
+                    }
+                }
                 revert BridgeCallFailed();
             }
         } else {
@@ -92,9 +99,16 @@ contract Portal is IPortal {
                 revert InsufficientBalanceForLiFiBridging();
             }
 
-            (bool success,) = lifiDiamondAddress.call{value: amount}(bridgeData);
+            // audit(2026-Q1): LiFi error message not propagated - capture revert data
+            (bool success, bytes memory result) = lifiDiamondAddress.call{value: amount}(bridgeData);
 
             if (!success) {
+                // audit(2026-Q1): LiFi error message not propagated - bubble up the underlying revert
+                if (result.length > 0) {
+                    assembly {
+                        revert(add(32, result), mload(result))
+                    }
+                }
                 revert BridgeCallFailed();
             }
         }
