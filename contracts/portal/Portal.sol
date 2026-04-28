@@ -101,7 +101,8 @@ contract Portal is IPortal {
     }
 
     function recover(address tokenAddress, address to) external onlyRecovery {
-        if (tokenAddress == NATIVE_ETH) {
+        // audit(2026-Q1): Lost gas for transaction payment - treat zero address as native ETH (matches bridge)
+        if (tokenAddress == NATIVE_ETH || tokenAddress == address(0)) {
             uint256 balance = address(this).balance;
             (bool success,) = to.call{value: balance}("");
             require(success, "Portal: ETH transfer failed");
