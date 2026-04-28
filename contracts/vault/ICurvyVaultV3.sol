@@ -30,6 +30,8 @@ interface ICurvyVaultV3 {
     error NoFeesToCollect();
     // audit(2026-Q1): EOA as tokenAddress
     error NotAContract();
+    // audit(2026-Q1): Deregister token does not check vault balance
+    error TokenHasOutstandingBalance();
 
     //#endregion
 

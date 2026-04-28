@@ -107,6 +107,10 @@ contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUp
         uint256 tokenId = _tokenAddressToTokenId[tokenAddress];
         if (tokenId == 0) revert TokenNotRegistered();
 
+        // audit(2026-Q1): Deregister token does not check vault balance - prevent stranding funds
+        uint256 vaultBalance = IERC20(tokenAddress).balanceOf(address(this));
+        if (vaultBalance != 0) revert TokenHasOutstandingBalance();
+
         // Remove from both mappings
         _tokenAddressToTokenId[tokenAddress] = 0;
         _tokenIdToTokenAddress[tokenId] = address(0);
