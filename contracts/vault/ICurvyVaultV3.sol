@@ -32,6 +32,8 @@ interface ICurvyVaultV3 {
     error NotAContract();
     // audit(2026-Q1): Deregister token does not check vault balance
     error TokenHasOutstandingBalance();
+    // audit(2026-Q1): No upper limit for fee
+    error FeeTooHigh();
 
     //#endregion
 

@@ -18,6 +18,8 @@ contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUp
     address private constant ETH_ADDRESS = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
     uint96 private constant FEE_DENOMINATOR = 10000;
+    // audit(2026-Q1): No upper limit for fee - cap at 10% (1000 / 10000)
+    uint96 private constant MAX_FEE = 1000;
 
     //#endregion
 
@@ -123,6 +125,10 @@ contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUp
      * @notice If you want to keep the current fee, pass the current fee values.
      */
     function setFeeAmount(CurvyTypes.FeeUpdate calldata feeUpdate) external onlyOwner {
+        // audit(2026-Q1): No upper limit for fee - reject fees above MAX_FEE (10%)
+        if (feeUpdate.depositFee > MAX_FEE) revert FeeTooHigh();
+        if (feeUpdate.withdrawalFee > MAX_FEE) revert FeeTooHigh();
+
         depositFee = feeUpdate.depositFee;
         withdrawalFee = feeUpdate.withdrawalFee;
 
