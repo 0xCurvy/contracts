@@ -43,11 +43,17 @@ function getNetworkParameter<T>(parameterName: string, networkName?: string): T 
 
   const parameters = readParameters("network-parameters.json");
 
-  if (parameters[networkName] === undefined || parameters[networkName][parameterName] === undefined) {
+  if (parameters[networkName] === undefined) {
     throw new Error(`Parameter ${parameterName} not found for network ${networkName}`);
   }
 
-  return parameters[networkName][parameterName];
+  // audit(2026-Q1): Missing Null/Undefined Return Handling
+  const value = parameters[networkName][parameterName];
+  if (value === null || value === undefined) {
+    throw new Error(`Parameter '${parameterName}' is null or undefined for network '${networkName}'`);
+  }
+
+  return value;
 }
 
 function getEnvironmentParameter<T>(parameterName: string, environment?: string): T {
@@ -58,11 +64,17 @@ function getEnvironmentParameter<T>(parameterName: string, environment?: string)
   const parameters = readParameters("environment-parameters.json");
 
   // audit(2026-Q1): Short-circuit guard bug / operator precedence bug - removed broken `!parameters[env][name] === undefined` check
-  if (parameters[environment] === undefined || parameters[environment][parameterName] === undefined) {
+  if (parameters[environment] === undefined) {
     throw new Error(`Parameter ${parameterName} not found for environment ${environment}`);
   }
 
-  return parameters[environment][parameterName];
+  // audit(2026-Q1): Missing Null/Undefined Return Handling
+  const value = parameters[environment][parameterName];
+  if (value === null || value === undefined) {
+    throw new Error(`Parameter '${parameterName}' is null or undefined for environment '${environment}'`);
+  }
+
+  return value;
 }
 
 function readParameters(filename: "network-parameters.json" | "environment-parameters.json"): any {
