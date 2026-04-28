@@ -125,6 +125,8 @@ contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUp
         }
 
         uint256 amount = _balances[msg.sender][tokenId];
+        // audit(2026-Q1): Collecting zero fees - skip transfer when nothing to collect
+        if (amount == 0) revert NoFeesToCollect();
 
         // Burn wrapped tokens
         _balances[msg.sender][tokenId] = 0;

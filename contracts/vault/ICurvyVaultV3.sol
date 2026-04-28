@@ -26,6 +26,8 @@ interface ICurvyVaultV3 {
     error ERC20TransferFailed();
     error WithdrawalFeeNotSet();
     error NotCurvyAggregatorOrOwner();
+    // audit(2026-Q1): Collecting zero fees
+    error NoFeesToCollect();
 
     //#endregion
 
