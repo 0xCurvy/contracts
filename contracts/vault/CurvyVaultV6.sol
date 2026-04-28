@@ -81,6 +81,8 @@ contract CurvyVaultV6 is ICurvyVaultV3, Initializable, EIP712Upgradeable, UUPSUp
 
     function registerToken(address tokenAddress) external onlyOwner {
         if (_tokenAddressToTokenId[tokenAddress] != 0) revert TokenAlreadyRegistered();
+        // audit(2026-Q1): EOA as tokenAddress - require a deployed contract at the address
+        if (tokenAddress.code.length == 0) revert NotAContract();
 
         // Register ID
         _numberOfTokens++;

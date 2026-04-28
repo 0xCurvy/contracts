@@ -28,6 +28,8 @@ interface ICurvyVaultV3 {
     error NotCurvyAggregatorOrOwner();
     // audit(2026-Q1): Collecting zero fees
     error NoFeesToCollect();
+    // audit(2026-Q1): EOA as tokenAddress
+    error NotAContract();
 
     //#endregion
 
