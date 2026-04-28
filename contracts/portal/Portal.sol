@@ -118,6 +118,8 @@ contract Portal is IPortal {
     }
 
     function recover(address tokenAddress, address to) external onlyRecovery {
+        // audit(2026-Q1): Burning balance during recovery - reject zero destination
+        if (to == address(0)) revert InvalidRecoveryAddress();
         // audit(2026-Q1): Lost gas for transaction payment - treat zero address as native ETH (matches bridge)
         if (tokenAddress == NATIVE_ETH || tokenAddress == address(0)) {
             uint256 balance = address(this).balance;
