@@ -82,19 +82,24 @@ contract CurvyAggregatorAlphaV6 is ICurvyAggregatorAlphaV2, Initializable, UUPSU
     //#region Owner functions
 
     function updateConfig(CurvyTypes.AggregatorConfigurationUpdateV2 memory _update) external onlyOwner returns (bool) {
-        if (_update.insertionVerifier != address(0)) {
+        // audit(2026-Q1): Missing Smart Contract address check - require code at address (also rejects EOAs and address(0))
+        if (_update.insertionVerifier.code.length > 0) {
             insertionVerifier = ICurvyInsertionVerifier(_update.insertionVerifier);
         }
-        if (_update.aggregationVerifier != address(0)) {
+        // audit(2026-Q1): Missing Smart Contract address check
+        if (_update.aggregationVerifier.code.length > 0) {
             aggregationVerifier = ICurvyAggregationVerifier(_update.aggregationVerifier);
         }
-        if (_update.withdrawVerifier != address(0)) {
+        // audit(2026-Q1): Missing Smart Contract address check
+        if (_update.withdrawVerifier.code.length > 0) {
             withdrawVerifier = ICurvyWithdrawVerifierV3(_update.withdrawVerifier);
         }
-        if (_update.curvyVault != address(0)) {
+        // audit(2026-Q1): Missing Smart Contract address check
+        if (_update.curvyVault.code.length > 0) {
             curvyVault = ICurvyVaultV3(_update.curvyVault);
         }
-        if (_update.portalFactory != address(0)) {
+        // audit(2026-Q1): Missing Smart Contract address check
+        if (_update.portalFactory.code.length > 0) {
             portalFactory = IPortalFactory(_update.portalFactory);
         }
         if (_update.maxDeposits != 0) {

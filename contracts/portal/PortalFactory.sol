@@ -47,15 +47,18 @@ contract PortalFactory is IPortalFactory, Ownable {
         address curvyAggregatorAlphaProxyAddress,
         address lifiDiamondAddress
     ) external onlyOwner returns (bool) {
-        if (curvyVaultProxyAddress != address(0)) {
+        // audit(2026-Q1): Missing Smart Contract address check - require code at address (also rejects EOAs and address(0))
+        if (curvyVaultProxyAddress.code.length > 0) {
             _curvyVaultProxyAddress = curvyVaultProxyAddress;
         }
 
-        if (curvyAggregatorAlphaProxyAddress != address(0)) {
+        // audit(2026-Q1): Missing Smart Contract address check
+        if (curvyAggregatorAlphaProxyAddress.code.length > 0) {
             _curvyAggregatorAlphaProxyAddress = curvyAggregatorAlphaProxyAddress;
         }
 
-        if (lifiDiamondAddress != address(0)) {
+        // audit(2026-Q1): Missing Smart Contract address check
+        if (lifiDiamondAddress.code.length > 0) {
             _lifiDiamondAddress = lifiDiamondAddress;
         }
 
