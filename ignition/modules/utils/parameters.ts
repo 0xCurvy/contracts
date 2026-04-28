@@ -57,7 +57,8 @@ function getEnvironmentParameter<T>(parameterName: string, environment?: string)
 
   const parameters = readParameters("environment-parameters.json");
 
-  if (parameters[environment] === undefined || !parameters[environment][parameterName] === undefined) {
+  // audit(2026-Q1): Short-circuit guard bug / operator precedence bug - removed broken `!parameters[env][name] === undefined` check
+  if (parameters[environment] === undefined || parameters[environment][parameterName] === undefined) {
     throw new Error(`Parameter ${parameterName} not found for environment ${environment}`);
   }
 
