@@ -6,9 +6,9 @@ const { viem } = await network.connect({ network: "anvil" });
 const deployedAddressesPath = "./ignition/deployments/chain-31337/deployed_addresses.json";
 const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
 
-const vaultAddress = deployedAddresses["CurvyVault#CurvyVaultV1"];
+const vaultAddress = deployedAddresses["CurvyVault#ERC1967Proxy"];
 if (!vaultAddress) {
-  throw new Error("MetaERC20Wrapper address not found for chain-31337");
+  throw new Error("CurvyVault proxy address not found for chain-31337");
 }
 const vault = await viem.getContractAt("CurvyVaultV1", vaultAddress);
 

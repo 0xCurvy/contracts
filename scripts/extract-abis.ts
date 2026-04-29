@@ -27,8 +27,8 @@ async function main() {
   };
 
   const contractImplementations: Record<string, string> = {
-    CurvyAggregatorAlpha: "CurvyAggregatorAlphaV6",
-    CurvyVault: "CurvyVaultV6",
+    CurvyAggregatorAlpha: "CurvyAggregatorAlphaV1",
+    CurvyVault: "CurvyVaultV1",
     PortalFactory: "PortalFactory",
   };
 
