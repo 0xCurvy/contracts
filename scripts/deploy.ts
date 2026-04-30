@@ -3,12 +3,15 @@ import fs from "node:fs";
 import path from "node:path";
 import { getEnvironmentParameter, getNetworkParameter } from "../ignition/modules/utils/parameters";
 
-const LEGACY_ADDRESSES_PATH = path.resolve("./ignition/legacy-proxy-addresses.json");
-
-type LegacyEntry = {
+type LegacyProxies = {
   vaultProxy: string;
   aggregatorProxy: string;
   poseidonT4: string;
+};
+
+type LegacyProxiesByEnv = {
+  production?: LegacyProxies;
+  staging?: LegacyProxies;
 };
 
 function run(cmd: string, args: readonly string[]): Promise<void> {
@@ -22,19 +25,6 @@ function getPortalFactoryAddress(deploymentId: string) {
   const deployedAddressesPath = `./ignition/deployments/${deploymentId}/deployed_addresses.json`;
   const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
   return deployedAddresses["PortalFactory#PortalFactory"];
-}
-
-function loadLegacyAddresses(): Record<string, LegacyEntry> {
-  if (!fs.existsSync(LEGACY_ADDRESSES_PATH)) {
-    throw new Error(`Legacy proxy addresses file not found: ${LEGACY_ADDRESSES_PATH}`);
-  }
-  const parsed = JSON.parse(fs.readFileSync(LEGACY_ADDRESSES_PATH, "utf8"));
-  const entries: Record<string, LegacyEntry> = {};
-  for (const [key, value] of Object.entries(parsed)) {
-    if (key.startsWith("_")) continue;
-    entries[key] = value as LegacyEntry;
-  }
-  return entries;
 }
 
 async function main() {
@@ -57,17 +47,17 @@ async function main() {
   }
 
   const ownerAddress = getEnvironmentParameter("owner", environment);
-  const legacyAddresses = loadLegacyAddresses();
 
   for (const networkName of networks) {
     const deploymentId = `${environment}_${networkName}`;
     const mainDeployment = getNetworkParameter("mainDeployment", networkName);
 
     if (mainDeployment) {
-      const legacy = legacyAddresses[deploymentId];
+      const legacyByEnv = getNetworkParameter<LegacyProxiesByEnv>("legacyProxies", networkName);
+      const legacy = legacyByEnv[environment];
       if (!legacy) {
         throw new Error(
-          `mainDeployment chain '${networkName}' is missing an entry in legacy-proxy-addresses.json for '${deploymentId}'`,
+          `mainDeployment chain '${networkName}' is missing legacyProxies.${environment} in network-parameters.json`,
         );
       }
 
