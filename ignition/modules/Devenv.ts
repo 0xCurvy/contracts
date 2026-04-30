@@ -1,13 +1,52 @@
 import fs from "node:fs";
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { labelhash, namehash } from "viem";
-import MainDeployment from "./MainDeployment";
+import CurvyAggregatorAlpha from "./CurvyAggregatorAlpha";
+import CurvyVault from "./CurvyVault";
+import PortalFactory from "./PortalFactory";
+// audit(2026-Q1): No Validation of Address Format - use validated address parameter helper
+import { getAddressParameter } from "./utils/parameters";
 
 const DEPOSIT_AMOUNT = 1000n * 10n ** 18n;
 
 export default buildModule("Devenv", (m) => {
-  // Deploy aggregator, vault and portal factory
-  const { curvyVault, portalFactory } = m.useModule(MainDeployment);
+  // Greenfield deploy of vault + aggregator + portal factory + wiring.
+  // (MainDeployment.ts is the V1 launch on existing proxies — not for local
+  // dev where there are no pre-existing proxies. The building blocks below
+  // give us the same end state as a beta-style fresh deploy.)
+  const { curvyAggregatorAlpha, proxy: curvyAggregatorAlphaProxy } = m.useModule(CurvyAggregatorAlpha);
+  const { curvyVault, proxy: curvyVaultProxy } = m.useModule(CurvyVault);
+  const { portalFactory } = m.useModule(PortalFactory);
+
+  // Wire vault to aggregator
+  const setVaultAggregator = m.call(curvyVault, "setCurvyAggregatorAddress", [curvyAggregatorAlpha]);
+
+  // Wire aggregator to vault + portal factory (verifiers were already set by CurvyAggregatorAlpha module)
+  const wireAggregator = m.call(
+    curvyAggregatorAlpha,
+    "updateConfig",
+    [
+      {
+        insertionVerifier: "0x0000000000000000000000000000000000000000",
+        aggregationVerifier: "0x0000000000000000000000000000000000000000",
+        withdrawVerifier: "0x0000000000000000000000000000000000000000",
+        curvyVault: curvyVaultProxy,
+        portalFactory: portalFactory,
+        maxDeposits: 0n,
+        maxAggregations: 0n,
+        maxWithdrawals: 0n,
+      },
+    ],
+    { id: "Aggregator_WireVaultAndFactory", after: [setVaultAggregator] },
+  );
+
+  // Wire portal factory to vault, aggregator, and the network's LiFi diamond
+  // audit(2026-Q1): No Validation of Address Format - validates 0x-prefixed 20-byte hex
+  const lifiDiamondAddress = getAddressParameter("lifiDiamondAddress", "network");
+  m.call(portalFactory, "updateConfig", [curvyVaultProxy, curvyAggregatorAlphaProxy, lifiDiamondAddress], {
+    id: "PortalFactory_Wire",
+    after: [wireAggregator],
+  });
 
   // Deploy multicall
   const multicall3 = m.contract("Multicall3");

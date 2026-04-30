@@ -2,168 +2,45 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
 export default buildModule("CurvyAggregatorAlpha", (m) => {
   const poseidonT4 = m.library("PoseidonT4");
+
   const implementation = m.contract("CurvyAggregatorAlphaV1", [], {
     id: "CurvyAggregatorAlphaV1Implementation",
-    libraries: {
-      PoseidonT4: poseidonT4,
-    },
+    libraries: { PoseidonT4: poseidonT4 },
   });
 
   const owner = m.getAccount(0);
 
   const proxy = m.contract("ERC1967Proxy", [
     implementation,
-    m.encodeFunctionCall(implementation, "initialize", [owner, "0x0000000000000000000000000000000000000000"]),
+    m.encodeFunctionCall(implementation, "initialize", [owner]),
   ]);
 
-  const curvyAggregatorAlphaV1 = m.contractAt(`CurvyAggregatorAlphaV1`, proxy);
+  const curvyAggregatorAlpha = m.contractAt("CurvyAggregatorAlphaV1", proxy);
 
-  const maxDeposits = 2;
-  const maxAggregations = 2;
-  const maxWithdrawals = 2;
+  // Production verifier set: depth-30 trees, dimensional suffixes encode circuit shape.
+  const insertionVerifier = m.contract("CurvyInsertionVerifierAlpha_2_30");
+  const aggregationVerifier = m.contract("CurvyAggregationVerifierAlpha_2_2_2_30");
+  const withdrawVerifier = m.contract("CurvyWithdrawVerifierAlpha_2_2_30");
 
-  const insertionVerifier = m.contract(`CurvyInsertionVerifierAlpha_${maxDeposits}_2`);
-  const aggregationVerifier = m.contract(`CurvyAggregationVerifierAlpha_${maxAggregations}_2_2`);
-  const withdrawVerifier = m.contract(`CurvyWithdrawVerifierAlpha_${maxWithdrawals}_2`);
-
-  m.call(curvyAggregatorAlphaV1, "updateConfig", [
+  m.call(curvyAggregatorAlpha, "updateConfig", [
     {
       insertionVerifier,
       aggregationVerifier,
       withdrawVerifier,
-      // Don't change what was set in constructor
       curvyVault: "0x0000000000000000000000000000000000000000",
-      maxDeposits,
-      maxAggregations,
-      maxWithdrawals,
+      portalFactory: "0x0000000000000000000000000000000000000000",
+      maxDeposits: 2,
+      maxAggregations: 2,
+      maxWithdrawals: 2,
     },
   ]);
 
-  // This implementation fixes the commitWithdrawalBatch to invoke meta tx with type transfer instead of withdraw
-  const implementationV2 = m.contract("CurvyAggregatorAlphaV2", [], {
-    id: "CurvyAggregatorAlphaV2Implementation",
-    libraries: {
-      PoseidonT4: poseidonT4,
-    },
-  });
-
-  m.call(curvyAggregatorAlphaV1, "upgradeToAndCall", [implementationV2, "0x"]);
-
-  const curvyAggregatorAlphaV2 = m.contractAt("CurvyAggregatorAlphaV2", proxy);
-
-  const implementationV3 = m.contract("CurvyAggregatorAlphaV3", [], {
-    id: "CurvyAggregatorAlphaV3Implementation",
-    libraries: {
-      PoseidonT4: poseidonT4,
-    },
-  });
-
-  m.call(curvyAggregatorAlphaV2, "upgradeToAndCall", [implementationV3, "0x"]);
-
-  const curvyAggregatorAlphaV3 = m.contractAt("CurvyAggregatorAlphaV3", proxy);
-
-  const newInsertionVerifier = m.contract(`CurvyInsertionVerifierAlpha_${maxDeposits}`, [], {
-    id: "NewInsertionVerifier_v2",
-    after: [curvyAggregatorAlphaV3],
-  });
-
-  const newAggregationVerifier = m.contract(`CurvyAggregationVerifierAlpha_${maxAggregations}`, [], {
-    id: "NewAggregationVerifier_v2",
-    after: [newInsertionVerifier],
-  });
-
-  const newWithdrawVerifier = m.contract(`CurvyWithdrawVerifierAlpha_${maxWithdrawals}`, [], {
-    id: "NewWithdrawVerifier_v2",
-    after: [newAggregationVerifier],
-  });
-
-  const updateNewVerifiers = m.call(
-    curvyAggregatorAlphaV3,
-    "updateConfig",
-    [
-      {
-        insertionVerifier: newInsertionVerifier,
-        aggregationVerifier: newAggregationVerifier,
-        withdrawVerifier: newWithdrawVerifier,
-        curvyVault: "0x0000000000000000000000000000000000000000",
-        maxDeposits: 0,
-        maxAggregations: 0,
-        maxWithdrawals: 0,
-      },
-    ],
-    {
-      id: "UpdateConfig_WithNewVerifiers",
-      after: [newWithdrawVerifier],
-    },
-  );
-
-  const implementationV4 = m.contract("CurvyAggregatorAlphaV4", [], {
-    id: "CurvyAggregatorAlphaV4Implementation",
-    libraries: {
-      PoseidonT4: poseidonT4,
-    },
-    after: [updateNewVerifiers],
-  });
-
-  const upgradeV4 = m.call(curvyAggregatorAlphaV3, "upgradeToAndCall", [implementationV4, "0x"], {
-    id: "CurvyAggregatorAlphaV4Upgrade",
-    after: [implementationV4],
-  });
-
-  const curvyAggregatorAlphaV4 = m.contractAt("CurvyAggregatorAlphaV4", proxy);
-
-  // This implementation relies on vault's withdraw instead of transfer and includes forceWithdrawal
-  const implementationV5 = m.contract("CurvyAggregatorAlphaV5", [], {
-    id: "CurvyAggregatorAlphaV5Implementation",
-    libraries: {
-      PoseidonT4: poseidonT4,
-    },
-    after: [upgradeV4],
-  });
-
-  const upgradeV5 = m.call(curvyAggregatorAlphaV4, "upgradeToAndCall", [implementationV5, "0x"]);
-
-  const curvyAggregatorAlphaV5 = m.contractAt("CurvyAggregatorAlphaV5", proxy);
-
-  const withdrawVerifierV3 = m.contract(`CurvyWithdrawVerifierAlphaV3_${maxWithdrawals}`, [], {
-    id: "withdrawVerifierV3",
-    after: [upgradeV5],
-  });
-
-  const implementationV6 = m.contract("CurvyAggregatorAlphaV6", [], {
-    id: "CurvyAggregatorAlphaV6Implementation",
-    libraries: {
-      PoseidonT4: poseidonT4,
-    },
-    after: [upgradeV5],
-  });
-
-  const upgradeV6 = m.call(curvyAggregatorAlphaV5, "upgradeToAndCall", [implementationV6, "0x"]);
-
-  const curvyAggregatorAlpha = m.contractAt("CurvyAggregatorAlphaV6", proxy);
-
-  const insertionVerifierDepth30 = m.contract("CurvyInsertionVerifierAlpha_2_30", [], {
-    id: "insertionVerifierDepth30",
-    after: [upgradeV6],
-  });
-
-  const aggregationVerifierDepth30 = m.contract("CurvyAggregationVerifierAlpha_2_2_2_30", [], {
-    id: "aggregationVerifierDepth30",
-    after: [insertionVerifierDepth30],
-  });
-
-  const withdrawVerifierDepth30 = m.contract("CurvyWithdrawVerifierAlpha_2_2_30", [], {
-    id: "withdrawVerifierDepth30",
-    after: [aggregationVerifierDepth30],
-  });
-
-  return { 
-    implementation: implementationV6, 
-    proxy, 
-    curvyAggregatorAlpha, 
-    withdrawVerifierV3,
-    insertionVerifierDepth30,
-    aggregationVerifierDepth30,
-    withdrawVerifierDepth30
+  return {
+    implementation,
+    proxy,
+    curvyAggregatorAlpha,
+    insertionVerifierDepth30: insertionVerifier,
+    aggregationVerifierDepth30: aggregationVerifier,
+    withdrawVerifierDepth30: withdrawVerifier,
   };
 });
