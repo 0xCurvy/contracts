@@ -27,7 +27,6 @@ interface ICurvyVaultV3 {
     error ETHTransferFailed();
     error ERC20TransferFailed();
     error WithdrawalFeeNotSet();
-    error NotCurvyAggregatorOrOwner();
     // audit(2026-Q1): Collecting zero fees
     error NoFeesToCollect();
     // audit(2026-Q1): EOA as tokenAddress

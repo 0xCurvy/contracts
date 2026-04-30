@@ -64,8 +64,8 @@ contract CurvyVaultV6 is
     //#region Modifiers
 
     // audit(2026-Q1): Modifier instead of error - encode caller restriction in the function signature
-    modifier onlyCurvyAggregatorOrOwner() {
-        if (msg.sender != _curvyAggregator && msg.sender != owner()) revert NotCurvyAggregatorOrOwner();
+    modifier onlyCurvyAggregator() {
+        if (msg.sender != _curvyAggregator) revert NotCurvyAggregator();
         _;
     }
 
@@ -218,8 +218,7 @@ contract CurvyVaultV6 is
 
     //#region Public functions
 
-    function deposit(address tokenAddress, address to, uint256 amount) public payable {
-        if (msg.sender != _curvyAggregator) revert NotCurvyAggregator();
+    function deposit(address tokenAddress, address to, uint256 amount) public payable onlyCurvyAggregator {
 
         if (to == address(0x0)) revert InvalidRecipient();
 
@@ -255,8 +254,8 @@ contract CurvyVaultV6 is
         emit Deposit(tokenAddress, to, depositedAmount);
     }
 
-    // audit(2026-Q1): Modifier instead of error - replaced inline check with onlyCurvyAggregatorOrOwner
-    function withdraw(uint256 tokenId, address to, uint256 amount) external onlyCurvyAggregatorOrOwner {
+    // audit(2026-Q1): Modifier instead of error - replaced inline check with onlyCurvyAggregator
+    function withdraw(uint256 tokenId, address to, uint256 amount) external onlyCurvyAggregator {
         if (to == address(0)) revert InvalidRecipient();
 
         address tokenAddress = _tokenIdToTokenAddress[tokenId];
