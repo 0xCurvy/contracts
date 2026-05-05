@@ -1,8 +1,8 @@
 import fs from "node:fs";
+import type { HexString } from "@0xcurvy/curvy-sdk";
 import { network } from "hardhat";
 import { privateKeyToAccount } from "viem/accounts";
 import { expect, test } from "vitest";
-import type { HexString } from "@0xcurvy/curvy-sdk";
 
 // import PortalFactoryModule from "../ignition/modules/AutomaticShielding";
 
@@ -16,7 +16,7 @@ test("automatic-shielding", async () => {
 
   // Deploy and run tests
   // const { ignition, viem } = networkObj
-  // const { portalFactory, curvyVault, curvyAggregatorAlphaV2, erc20Mock } =
+  // const { portalFactory, curvyVault, curvyAggregatorAlpha, erc20Mock } =
   //   await ignition.deploy(PortalFactoryModule);
 
   //#region Load deployed contracts
@@ -25,17 +25,17 @@ test("automatic-shielding", async () => {
   const deployedAddressesPath = "./ignition/deployments/local_anvil/deployed_addresses.json";
   const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
 
-  const vaultAddress = deployedAddresses["CurvyVault#CurvyVault"];
+  const vaultAddress = deployedAddresses["CurvyVault#ERC1967Proxy"];
   if (!vaultAddress) {
-    throw new Error("MetaERC20Wrapper address not found for anvil");
+    throw new Error("CurvyVault proxy address not found for anvil");
   }
-  const portalFactoryAddress = deployedAddresses["CurvyAggregatorAlpha#PortalFactory"];
+  const portalFactoryAddress = deployedAddresses["PortalFactory#PortalFactory"];
   if (!portalFactoryAddress) {
     throw new Error("PortalFactory address not found for anvil");
   }
-  const curvyAggregatorAlphaAddress = deployedAddresses["CurvyAggregatorAlpha#CurvyAggregatorAlpha"];
+  const curvyAggregatorAlphaAddress = deployedAddresses["CurvyAggregatorAlpha#ERC1967Proxy"];
   if (!curvyAggregatorAlphaAddress) {
-    throw new Error("CurvyAggregatorAlpha address not found for anvil");
+    throw new Error("CurvyAggregatorAlpha proxy address not found for anvil");
   }
 
   const erc20MockAddress = deployedAddresses["Devenv#ERC20Mock"];
@@ -43,9 +43,9 @@ test("automatic-shielding", async () => {
     throw new Error("ERC20Mock address not found for anvil");
   }
 
-  const curvyVault = await viem.getContractAt("CurvyVault", vaultAddress);
+  const curvyVault = await viem.getContractAt("CurvyVaultV1", vaultAddress);
   const portalFactory = await viem.getContractAt("PortalFactory", portalFactoryAddress);
-  const curvyAggregatorAlpha = await viem.getContractAt("CurvyAggregatorAlpha", curvyAggregatorAlphaAddress);
+  const curvyAggregatorAlpha = await viem.getContractAt("CurvyAggregatorAlphaV1", curvyAggregatorAlphaAddress);
   const erc20Mock = await viem.getContractAt("ERC20Mock", erc20MockAddress);
 
   //#endregion
@@ -117,7 +117,7 @@ test("automatic-shielding", async () => {
 
   // check balances after deposit
 
-  const depositFee = await curvyVault.read.depositFee() as bigint;
+  const depositFee = (await curvyVault.read.depositFee()) as bigint;
   const expectedAmountMinusFees = amount - (amount * depositFee) / 10000n;
 
   const vaultErc20MockBalanceOfAggregator = await curvyVault.read.balanceOf([

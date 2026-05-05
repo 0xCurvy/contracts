@@ -1,6 +1,18 @@
 import { spawn } from "node:child_process";
-import { getEnvironmentParameter, getNetworkParameter } from "../ignition/modules/utils/parameters";
 import fs from "node:fs";
+import path from "node:path";
+import { getEnvironmentParameter, getNetworkParameter } from "../ignition/modules/utils/parameters";
+
+type LegacyProxies = {
+  vaultProxy: string;
+  aggregatorProxy: string;
+  poseidonT4: string;
+};
+
+type LegacyProxiesByEnv = {
+  production?: LegacyProxies;
+  staging?: LegacyProxies;
+};
 
 function run(cmd: string, args: readonly string[]): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -14,6 +26,7 @@ function getPortalFactoryAddress(deploymentId: string) {
   const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
   return deployedAddresses["PortalFactory#PortalFactory"];
 }
+
 async function main() {
   const networks = [
     "sepolia",
@@ -36,20 +49,48 @@ async function main() {
   const ownerAddress = getEnvironmentParameter("owner", environment);
 
   for (const networkName of networks) {
+    const deploymentId = `${environment}_${networkName}`;
     const mainDeployment = getNetworkParameter("mainDeployment", networkName);
+
     if (mainDeployment) {
-      console.log(`==== ${environment}_${networkName} main deployment ====`);
-      await run("pnpm", [
-        "hardhat",
-        "ignition",
-        "deploy",
-        "--deployment-id",
-        `${environment}_${networkName}`,
-        "--network",
-        networkName,
-        "--verify",
-        "./ignition/modules/MainDeployment.ts",
-      ]);
+      const legacyByEnv = getNetworkParameter<LegacyProxiesByEnv>("legacyProxies", networkName);
+      const legacy = legacyByEnv[environment];
+      if (!legacy) {
+        throw new Error(
+          `mainDeployment chain '${networkName}' is missing legacyProxies.${environment} in network-parameters.json`,
+        );
+      }
+
+      console.log(`==== ${deploymentId} main deployment (V1 launch on existing proxies) ====`);
+
+      const parameters = {
+        MainDeployment: {
+          vaultProxyAddress: legacy.vaultProxy,
+          aggregatorProxyAddress: legacy.aggregatorProxy,
+          poseidonT4Address: legacy.poseidonT4,
+        },
+      };
+
+      const paramFile = path.resolve(`./ignition/.deploy-params-${deploymentId}.json`);
+      fs.writeFileSync(paramFile, JSON.stringify(parameters, null, 2));
+
+      try {
+        await run("pnpm", [
+          "hardhat",
+          "ignition",
+          "deploy",
+          "--deployment-id",
+          deploymentId,
+          "--network",
+          networkName,
+          "--parameters",
+          paramFile,
+          "--verify",
+          "./ignition/modules/MainDeployment.ts",
+        ]);
+      } finally {
+        fs.unlinkSync(paramFile);
+      }
 
       console.log(`Manually verifying PortalFactory...`);
       await run("pnpm", [
@@ -57,17 +98,17 @@ async function main() {
         "verify",
         "--network",
         networkName,
-        await getPortalFactoryAddress(`${environment}_${networkName}`),
+        await getPortalFactoryAddress(deploymentId),
         ownerAddress,
       ]);
     } else {
-      console.log(`==== ${environment}_${networkName} portal factory only deployment ====`);
+      console.log(`==== ${deploymentId} portal factory only deployment ====`);
       await run("pnpm", [
         "hardhat",
         "ignition",
         "deploy",
         "--deployment-id",
-        `${environment}_${networkName}`,
+        deploymentId,
         "--network",
         networkName,
         "--verify",
@@ -80,7 +121,7 @@ async function main() {
         "verify",
         "--network",
         networkName,
-        await getPortalFactoryAddress(`${environment}_${networkName}`),
+        await getPortalFactoryAddress(deploymentId),
         ownerAddress,
       ]);
     }
