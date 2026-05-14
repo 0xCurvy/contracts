@@ -36,6 +36,11 @@ export function getEnvironmentAndNetworkName(): { environment: string; networkNa
   return { environment, networkName };
 }
 
+// audit(2026-Q1): No Validation of Address Format
+function isValidAddress(value: unknown): value is `0x${string}` {
+  return typeof value === "string" && /^0x[0-9a-fA-F]{40}$/.test(value);
+}
+
 function getNetworkParameter<T>(parameterName: string, networkName?: string): T {
   if (!networkName) {
     networkName = getEnvironmentAndNetworkName().networkName;
@@ -43,11 +48,17 @@ function getNetworkParameter<T>(parameterName: string, networkName?: string): T 
 
   const parameters = readParameters("network-parameters.json");
 
-  if (parameters[networkName] === undefined || parameters[networkName][parameterName] === undefined) {
+  if (parameters[networkName] === undefined) {
     throw new Error(`Parameter ${parameterName} not found for network ${networkName}`);
   }
 
-  return parameters[networkName][parameterName];
+  // audit(2026-Q1): Missing Null/Undefined Return Handling
+  const value = parameters[networkName][parameterName];
+  if (value === null || value === undefined) {
+    throw new Error(`Parameter '${parameterName}' is null or undefined for network '${networkName}'`);
+  }
+
+  return value;
 }
 
 function getEnvironmentParameter<T>(parameterName: string, environment?: string): T {
@@ -57,11 +68,32 @@ function getEnvironmentParameter<T>(parameterName: string, environment?: string)
 
   const parameters = readParameters("environment-parameters.json");
 
-  if (parameters[environment] === undefined || !parameters[environment][parameterName] === undefined) {
+  // audit(2026-Q1): Short-circuit guard bug / operator precedence bug - removed broken `!parameters[env][name] === undefined` check
+  if (parameters[environment] === undefined) {
     throw new Error(`Parameter ${parameterName} not found for environment ${environment}`);
   }
 
-  return parameters[environment][parameterName];
+  // audit(2026-Q1): Missing Null/Undefined Return Handling
+  const value = parameters[environment][parameterName];
+  if (value === null || value === undefined) {
+    throw new Error(`Parameter '${parameterName}' is null or undefined for environment '${environment}'`);
+  }
+
+  return value;
+}
+
+// audit(2026-Q1): No Validation of Address Format
+function getAddressParameter(parameterName: string, source: "network" | "environment", scope?: string): `0x${string}` {
+  const value =
+    source === "network"
+      ? getNetworkParameter<unknown>(parameterName, scope)
+      : getEnvironmentParameter<unknown>(parameterName, scope);
+
+  if (!isValidAddress(value)) {
+    throw new Error(`Invalid ${parameterName} format: expected a 0x-prefixed 20-byte hex string`);
+  }
+
+  return value;
 }
 
 function readParameters(filename: "network-parameters.json" | "environment-parameters.json"): any {
@@ -72,7 +104,12 @@ function readParameters(filename: "network-parameters.json" | "environment-param
   }
 
   const rawData = fs.readFileSync(filePath, "utf-8");
-  return JSON.parse(rawData);
+  // audit(2026-Q1): No Error Handling for Invalid JSON
+  try {
+    return JSON.parse(rawData);
+  } catch (error) {
+    throw new Error(`Failed to parse ${filename}: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
-export { getNetworkParameter, getEnvironmentParameter };
+export { getNetworkParameter, getEnvironmentParameter, getAddressParameter };

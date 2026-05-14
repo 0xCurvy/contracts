@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import {CurvyTypes} from "../utils/Types.sol";
-import {ICurvyAggregatorAlphaV2} from "../aggregator-alpha/ICurvyAggregatorAlphaV2.sol";
+import {ICurvyAggregatorAlpha} from "../aggregator-alpha/ICurvyAggregatorAlpha.sol";
 import {ICurvyVault} from "../vault/ICurvyVault.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IPortal} from "./IPortal.sol";
@@ -16,7 +16,7 @@ contract Portal is IPortal {
 
     address private constant NATIVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    ICurvyAggregatorAlphaV2 public curvyAggregator;
+    ICurvyAggregatorAlpha public curvyAggregator;
     ICurvyVault public curvyVault;
 
     address public recovery;
@@ -55,7 +55,7 @@ contract Portal is IPortal {
             revert InvalidOwnerHash();
         }
 
-        curvyAggregator = ICurvyAggregatorAlphaV2(curvyAggregatorAlphaProxyAddress);
+        curvyAggregator = ICurvyAggregatorAlpha(curvyAggregatorAlphaProxyAddress);
         curvyVault = ICurvyVault(curvyVaultProxyAddress);
 
         address tokenAddress = curvyVault.getTokenAddress(note.token);
@@ -68,6 +68,9 @@ contract Portal is IPortal {
         }
     }
 
+    // audit(2026-Q1): Difference between amount and note.amount - all LiFi calldata verification
+    // (address validity, receiver, destination, amount, hasSourceSwaps handling) is performed by
+    // PortalFactory before this call.
     function bridge(address lifiDiamondAddress, bytes calldata bridgeData, uint256 amount, address currency)
         external
         onlyOnce
@@ -81,9 +84,19 @@ contract Portal is IPortal {
             }
 
             token.forceApprove(lifiDiamondAddress, amount);
-            (bool success,) = lifiDiamondAddress.call(bridgeData);
+            // audit(2026-Q1): LiFi error message not propagated - capture revert data
+            (bool success, bytes memory result) = lifiDiamondAddress.call(bridgeData);
+            // audit(2026-Q1): Difference between amount and note.amount - clear residual approval
+            // in case LiFi consumed less than `amount` (refund tokens, partial fill, etc.)
+            token.forceApprove(lifiDiamondAddress, 0);
 
             if (!success) {
+                // audit(2026-Q1): LiFi error message not propagated - bubble up the underlying revert
+                if (result.length > 0) {
+                    assembly {
+                        revert(add(32, result), mload(result))
+                    }
+                }
                 revert BridgeCallFailed();
             }
         } else {
@@ -92,16 +105,26 @@ contract Portal is IPortal {
                 revert InsufficientBalanceForLiFiBridging();
             }
 
-            (bool success,) = lifiDiamondAddress.call{value: amount}(bridgeData);
+            // audit(2026-Q1): LiFi error message not propagated - capture revert data
+            (bool success, bytes memory result) = lifiDiamondAddress.call{value: amount}(bridgeData);
 
             if (!success) {
+                // audit(2026-Q1): LiFi error message not propagated - bubble up the underlying revert
+                if (result.length > 0) {
+                    assembly {
+                        revert(add(32, result), mload(result))
+                    }
+                }
                 revert BridgeCallFailed();
             }
         }
     }
 
     function recover(address tokenAddress, address to) external onlyRecovery {
-        if (tokenAddress == NATIVE_ETH) {
+        // audit(2026-Q1): Burning balance during recovery - reject zero destination
+        if (to == address(0)) revert InvalidRecoveryAddress();
+        // audit(2026-Q1): Lost gas for transaction payment - treat zero address as native ETH (matches bridge)
+        if (tokenAddress == NATIVE_ETH || tokenAddress == address(0)) {
             uint256 balance = address(this).balance;
             (bool success,) = to.call{value: balance}("");
             require(success, "Portal: ETH transfer failed");

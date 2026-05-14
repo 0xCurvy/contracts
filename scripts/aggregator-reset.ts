@@ -12,8 +12,8 @@ const curvyAggregatorAddress = deployedAddresses["CurvyAggregatorAlpha#ERC1967Pr
 if (!curvyAggregatorAddress) {
   throw new Error("Aggregator address not found for staging_ethereum-sepolia");
 }
-const curvyAggregator = await viem.getContractAt("CurvyAggregatorAlphaV3", curvyAggregatorAddress);
+const curvyAggregator = await viem.getContractAt("CurvyAggregatorAlphaV1", curvyAggregatorAddress);
 
-const reset = await curvyAggregator.write.reset([0n, 0n], { account: senderClient.account});
+const reset = await curvyAggregator.write.reset([0n, 0n], { account: senderClient.account });
 
 console.log("Reset is done in transaction: ", reset);
