@@ -263,7 +263,7 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
         bytes32 exitAddress,
         uint256 exitChainId,
         address recovery
-    ) public onlyOwner {
+    ) public onlyRole(OPERATOR_ROLE) {
         if (_lifiDiamondAddress == address(0)) {
             revert UnsupportedBridging();
         }
