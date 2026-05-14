@@ -1,0 +1,9 @@
+{
+  "MainDeployment#AggProxyAsV1": "0xE7c543dE96e99fDD9F8435bDEeCeE4361B98cebB",
+  "MainDeployment#PoseidonT4Existing": "0xEa16Fb67A4Bb4a90598FDf03e68091ecD33614ae",
+  "MainDeployment#VaultProxyAsV1": "0xc837Aaa99A8e5A096F5e6E54E396F027fA106aB5",
+  "PortalFactory#CreateX": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
+  "MainDeployment#CurvyVaultV1Implementation_Audited": "0x675951F096C9fdEa095DbC7dD64B6A7E1e55D00c",
+  "MainDeployment#CurvyAggregatorAlphaV1Implementation_Audited": "0x94082931e5Ea6EB89aBE3CE784FDb432513a4871",
+  "PortalFactory#PortalFactory": "0xC736a44Cf3324b08489b210e9A7e2a0f5b8a6f9C"
+}

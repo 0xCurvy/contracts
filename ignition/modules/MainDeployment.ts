@@ -80,5 +80,18 @@ export default buildModule("MainDeployment", (m) => {
     after: [vaultUpgrade, aggUpgrade],
   });
 
+  m.call(aggProxyAsV1, "updateConfig", [
+    {
+      insertionVerifier: "0x0000000000000000000000000000000000000000",
+      aggregationVerifier: "0x0000000000000000000000000000000000000000",
+      withdrawVerifier: "0x0000000000000000000000000000000000000000",
+      curvyVault: "0x0000000000000000000000000000000000000000",
+      portalFactory,
+      maxDeposits: BigInt(0),
+      maxAggregations: BigInt(0),
+      maxWithdrawals: BigInt(0),
+    },
+  ]);
+
   return { newVaultImpl, newAggImpl, portalFactory };
 });
