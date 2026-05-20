@@ -22,7 +22,7 @@ contract Portal is IPortal {
     address public recovery;
 
     bool private _used;
-    // audit(eip-1167): per-proxy init guard. Packs with `recovery` and `_used` in the same slot.
+
     bool private _initialized;
 
     modifier onlyRecovery() {
