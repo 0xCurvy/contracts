@@ -13,10 +13,17 @@ interface IPortal {
     error InsufficientBalanceForLiFiBridging();
     error InvalidSignatureOrTamperedData();
     error BridgeCallFailed();
+    error AlreadyInitialized();
 
     //#endregion
 
     //#region Public functions
+
+    /// @notice One-time initializer called by the factory immediately after
+    /// cloning the implementation. Mirrors the validation that used to run in
+    /// the constructor. Reverts on the second call against the same proxy and
+    /// on any call against the implementation itself.
+    function initialize(uint256 ownerHash, address exitAddress, uint256 exitChainId, address recovery) external;
 
     function shield(
         CurvyTypes.Note memory note,

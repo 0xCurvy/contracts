@@ -22,6 +22,8 @@ contract Portal is IPortal {
     address public recovery;
 
     bool private _used;
+    // audit(eip-1167): per-proxy init guard. Packs with `recovery` and `_used` in the same slot.
+    bool private _initialized;
 
     modifier onlyRecovery() {
         require(tx.origin == recovery, "Portal: Only recovery");
@@ -34,7 +36,23 @@ contract Portal is IPortal {
         _used = true;
     }
 
-    constructor(uint256 ownerHash, address exitAddress, uint256 exitChainId, address _recovery) {
+    /// @dev Locks the implementation so it cannot be initialized directly.
+    /// Proxies created by `Clones.cloneDeterministic` get their own storage
+    /// with `_initialized == false`, so they remain initializable exactly once
+    /// via `initialize`.
+    constructor() {
+        _initialized = true;
+    }
+
+    function initialize(
+        uint256 ownerHash,
+        address exitAddress,
+        uint256 exitChainId,
+        address _recovery
+    ) external {
+        if (_initialized) revert AlreadyInitialized();
+        _initialized = true;
+
         if (_recovery == address(0)) revert InvalidRecoveryAddress();
         if ((ownerHash == 0) == (exitAddress == address(0)) || (ownerHash == 0) == (exitChainId == 0)) {
             revert InvalidOwnerHashOrExitBridgeData();

@@ -17,6 +17,7 @@ contract SolanaPortal {
     error InvalidExitBridgeData();
     error InsufficientBalanceForLiFiBridging();
     error BridgeCallFailed();
+    error AlreadyInitialized();
 
     address private constant NATIVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
@@ -26,6 +27,8 @@ contract SolanaPortal {
     address public recovery;
 
     bool private _used;
+    // audit(eip-1167): per-proxy init guard. Packs with `recovery` and `_used`.
+    bool private _initialized;
 
     modifier onlyRecovery() {
         require(tx.origin == recovery, "PortalSolanaExit: Only recovery");
@@ -38,7 +41,16 @@ contract SolanaPortal {
         _used = true;
     }
 
-    constructor(bytes32 exitAddress, uint256 exitChainId, address _recovery) {
+    /// @dev Locks the implementation so it cannot be initialized directly.
+    /// Proxies start with `_initialized == false` in their own storage.
+    constructor() {
+        _initialized = true;
+    }
+
+    function initialize(bytes32 exitAddress, uint256 exitChainId, address _recovery) external {
+        if (_initialized) revert AlreadyInitialized();
+        _initialized = true;
+
         if (_recovery == address(0)) revert InvalidRecoveryAddress();
         if (exitAddress == bytes32(0) || exitChainId == 0) revert InvalidExitBridgeData();
 
@@ -110,6 +122,4 @@ contract SolanaPortal {
             token.safeTransfer(to, balance);
         }
     }
-
-    receive() external payable {}
 }
