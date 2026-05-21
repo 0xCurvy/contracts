@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { labelhash, namehash } from "viem";
+import PortalFactoryV2 from "../current/PortalFactoryV2";
+// audit(2026-Q1): No Validation of Address Format - use validated address parameter helper
+import { getAddressParameter } from "../utils/parameters";
 import CurvyAggregatorAlpha from "./CurvyAggregatorAlpha";
 import CurvyVault from "./CurvyVault";
-import PortalFactory from "./PortalFactory";
-// audit(2026-Q1): No Validation of Address Format - use validated address parameter helper
-import { getAddressParameter } from "./utils/parameters";
 
 const DEPOSIT_AMOUNT = 1000n * 10n ** 18n;
 
@@ -16,7 +16,7 @@ export default buildModule("Devenv", (m) => {
   // give us the same end state as a beta-style fresh deploy.)
   const { curvyAggregatorAlpha, proxy: curvyAggregatorAlphaProxy } = m.useModule(CurvyAggregatorAlpha);
   const { curvyVault, proxy: curvyVaultProxy } = m.useModule(CurvyVault);
-  const { portalFactory } = m.useModule(PortalFactory);
+  const { portalFactory } = m.useModule(PortalFactoryV2);
 
   // Wire vault to aggregator
   const setVaultAggregator = m.call(curvyVault, "setCurvyAggregatorAddress", [curvyAggregatorAlpha]);

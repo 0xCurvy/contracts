@@ -1,7 +1,7 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import PortalFactory from "./PortalFactory";
 // audit(2026-Q1): No Validation of Address Format - use validated address parameter helper
-import { getAddressParameter } from "./utils/parameters";
+import { getAddressParameter } from "../../utils/parameters";
+import PortalFactory from "./PortalFactory";
 
 /**
  * Main-chain deployment for the V1 (out-of-beta) launch.
