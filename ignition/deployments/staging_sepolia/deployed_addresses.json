@@ -6,6 +6,7 @@
   "MainDeployment#CurvyVaultV1Implementation_Audited": "0xf857FFA1ed1348F422d20BF214C1F19F53c87002",
   "MainDeployment#CurvyAggregatorAlphaV1Implementation_Audited": "0xB7859ABBDB0A0fC76Af523652fc50E37a4cd2589",
   "PortalFactory#PortalFactory": "0x19fb318C20742213A6EeA1AAe39279A1A1f87cDB",
+  "AggregatorVerifiers#CurvyAggregationVerifierAlpha": "0x5b70B4784B9dEC89DBc74362c84DcfDf7113045F",
   "MainDeploymentV2#AggProxyAsV1": "0x97FfCE8e772EA1594BE3C34F85B43e9c00522320",
   "PortalFactoryV2#CreateX": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
   "PortalFactoryV2#PortalFactoryV2": "0x0B90412c305E40f29b9a6cafFd8f4418D5C8898E"
