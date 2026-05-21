@@ -39,5 +39,5 @@ export default buildModule("MainDeploymentV2", (m) => {
     { id: "AggConfigForV2Factory", after: [portalFactoryConfig] },
   );
 
-  return { portalFactory };
+  return { portalFactory, aggregatorProxy: aggProxyAsV1  };
 });

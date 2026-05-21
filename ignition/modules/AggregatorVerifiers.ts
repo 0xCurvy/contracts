@@ -1,5 +1,5 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import MainDeployment from "./MainDeployment";
+import MainDeployment from "./current/MainDeployment";
 
 export default buildModule("AggregatorVerifiers", (m) => {
   const { aggregatorProxy } = m.useModule(MainDeployment);
