@@ -5,5 +5,6 @@
   "PortalFactory#CreateX": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
   "MainDeployment#CurvyVaultV1Implementation_Audited": "0x736f8d453eB94ba3c7a72BF2c562e464348A12d5",
   "MainDeployment#CurvyAggregatorAlphaV1Implementation_Audited": "0xae0436d93838D16fF8ea0635F1D104Ac009B3dA5",
-  "PortalFactory#PortalFactory": "0xC736a44Cf3324b08489b210e9A7e2a0f5b8a6f9C"
+  "PortalFactory#PortalFactory": "0xC736a44Cf3324b08489b210e9A7e2a0f5b8a6f9C",
+  "AggregatorVerifiers#CurvyAggregationVerifierAlpha": "0x2D2BD66a76bd3c9eb31922cC03ba9aA67F3f82c3"
 }

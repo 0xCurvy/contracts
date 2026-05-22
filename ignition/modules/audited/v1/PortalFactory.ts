@@ -1,6 +1,6 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { encodeDeployData } from "viem";
-import artifact from "../../../../artifacts/contracts/portal/PortalFactory.sol/PortalFactory.json";
+import artifact from "../../../../artifacts/contracts/portal/v1/PortalFactory.sol/PortalFactory.json";
 // audit(2026-Q1): Moving constant to JSON
 import { getAddressParameter, getEnvironmentParameter } from "../../utils/parameters";
 

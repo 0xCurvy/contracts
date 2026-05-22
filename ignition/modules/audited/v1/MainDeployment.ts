@@ -93,5 +93,5 @@ export default buildModule("MainDeployment", (m) => {
     },
   ]);
 
-  return { newVaultImpl, newAggImpl, portalFactory};
+  return { newVaultImpl, newAggImpl, portalFactory, aggregatorProxy: aggProxyAsV1 };
 });

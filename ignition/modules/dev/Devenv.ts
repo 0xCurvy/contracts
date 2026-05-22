@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { labelhash, namehash } from "viem";
-import PortalFactoryV2 from "../current/PortalFactoryV2";
+import PortalFactoryV2 from "../current/PortalFactory";
 // audit(2026-Q1): No Validation of Address Format - use validated address parameter helper
 import { getAddressParameter } from "../utils/parameters";
 import CurvyAggregatorAlpha from "./CurvyAggregatorAlpha";
