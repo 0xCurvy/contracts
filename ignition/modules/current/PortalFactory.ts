@@ -43,7 +43,7 @@ export default buildModule("PortalFactoryV2", (m) => {
     emitter: createX,
   });
 
-  const portalFactory = m.contractAt("PortalFactory", deployedAddress, {
+  const portalFactory = m.contractAt("contracts/portal/PortalFactory.sol:PortalFactory", deployedAddress, {
     id: "PortalFactoryV2",
     after: [deployCall],
   });
