@@ -1,5 +1,5 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import { getNetworkParameter } from "./utils/parameters";
+import { getNetworkParameter } from "../utils/parameters";
 
 export default buildModule("CurvyVault", (m) => {
   const implementation = m.contract("CurvyVaultV1", [], { id: "CurvyVaultV1Implementation" });

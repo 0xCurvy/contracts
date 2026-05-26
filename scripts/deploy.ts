@@ -24,7 +24,7 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
 function getPortalFactoryAddress(deploymentId: string) {
   const deployedAddressesPath = `./ignition/deployments/${deploymentId}/deployed_addresses.json`;
   const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
-  return deployedAddresses["PortalFactory#PortalFactory"];
+  return deployedAddresses["PortalFactoryV2#PortalFactoryV2"];
 }
 
 async function main() {
@@ -61,10 +61,10 @@ async function main() {
         );
       }
 
-      console.log(`==== ${deploymentId} main deployment (V1 launch on existing proxies) ====`);
+      console.log(`==== ${deploymentId} main deployment (V2) ====`);
 
       const parameters = {
-        MainDeployment: {
+        MainDeploymentV2: {
           vaultProxyAddress: legacy.vaultProxy,
           aggregatorProxyAddress: legacy.aggregatorProxy,
           poseidonT4Address: legacy.poseidonT4,
@@ -86,7 +86,7 @@ async function main() {
           "--parameters",
           paramFile,
           "--verify",
-          "./ignition/modules/MainDeployment.ts",
+          "./ignition/modules/current/MainDeployment.ts",
         ]);
       } finally {
         fs.unlinkSync(paramFile);
@@ -112,7 +112,7 @@ async function main() {
         "--network",
         networkName,
         "--verify",
-        "./ignition/modules/Deployment.ts",
+        "./ignition/modules/current/Deployment.ts",
       ]);
 
       console.log(`Manually verifying PortalFactory...`);

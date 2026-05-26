@@ -78,9 +78,11 @@ interface IPortalFactory {
         address lifiDiamondAddress
     ) external returns (bool);
 
-    function getCreationCode(uint256 ownerHash, address exitAddress, uint256 exitChainId, address recovery) external pure returns (bytes memory);
+    /// @notice EIP-1167 implementation contract used for all EVM portal proxies.
+    function portalImpl() external view returns (address);
 
-    function getSolanaExitCreationCode(bytes32 exitAddress, uint256 exitChainId, address recovery) external pure returns (bytes memory);
+    /// @notice EIP-1167 implementation contract used for all Solana-exit portal proxies.
+    function solanaPortalImpl() external view returns (address);
 
     function getEntryPortalAddress(uint256 ownerHash, address recovery) external view returns (address);
 
@@ -90,7 +92,7 @@ interface IPortalFactory {
 
     function portalIsRegistered(address portalAddress) external view returns (bool);
 
-    function deployShieldPortal(CurvyTypes.Note memory note, address recovery) external payable;
+    function deployShieldPortal(CurvyTypes.Note memory note, address recovery) external;
 
     function deployEntryBridgePortal(
         bytes calldata bridgeData,

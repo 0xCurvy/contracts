@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { labelhash, namehash } from "viem";
-import CurvyAggregatorAlpha from "./CurvyAggregatorAlpha";
-import CurvyVault from "./CurvyVault";
 import PortalFactory from "./PortalFactory";
 // audit(2026-Q1): No Validation of Address Format - use validated address parameter helper
-import { getAddressParameter } from "./utils/parameters";
+import { getAddressParameter } from "../utils/parameters";
+import CurvyAggregatorAlpha from "./CurvyAggregatorAlpha";
+import CurvyVault from "./CurvyVault";
 
 const DEPOSIT_AMOUNT = 1000n * 10n ** 18n;
 

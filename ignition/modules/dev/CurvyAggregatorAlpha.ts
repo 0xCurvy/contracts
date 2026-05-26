@@ -19,7 +19,7 @@ export default buildModule("CurvyAggregatorAlpha", (m) => {
 
   // Production verifier set: depth-30 trees, dimensional suffixes encode circuit shape.
   const insertionVerifier = m.contract("CurvyInsertionVerifierAlpha_2_30");
-  const aggregationVerifier = m.contract("CurvyAggregationVerifierAlpha_2_2_2_30");
+  const aggregationVerifier = m.contract("CurvyAggregationVerifierAlpha");
   const withdrawVerifier = m.contract("CurvyWithdrawVerifierAlpha_2_2_30");
 
   m.call(curvyAggregatorAlpha, "updateConfig", [

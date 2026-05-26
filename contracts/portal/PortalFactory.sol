@@ -4,11 +4,12 @@ pragma solidity ^0.8.28;
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 // audit(operator/authority): role-based access control via OZ AccessControl
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
+import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 
 import { IPortal } from "./IPortal.sol";
 import { IPortalFactory, ILiFiCalldataVerification } from "./IPortalFactory.sol";
 import { Portal } from "./Portal.sol";
-import {SolanaPortal} from "./SolanaPortal.sol";
+import { SolanaPortal } from "./SolanaPortal.sol";
 import { CurvyTypes } from "../utils/Types.sol";
 
 contract PortalFactory is IPortalFactory, Ownable, AccessControl {
@@ -20,6 +21,13 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
     bytes32 public constant AUTHORITY_ROLE = keccak256("AUTHORITY_ROLE");
 
     bytes32 private _salt = keccak256(abi.encodePacked("curvy-portal-factory-salt"));
+
+    /// @dev EIP-1167 implementation deployed once at factory construction. All
+    /// EVM portals are minimal proxies that delegatecall into this address.
+    address public immutable portalImpl;
+
+    /// @dev EIP-1167 implementation for the Solana-exit variant.
+    address public immutable solanaPortalImpl;
 
     address private _curvyVaultProxyAddress;
     address private _curvyAggregatorAlphaProxyAddress;
@@ -34,27 +42,28 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
         _setRoleAdmin(AUTHORITY_ROLE, AUTHORITY_ROLE);
         _grantRole(AUTHORITY_ROLE, initialOwner);
         _grantRole(OPERATOR_ROLE, initialOwner);
+
+        // The impl contracts self-disable initialization in their constructor,
+        // so the freshly deployed addresses below are inert templates.
+        portalImpl = address(new Portal());
+        solanaPortalImpl = address(new SolanaPortal());
     }
 
-    function deployPortal(bytes memory creationCodeWithArgs) private returns (address) {
-        address portalAddress;
+    /// @dev Derives a per-portal CREATE2 salt from the static base salt and the
+    /// per-portal constructor-equivalent parameters. Under EIP-1167 every clone
+    /// shares the same proxy init code, so uniqueness must come from the salt
+    /// rather than from constructor args baked into the bytecode.
+    function _evmSalt(
+        uint256 ownerHash,
+        address exitAddress,
+        uint256 exitChainId,
+        address recovery
+    ) private view returns (bytes32) {
+        return keccak256(abi.encode(_salt, ownerHash, exitAddress, exitChainId, recovery));
+    }
 
-        bytes32 salt = _salt;
-
-        assembly {
-            // Deploy using CREATE2: value in wei, data pointer, data length, salt
-            portalAddress := create2(
-                callvalue(), // value to send
-                add(creationCodeWithArgs, 0x20), // pointer to start of bytecode
-                mload(creationCodeWithArgs), // length of bytecode (will load what we skip in previous argument)
-                salt // the salt
-            )
-        }
-        if (portalAddress == address(0)) {
-            revert DeploymentFailed();
-        }
-
-        return portalAddress;
+    function _solanaSalt(bytes32 exitAddress, uint256 exitChainId, address recovery) private view returns (bytes32) {
+        return keccak256(abi.encode(_salt, exitAddress, exitChainId, recovery));
     }
 
     // audit(operator/authority): authority-gated
@@ -84,21 +93,8 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
         return true;
     }
 
-    function getCreationCode(
-        uint256 ownerHash,
-        address exitAddress,
-        uint256 exitChainId,
-        address recovery
-    ) public pure returns (bytes memory) {
-        bytes memory bytecode = type(Portal).creationCode;
-        bytes memory encodedArgs = abi.encode(ownerHash, exitAddress, exitChainId, recovery);
-        return abi.encodePacked(bytecode, encodedArgs);
-    }
-
     function getEntryPortalAddress(uint256 ownerHash, address recovery) public view returns (address) {
-        bytes memory code = getCreationCode(ownerHash, address(0), 0, recovery);
-        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), _salt, keccak256(code)));
-        return address(uint160(uint256(hash)));
+        return Clones.predictDeterministicAddress(portalImpl, _evmSalt(ownerHash, address(0), 0, recovery));
     }
 
     function getExitPortalAddress(
@@ -106,9 +102,7 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
         uint256 exitChainId,
         address recovery
     ) public view returns (address) {
-        bytes memory code = getCreationCode(0, exitAddress, exitChainId, recovery);
-        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), _salt, keccak256(code)));
-        return address(uint160(uint256(hash)));
+        return Clones.predictDeterministicAddress(portalImpl, _evmSalt(0, exitAddress, exitChainId, recovery));
     }
 
     function portalIsRegistered(address portalAddress) public view returns (bool) {
@@ -116,14 +110,14 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
     }
 
     // audit(operator/authority): operator-gated (operational portal deployment)
-    function deployShieldPortal(CurvyTypes.Note memory note, address recovery) public payable onlyRole(OPERATOR_ROLE) {
+    function deployShieldPortal(CurvyTypes.Note memory note, address recovery) public onlyRole(OPERATOR_ROLE) {
         if (_curvyVaultProxyAddress == address(0) || _curvyAggregatorAlphaProxyAddress == address(0)) {
             revert UnsupportedShielding();
         }
 
-        bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash, address(0), 0, recovery);
-
-        address portalAddress = deployPortal(creationCodeWithArgs);
+        bytes32 salt = _evmSalt(note.ownerHash, address(0), 0, recovery);
+        address portalAddress = Clones.cloneDeterministic(portalImpl, salt);
+        IPortal(portalAddress).initialize(note.ownerHash, address(0), 0, recovery);
 
         _registeredPortals[portalAddress] = true;
 
@@ -154,9 +148,9 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
             revert InvalidLiFiDestinationChain();
         }
 
-        bytes memory creationCodeWithArgs = getCreationCode(note.ownerHash, address(0), 0, recovery);
-
-        address portalAddress = deployPortal(creationCodeWithArgs);
+        bytes32 salt = _evmSalt(note.ownerHash, address(0), 0, recovery);
+        address portalAddress = Clones.cloneDeterministic(portalImpl, salt);
+        IPortal(portalAddress).initialize(note.ownerHash, address(0), 0, recovery);
 
         IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, note.amount, currency);
 
@@ -196,9 +190,9 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
             }
         }
 
-        bytes memory creationCodeWithArgs = getCreationCode(0, exitAddress, exitChainId, recovery);
-
-        address portalAddress = deployPortal(creationCodeWithArgs);
+        bytes32 salt = _evmSalt(0, exitAddress, exitChainId, recovery);
+        address portalAddress = Clones.cloneDeterministic(portalImpl, salt);
+        IPortal(portalAddress).initialize(0, exitAddress, exitChainId, recovery);
 
         IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, amount, currency);
 
@@ -207,9 +201,9 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
     }
 
     function deployRecoveryEntryPortal(uint256 ownerHash, address recovery, address tokenAddress, address to) public {
-        bytes memory creationCodeWithArgs = getCreationCode(ownerHash, address(0), 0, recovery);
-
-        address portalAddress = deployPortal(creationCodeWithArgs);
+        bytes32 salt = _evmSalt(ownerHash, address(0), 0, recovery);
+        address portalAddress = Clones.cloneDeterministic(portalImpl, salt);
+        IPortal(portalAddress).initialize(ownerHash, address(0), 0, recovery);
 
         IPortal(portalAddress).recover(tokenAddress, to);
 
@@ -224,9 +218,9 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
         address tokenAddress,
         address to
     ) public {
-        bytes memory creationCodeWithArgs = getCreationCode(0, exitAddress, exitChainId, recovery);
-
-        address portalAddress = deployPortal(creationCodeWithArgs);
+        bytes32 salt = _evmSalt(0, exitAddress, exitChainId, recovery);
+        address portalAddress = Clones.cloneDeterministic(portalImpl, salt);
+        IPortal(portalAddress).initialize(0, exitAddress, exitChainId, recovery);
 
         IPortal(portalAddress).recover(tokenAddress, to);
 
@@ -236,24 +230,12 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
 
     //#region Solana exit
 
-    function getSolanaExitCreationCode(
-        bytes32 exitAddress,
-        uint256 exitChainId,
-        address recovery
-    ) public pure returns (bytes memory) {
-        bytes memory bytecode = type(SolanaPortal).creationCode;
-        bytes memory encodedArgs = abi.encode(exitAddress, exitChainId, recovery);
-        return abi.encodePacked(bytecode, encodedArgs);
-    }
-
     function getSolanaExitPortalAddress(
         bytes32 exitAddress,
         uint256 exitChainId,
         address recovery
     ) public view returns (address) {
-        bytes memory code = getSolanaExitCreationCode(exitAddress, exitChainId, recovery);
-        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), _salt, keccak256(code)));
-        return address(uint160(uint256(hash)));
+        return Clones.predictDeterministicAddress(solanaPortalImpl, _solanaSalt(exitAddress, exitChainId, recovery));
     }
 
     function deploySolanaExitBridgePortal(
@@ -268,9 +250,8 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
             revert UnsupportedBridging();
         }
 
-        ILiFiCalldataVerification.LiFiBridgeData memory extractedData = ILiFiCalldataVerification(
-            _lifiDiamondAddress
-        ).extractBridgeData(bridgeData);
+        ILiFiCalldataVerification.LiFiBridgeData memory extractedData = ILiFiCalldataVerification(_lifiDiamondAddress)
+            .extractBridgeData(bridgeData);
         if (extractedData.destinationChainId != exitChainId) {
             revert InvalidLiFiDestinationChain();
         }
@@ -278,10 +259,11 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
             revert InvalidLiFiReceiver();
         }
 
-        bytes memory creationCodeWithArgs = getSolanaExitCreationCode(exitAddress, exitChainId, recovery);
+        bytes32 salt = _solanaSalt(exitAddress, exitChainId, recovery);
+        address portalAddress = Clones.cloneDeterministic(solanaPortalImpl, salt);
+        SolanaPortal(portalAddress).initialize(exitAddress, exitChainId, recovery);
 
-        address portalAddress = deployPortal(creationCodeWithArgs);
-
+        // SolanaPortal exposes the same `bridge` selector as Portal; reuse the IPortal cast.
         IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, amount, currency);
 
         // audit(2026-Q1): No way to query which portals were deployed and when - emitted after success
@@ -319,9 +301,9 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
         address tokenAddress,
         address to
     ) public {
-        bytes memory creationCodeWithArgs = getSolanaExitCreationCode(exitAddress, exitChainId, recovery);
-
-        address portalAddress = deployPortal(creationCodeWithArgs);
+        bytes32 salt = _solanaSalt(exitAddress, exitChainId, recovery);
+        address portalAddress = Clones.cloneDeterministic(solanaPortalImpl, salt);
+        SolanaPortal(portalAddress).initialize(exitAddress, exitChainId, recovery);
 
         IPortal(portalAddress).recover(tokenAddress, to);
 
