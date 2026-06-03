@@ -17,7 +17,7 @@ library CurvyTypes {
         uint256 ownerHash;
         uint256 token;
         uint256 amount;
-        uint256[] ephemeralKey; // [x, y]
+        uint256[2] ephemeralKey; // [x, y]
         uint16 viewTag; // 16 bits
     }
 
