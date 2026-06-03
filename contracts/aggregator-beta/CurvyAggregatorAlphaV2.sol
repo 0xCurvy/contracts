@@ -17,6 +17,16 @@ import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/ac
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+/// @notice V2 insertion verifier: 2 public signals — [newNotesRoot, inputHash].
+interface ICurvyInsertionVerifierV2 {
+    function verifyProof(
+        uint256[2] memory a,
+        uint256[2][2] memory b,
+        uint256[2] memory c,
+        uint256[2] memory input
+    ) external view returns (bool);
+}
+
 /**
  * @title CurvyAggregatorAlphaV2
  * @author Curvy Protocol (https://curvy.box)
@@ -68,6 +78,14 @@ contract CurvyAggregatorAlphaV2 is
     ICurvyWithdrawVerifierV3 public withdrawVerifier;
     IPortalFactory public portalFactory;
 
+    // Append-only storage (UUPS-safe).
+    // Tracks the next free leaf index in the notes tree.
+    uint256 private _currentNoteIndex;
+
+    // Insertion verifier per (batchSize, treeDepth). Allows operating multiple
+    // compiled circuit instances concurrently — caller picks the matching pair.
+    mapping(bytes32 configKey => ICurvyInsertionVerifierV2) public insertionVerifiersByConfig;
+
     //#endregion
 
     //#region Init
@@ -112,6 +130,20 @@ contract CurvyAggregatorAlphaV2 is
     function setFees(uint256 _protocolFee, uint256 _gasFee) external onlyRole(AUTHORITY_ROLE) {
         protocolFee = _protocolFee;
         gasFee = _gasFee;
+    }
+
+    /// @notice Register an insertion verifier for a specific (batchSize, treeDepth) pair.
+    /// @dev Pass address(0) to clear a previously registered verifier.
+    function setInsertionVerifier(
+        uint256 batchSize,
+        uint256 treeDepth,
+        address verifier
+    ) external onlyRole(AUTHORITY_ROLE) {
+        insertionVerifiersByConfig[_insertionVerifierKey(batchSize, treeDepth)] = ICurvyInsertionVerifierV2(verifier);
+    }
+
+    function _insertionVerifierKey(uint256 batchSize, uint256 treeDepth) private pure returns (bytes32) {
+        return keccak256(abi.encode(batchSize, treeDepth));
     }
 
     //#endregion
@@ -160,29 +192,47 @@ contract CurvyAggregatorAlphaV2 is
 
     /// @inheritdoc ICurvyAggregatorAlpha
     function commitPendingNotes(
+        uint256 batchSize,
+        uint256 treeDepth,
         uint256[] memory noteIds,
+        uint256 newNotesRoot,
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
-        uint256[2] memory proof_c,
-        uint256[] memory publicInputs
+        uint256[2] memory proof_c
     ) external override {
-        // Verify all ids are PENDING; flip to INCLUDED.
-        for (uint256 i = 0; i < noteIds.length; i += 1) {
+        if (noteIds.length != batchSize) revert NoteIdsLengthMismatch();
+
+        ICurvyInsertionVerifierV2 verifier = insertionVerifiersByConfig[
+            _insertionVerifierKey(batchSize, treeDepth)
+        ];
+        if (address(verifier) == address(0)) revert InsertionVerifierNotConfigured();
+
+        uint256 currentRoot = _currentNotesTreeRoot;
+        uint256 currentIndex = _currentNoteIndex;
+        uint256 newIndex = currentIndex;
+
+        for (uint256 i = 0; i < batchSize; i += 1) {
             uint256 noteId = noteIds[i];
             if (noteId == 0) continue;
             if (noteStatus[noteId] != NoteStatus.PENDING) revert NoteNotScheduledForDeposit();
             noteStatus[noteId] = NoteStatus.INCLUDED;
+            newIndex += 1;
         }
 
-        // publicInputs[len-2] = old root, publicInputs[len-1] = new root.
-        uint256 publicInputsLength = publicInputs.length;
-        if (publicInputs[publicInputsLength - 2] != _currentNotesTreeRoot) revert InvalidNotesRoot();
+        // Mirror circomlib MultiInputSha256: sha256 of big-endian uint256s in order
+        // [noteIds..., currentRoot, newRoot, currentIndex, newIndex].
+        uint256 inputHash = uint256(
+            sha256(abi.encodePacked(noteIds, currentRoot, newNotesRoot, currentIndex, newIndex))
+        );
 
-        if (!_mockVerify(proof_a, proof_b, proof_c, publicInputs)) revert InvalidProof();
+        uint256[2] memory publicSignals;
+        publicSignals[0] = newNotesRoot;
+        publicSignals[1] = inputHash;
+        if (!verifier.verifyProof(proof_a, proof_b, proof_c, publicSignals)) revert InvalidProof();
 
-        uint256 newRoot = publicInputs[publicInputsLength - 1];
-        _currentNotesTreeRoot = newRoot;
-        validNotesRoot[newRoot] = true;
+        _currentNotesTreeRoot = newNotesRoot;
+        _currentNoteIndex = newIndex;
+        validNotesRoot[newNotesRoot] = true;
 
         uint256 batchIndex = _currentNotesBatchIndex;
         emit CommittedNotes(batchIndex, noteIds);
@@ -316,6 +366,14 @@ contract CurvyAggregatorAlphaV2 is
 
     function getCurrentNullifiersBatchIndex() external view override returns (uint256) {
         return _currentNullifiersBatchIndex;
+    }
+
+    function getCurrentNoteIndex() external view override returns (uint256) {
+        return _currentNoteIndex;
+    }
+
+    function getInsertionVerifier(uint256 batchSize, uint256 treeDepth) external view override returns (address) {
+        return address(insertionVerifiersByConfig[_insertionVerifierKey(batchSize, treeDepth)]);
     }
 
     //#endregion

@@ -21,6 +21,9 @@ interface ICurvyAggregatorAlpha {
     error NoteAlreadyKnown();
     error InvalidNotesRoot();
     error InvalidProof();
+    error InvalidInputHash();
+    error InsertionVerifierNotConfigured();
+    error NoteIdsLengthMismatch();
     error InvalidWithdrawProof();
     error CurrentNoteTreeRootMismatch();
     error CurrentNullifierTreeRootMismatch();
@@ -57,18 +60,20 @@ interface ICurvyAggregatorAlpha {
     function autoShield(CurvyTypes.Note memory note) external payable;
 
     /// @notice Commit a batch of pending notes into the notes-tree root.
-    /// 1. Verify notes are in pending queue (status PENDING)
-    /// 2. In circuit: compute new root from current root + new note IDs
-    /// 3. Update current notes tree root
-    /// 4. Set all notes in the batch to INCLUDED
-    /// 5. Add new root to the validNotesRoot mapping
-    /// 6. Emit CommittedNotes event
+    /// 1. Resolve insertion verifier for (batchSize, treeDepth)
+    /// 2. Verify notes are in pending queue (status PENDING); count non-zero ids
+    /// 3. Recompute circuit `inputHash` = sha256(noteIds || currentRoot || newRoot || currentIndex || newIndex)
+    /// 4. Verify proof with public inputs [newNotesRoot, inputHash]
+    /// 5. Flip PENDING -> INCLUDED; update root + note index; anchor validNotesRoot
+    /// 6. Emit CommittedNotes
     function commitPendingNotes(
+        uint256 batchSize,
+        uint256 treeDepth,
         uint256[] memory noteIds,
+        uint256 newNotesRoot,
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
-        uint256[2] memory proof_c,
-        uint256[] memory publicInputs
+        uint256[2] memory proof_c
     ) external;
 
     /// @notice Submit an aggregation request producing up to 3 output notes.
@@ -116,6 +121,8 @@ interface ICurvyAggregatorAlpha {
     function getCurrentNotesTreeRoot() external view returns (uint256);
     function getCurrentNotesBatchIndex() external view returns (uint256);
     function getCurrentNullifiersBatchIndex() external view returns (uint256);
+    function getCurrentNoteIndex() external view returns (uint256);
+    function getInsertionVerifier(uint256 batchSize, uint256 treeDepth) external view returns (address);
 
     //#endregion
 
