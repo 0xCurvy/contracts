@@ -130,17 +130,53 @@ interface ICurvyAggregatorAlpha {
     // - 5: token ID
     // - 6+: nullifiers[i]
 
-    // Aggregation publicInputs layout (draft, finalized in mod-spec):
-    // - 0: referenced notes-tree root
-    // - 1: used gas fee amount
-    // - 2: used protocol fee amount
-    // - 3+i*5: outputNotes[i].noteId
-    // - 4+i*5: outputNotes[i].encryptedAmount
-    // - 5+i*5: outputNotes[i].encryptedTokenId
-    // - 6+i*5: outputNotes[i].ephemeralKey[0]
-    // - 7+i*5: outputNotes[i].ephemeralKey[1]
-    // (viewTag carried via outputNotes calldata, not public inputs)
-    // then: nullifiers[j]
+    // aggregationPublicInputs:
+    // - 0: some previously used notes tree root
+    // - 1: used currentCommittedNoteIndex
+    // - 2: used gas fee amount
+    // - 3: used protocol fee amount
+    // - 4: outputNotes[3 + (i)].noteId
+    // - 5: outputNotes[3 + (i+1)].encryptedAmount
+    // - 6: outputNotes[3 + (i+2)].encryptedTokenId
+    // - 7: outputNotes[3 + (i+3)].ephemeralKey[0]
+    // - 8: outputNotes[3 + (i+4)].ephemeralKey[1]
+    // - 9: outputNotes[3 + (i+5)].viewTag
+    // - 10: nullifiers[i].nullifier
+    // ... 
 
-    */
+
+OutputNote
+    uint256 noteId
+    uint256 enctypedAmount
+    uint256 encryptedTokenId
+    uint256[] ephemeralKey // [x, y]
+    uint16 viewTag
+
+     uint256currentNotesTreeRoot
+
+     enum NoteStatus {
+        UNKNOWN,
+        PENDING,
+        INCLUDED
+     }
+
+     uint256 currentNotesBatchIndex = 0;
+     uint256 currentCommittedNoteIndex = 0;
+     uint256 currentNullifiersBatchIndex = 0;
+
+     // 0x123467 => true, if 0x1234567 was at some point valid root
+     mapping (uint256 => boolean) notesTreeRoots
+
+     // 0x123467 => UNKNOWN, if note with ID = 0x1234567 was never seen before
+     // 0x123467 => PENDING, if note with ID = 0x1234567 was scheduled for commitment
+     // 0x123467 => INCLUDED, if note with ID = 0x1234567 was committed
+
+     mapping (uint256 => NoteStatus) pendingQueue
+
+     // 0x123467 => true, if 0x1234567 is a registered spent nullifier
+     mapping (uint256 => boolean) nullifiers
+
+
+
+     */
 }
