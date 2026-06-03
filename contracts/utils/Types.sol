@@ -17,6 +17,16 @@ library CurvyTypes {
         uint256 ownerHash;
         uint256 token;
         uint256 amount;
+        uint256[] ephemeralKey; // [x, y]
+        uint16 viewTag; // 16 bits
+    }
+
+    struct OutputNote {
+        uint256 noteId;
+        uint256 enctypedAmount;
+        uint256 encryptedTokenId;
+        uint256[] ephemeralKey; // [x, y]
+        uint16 viewTag;
     }
 
     struct FeeUpdate {
