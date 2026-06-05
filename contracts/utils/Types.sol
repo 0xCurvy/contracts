@@ -23,7 +23,7 @@ library CurvyTypes {
 
     struct OutputNote {
         uint256 noteId;
-        uint256 enctypedAmount;
+        uint256 encryptedAmount;
         uint256 encryptedTokenId;
         uint256[] ephemeralKey; // [x, y]
         uint16 viewTag;

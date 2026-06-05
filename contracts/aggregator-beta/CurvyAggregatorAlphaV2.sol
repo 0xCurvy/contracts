@@ -274,7 +274,7 @@ contract CurvyAggregatorAlphaV2 is
             ephemeralKeys[1][i] = outputNotes[i].ephemeralKey[1];
             viewTags[i] = outputNotes[i].viewTag;
             tokens[i] = outputNotes[i].encryptedTokenId;
-            amounts[i] = outputNotes[i].enctypedAmount;
+            amounts[i] = outputNotes[i].encryptedAmount;
             isPlaintext[i] = false;
         }
 
