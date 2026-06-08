@@ -25,7 +25,8 @@ contract CurvyAggregatorAlphaV2TestConfig is Test {
     /// @dev Test the default config of the curvyAggregatorAlphaV2
     function test_curvyAggregatorAlphaV2_default_config() public view {
         console.log('> Testing default config of the curvyAggregatorAlphaV2');
-        
+
+        // Check default config
         assertEq(curvyAggregatorAlphaV2.maxDeposits(), 0, "maxDeposits should be 0");
         assertEq(curvyAggregatorAlphaV2.maxAggregations(), 0, "maxAggregations should be 0");
         assertEq(curvyAggregatorAlphaV2.maxWithdrawals(), 0, "maxWithdrawals should be 0");
@@ -33,12 +34,18 @@ contract CurvyAggregatorAlphaV2TestConfig is Test {
         assertEq(curvyAggregatorAlphaV2.gasFee(), 0, "gasFee should be 0");
         assertEq(curvyAggregatorAlphaV2.feeNotePublicKey(0), 0, "feeNotePublicKey[0] should be 0");
         assertEq(curvyAggregatorAlphaV2.feeNotePublicKey(1), 0, "feeNotePublicKey[1] should be 0");
+
+        // Check  default verifiers
+        assertEq(address(curvyAggregatorAlphaV2.getPendingNotesCommitmentVerifier(100, 100)), address(0), "getPendingNotesCommitmentVerifier(100, 100) should be 0");
+        assertEq(address(curvyAggregatorAlphaV2.getAggregationVerifier(100, 100, 100)), address(0), "getAggregationVerifier(100, 100, 100) should be 0");
+        assertEq(address(curvyAggregatorAlphaV2.getWithdrawalVerifier(100, 100)), address(0), "getWithdrawalVerifier(100, 100) should be 0");
     }
 
     /// @dev Test the update config of the curvyAggregatorAlphaV2
     function test_curvyAggregatorAlphaV2_update_config() public {
         console.log('> Testing update config of the curvyAggregatorAlphaV2');
 
+        // Update config
         curvyAggregatorAlphaV2.updateConfig(
             CurvyTypes.AggregatorConfigurationUpdate({
                 insertionVerifier: address(0),
@@ -51,23 +58,56 @@ contract CurvyAggregatorAlphaV2TestConfig is Test {
                 maxAggregations: 100
             })
         );
+
+        // Set fees
         curvyAggregatorAlphaV2.setFees(1000, 1000);
         curvyAggregatorAlphaV2.setFeeNotePublicKey(0, 0);
-    
-        // address insertionVerifier = address(curvyAggregatorAlphaV2.insertionVerifier());
-        // assertEq(insertionVerifier, address(123), "insertionVerifier should be 123");
-        // address aggregationVerifier = address(curvyAggregatorAlphaV2.aggregationVerifier());
-        // assertEq(aggregationVerifier, address(0), "aggregationVerifier should be 0");
-        // address withdrawVerifier = address(curvyAggregatorAlphaV2.withdrawVerifier());
-        // assertEq(withdrawVerifier, address(0), "withdrawVerifier should be 0");
+
+        // Set pending notes commitment verifier
+        bytes32 pendingNotesCommitmentConfigKey = keccak256(abi.encode("pendingNotesCommitment", 100, 100));
+        curvyAggregatorAlphaV2.setPendingNotesCommitmentVerifier(
+            100,
+            100,
+            address(123)
+        );
+
+        // Set aggregation verifier
+        bytes32 aggregationConfigKey = keccak256(abi.encode("aggregation", 100, 100, 100));
+        curvyAggregatorAlphaV2.setAggregationVerifier(
+            100,
+            100,
+            100,
+            address(456)
+        );
+
+        // Set withdrawal verifier
+        bytes32 withdrawalConfigKey = keccak256(abi.encode("withdrawal", 100, 100));
+        curvyAggregatorAlphaV2.setWithdrawalVerifier(
+            100,
+            100,
+            address(789)
+        );
+        
+        // Check curvy vault and portal factory
         assertEq(address(curvyAggregatorAlphaV2.curvyVault()), address(mockCurvyVault), "curvyVault should be mockCurvyVault");
         assertEq(address(curvyAggregatorAlphaV2.portalFactory()), address(0), "portalFactory should be 0");
+
+        // Check max deposits, aggregations, and withdrawals
         assertEq(curvyAggregatorAlphaV2.maxDeposits(), 100, "maxDeposits should be 100");
         assertEq(curvyAggregatorAlphaV2.maxAggregations(), 100, "maxAggregations should be 100");
         assertEq(curvyAggregatorAlphaV2.maxWithdrawals(), 100, "maxWithdrawals should be 100");
+
+        // Check fees
         assertEq(curvyAggregatorAlphaV2.protocolFeePerThousand(), 1000, "protocolFeePerThousand should be 1000");
         assertEq(curvyAggregatorAlphaV2.gasFee(), 1000, "gasFee should be 1000");
+
+        // Check fee note public key
         assertEq(curvyAggregatorAlphaV2.feeNotePublicKey(0), 0, "feeNotePublicKey[0] should be 0");
         assertEq(curvyAggregatorAlphaV2.feeNotePublicKey(1), 0, "feeNotePublicKey[1] should be 0");
+
+        // Check verifier addresses
+        assertEq(curvyAggregatorAlphaV2.getPendingNotesCommitmentVerifier(100, 100), address(123), "getPendingNotesCommitmentVerifier(100, 100) should be 123");
+        assertEq(curvyAggregatorAlphaV2.getAggregationVerifier(100, 100, 100), address(456), "getAggregationVerifier(100, 100, 100) should be 456");
+        assertEq(curvyAggregatorAlphaV2.getWithdrawalVerifier(100, 100), address(789), "getWithdrawalVerifier(100, 100) should be 789");
     }
 }
