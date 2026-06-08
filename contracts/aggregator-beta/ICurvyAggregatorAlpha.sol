@@ -22,8 +22,11 @@ interface ICurvyAggregatorAlpha {
     error InvalidNotesRoot();
     error InvalidProof();
     error InvalidInputHash();
-    error InsertionVerifierNotConfigured();
+    error PendingNotesCommitmentVerifierNotConfigured();
+    error AggregationVerifierNotConfigured();
+    error WithdrawalVerifierNotConfigured();
     error NoteIdsLengthMismatch();
+    error PublicSignalsLengthMismatch();
     error InvalidWithdrawProof();
     error CurrentNoteTreeRootMismatch();
     error CurrentNullifierTreeRootMismatch();
@@ -32,12 +35,14 @@ interface ICurvyAggregatorAlpha {
     error UnderfundedReimbursement();
     error NetAmountNonPositive();
     error FeeMismatch();
+    error FeeNotePublicKeyMismatch();
+    error UnsupportedAggregationConfig();
+    error UnsupportedWithdrawalConfig();
 
     //#endregion
 
     //#region Events
 
-    // audit: deposit-batch-commit visibility for off-chain indexers and monitoring
     event PendingNotes(
         uint256[] noteIds,
         uint256[][2] ephemeralKeys,
@@ -54,18 +59,13 @@ interface ICurvyAggregatorAlpha {
     //#region Public functions
 
     /// @notice Schedule a deposit-sourced note for inclusion.
-    /// 1. Compute note ID (hash of [ownerHash, amount, token])
-    /// 2. Add note to pending queue (status PENDING)
-    /// 3. Emit PendingNotes event
     function autoShield(CurvyTypes.Note memory note) external payable;
 
     /// @notice Commit a batch of pending notes into the notes-tree root.
-    /// 1. Resolve insertion verifier for (batchSize, treeDepth)
-    /// 2. Verify notes are in pending queue (status PENDING); count non-zero ids
-    /// 3. Recompute circuit `inputHash` = sha256(noteIds || currentRoot || newRoot || currentIndex || newIndex)
-    /// 4. Verify proof with public inputs [newNotesRoot, inputHash]
-    /// 5. Flip PENDING -> INCLUDED; update root + note index; anchor validNotesRoot
-    /// 6. Emit CommittedNotes
+    /// Verifier expects single public signal `inputHash`; contract recomputes it
+    /// from caller-provided `noteIds`, tracked `currentRoot`/`currentIndex`, and
+    /// caller-provided `newNotesRoot`. Layout:
+    ///   inputHash = sha256(noteIds || currentRoot || newRoot || currentIndex || newIndex)
     function commitPendingNotes(
         uint256 batchSize,
         uint256 treeDepth,
@@ -76,38 +76,43 @@ interface ICurvyAggregatorAlpha {
         uint256[2] memory proof_c
     ) external;
 
-    /// @notice Submit an aggregation request producing up to 3 output notes.
-    /// 1. Verify output notes are not in the pending queue (status UNKNOWN)
-    /// 2. Verify referenced notes-tree root is valid
-    /// 3. Verify nullifiers are not in the aggregationNullifiers mapping
-    /// 4. Verify gas + protocol fees in publicInputs match contract config
-    /// 5. Verify proof
-    /// 6. Set all output notes PENDING
-    /// 7. Register nullifiers
-    /// 8. Emit CommittedNullifiers + PendingNotes
-    /// 9. Bump batch indices
+    /// @notice Submit a single-aggregation request (NoHashing variant).
+    /// Hardcoded to maxOutputs=3, treeDepth=30. `maxInputs` selects the verifier.
+    /// publicSignals layout (length = maxInputs + 3 + (3+1)*5 + 5):
+    ///   [0..maxInputs-1]                  nullifiers
+    ///   [maxInputs..maxInputs+2]          outputNoteIds
+    ///   [maxInputs+3 + i*5 .. +4]         encryptedNoteData[i] for i in 0..3
+    ///                                     (i=3 is fee note; 5 sigs each:
+    ///                                      encryptedAmount, encryptedToken,
+    ///                                      ephemeralKey[0], ephemeralKey[1], viewTag)
+    ///   [maxInputs+23]                    notesRoot
+    ///   [maxInputs+24]                    protocolFeePerThousand
+    ///   [maxInputs+25]                    gasFee
+    ///   [maxInputs+26..maxInputs+27]      feeNotePublicKey[0..1]
     function submitAggregationRequest(
-        CurvyTypes.OutputNote[3] memory outputNotes,
+        uint256 maxInputs,
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
-        uint256[] memory publicInputs
+        uint256[] memory publicSignals
     ) external;
 
-    /// @notice Submit a single-withdrawal request.
-    /// 1. Verify nullifiers are not in the withdrawalNullifiers mapping
-    /// 2. Verify gas + protocol fees in publicInputs match contract config
-    /// 3. Verify proof
-    /// 4. Take gas reimbursement from withdrawal amount, transfer to msg.sender via Vault
-    /// 5. Transfer remaining (net) amount to destination via Vault
-    /// 6. Register nullifiers
-    /// 7. Emit CommittedNullifiers + Withdrawal
-    /// 8. Bump nullifiers batch index
+    /// @notice Submit a single-withdrawal request (NoHashing variant).
+    /// Hardcoded to treeDepth=30. `maxInputs` selects the verifier.
+    /// publicSignals layout (length = 1 + maxInputs + 3):
+    ///   [0]                               withdrawnAmount
+    ///   [1..maxInputs]                    nullifiers
+    ///   [maxInputs+1]                     notesRoot
+    ///   [maxInputs+2]                     destinationAddress
+    ///   [maxInputs+3]                     tokenId
+    /// Fees are taken on-contract: usedGasFee = stored `gasFee`,
+    /// protocolFeeAmount = withdrawnAmount * protocolFeePerThousand / 1000.
     function submitWithdrawalRequest(
+        uint256 maxInputs,
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
-        uint256[] memory publicInputs
+        uint256[] memory publicSignals
     ) external;
 
     //#endregion
@@ -122,68 +127,12 @@ interface ICurvyAggregatorAlpha {
     function getCurrentNotesBatchIndex() external view returns (uint256);
     function getCurrentNullifiersBatchIndex() external view returns (uint256);
     function getCurrentNoteIndex() external view returns (uint256);
-    function getInsertionVerifier(uint256 batchSize, uint256 treeDepth) external view returns (address);
+    function getAggregationVerifier(
+        uint256 maxInputs,
+        uint256 maxOutputs,
+        uint256 treeDepth
+    ) external view returns (address);
+    function getWithdrawalVerifier(uint256 maxInputs, uint256 treeDepth) external view returns (address);
 
     //#endregion
-
-    /*
-
-    // Withdrawal publicInputs layout (draft, finalized in mod-spec):
-    // - 0: referenced notes-tree root (must be in validNotesRoot)
-    // - 1: destination address (as uint256)
-    // - 2: withdrawal amount
-    // - 3: used gas fee amount (cap)
-    // - 4: used protocol fee amount
-    // - 5: token ID
-    // - 6+: nullifiers[i]
-
-    // aggregationPublicInputs:
-    // - 0: some previously used notes tree root
-    // - 1: used currentCommittedNoteIndex
-    // - 2: used gas fee amount
-    // - 3: used protocol fee amount
-    // - 4: outputNotes[3 + (i)].noteId
-    // - 5: outputNotes[3 + (i+1)].encryptedAmount
-    // - 6: outputNotes[3 + (i+2)].encryptedTokenId
-    // - 7: outputNotes[3 + (i+3)].ephemeralKey[0]
-    // - 8: outputNotes[3 + (i+4)].ephemeralKey[1]
-    // - 9: outputNotes[3 + (i+5)].viewTag
-    // - 10: nullifiers[i].nullifier
-    // ... 
-
-
-OutputNote
-    uint256 noteId
-    uint256 enctypedAmount
-    uint256 encryptedTokenId
-    uint256[] ephemeralKey // [x, y]
-    uint16 viewTag
-
-     uint256currentNotesTreeRoot
-
-     enum NoteStatus {
-        UNKNOWN,
-        PENDING,
-        INCLUDED
-     }
-
-     uint256 currentNotesBatchIndex = 0;
-     uint256 currentCommittedNoteIndex = 0;
-     uint256 currentNullifiersBatchIndex = 0;
-
-     // 0x123467 => true, if 0x1234567 was at some point valid root
-     mapping (uint256 => boolean) notesTreeRoots
-
-     // 0x123467 => UNKNOWN, if note with ID = 0x1234567 was never seen before
-     // 0x123467 => PENDING, if note with ID = 0x1234567 was scheduled for commitment
-     // 0x123467 => INCLUDED, if note with ID = 0x1234567 was committed
-
-     mapping (uint256 => NoteStatus) pendingQueue
-
-     // 0x123467 => true, if 0x1234567 is a registered spent nullifier
-     mapping (uint256 => boolean) nullifiers
-
-
-
-     */
 }

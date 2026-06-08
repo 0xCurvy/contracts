@@ -1,0 +1,126 @@
+import fs from "node:fs";
+import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import { labelhash, namehash } from "viem";
+// audit(2026-Q1): No Validation of Address Format - use validated address parameter helper
+import { getAddressParameter } from "../../utils/parameters";
+import CurvyAggregator from "./CurvyAggregator";
+import CurvyVault from "./CurvyVault";
+import PortalFactory from "./PortalFactory";
+
+const DEPOSIT_AMOUNT = 1000n * 10n ** 18n;
+
+export default buildModule("Devenv", (m) => {
+  // Greenfield deploy of vault + aggregator + portal factory + wiring.
+  // (MainDeployment.ts is the V1 launch on existing proxies — not for local
+  // dev where there are no pre-existing proxies. The building blocks below
+  // give us the same end state as a beta-style fresh deploy.)
+  const { curvyAggregator, proxy: curvyAggregatorProxy } = m.useModule(CurvyAggregator);
+  const { curvyVault, proxy: curvyVaultProxy } = m.useModule(CurvyVault);
+  const { portalFactory } = m.useModule(PortalFactory);
+
+  // Wire vault to aggregator
+  const setVaultAggregator = m.call(curvyVault, "setCurvyAggregatorAddress", [curvyAggregator]);
+
+  // Wire aggregator to vault + portal factory (verifiers were already set by CurvyAggregatorAlpha module)
+  const wireAggregator = m.call(
+    curvyAggregator,
+    "updateConfig",
+    [
+      {
+        insertionVerifier: "0x0000000000000000000000000000000000000000",
+        aggregationVerifier: "0x0000000000000000000000000000000000000000",
+        withdrawVerifier: "0x0000000000000000000000000000000000000000",
+        curvyVault: curvyVaultProxy,
+        portalFactory: portalFactory,
+        maxDeposits: 0n,
+        maxAggregations: 0n,
+        maxWithdrawals: 0n,
+      },
+    ],
+    { id: "Aggregator_WireVaultAndFactory", after: [setVaultAggregator] },
+  );
+
+  // Wire portal factory to vault, aggregator, and the network's LiFi diamond
+  // audit(2026-Q1): No Validation of Address Format - validates 0x-prefixed 20-byte hex
+  const lifiDiamondAddress = getAddressParameter("lifiDiamondAddress", "network");
+  m.call(portalFactory, "updateConfig", [curvyVaultProxy, curvyAggregatorProxy, lifiDiamondAddress], {
+    id: "PortalFactory_Wire",
+    after: [wireAggregator],
+  });
+
+  // Deploy multicall
+  const multicall3 = m.contract("Multicall3");
+
+  // Deploy mock erc20
+  const erc20Mock = m.contract("ERC20Mock");
+
+  const deployer = m.getAccount(0);
+
+  // ENS Setup
+  const GATEWAY_URL = "http://localhost:4000/gateway/testnet/{sender}/{data}.json";
+  const ROOT_NODE = "0x0000000000000000000000000000000000000000000000000000000000000000";
+  // Deploy Registry
+  const registry = m.contract("LocalENSRegistry");
+
+  // Deploy SimpleOffchainResolver
+  // Arguments: [url, signer_address]
+  const offchain = m.contract("SimpleOffchainResolver", [GATEWAY_URL, deployer]);
+
+  // Deploy Universal Resolver
+  // Arguments: [registry_address, wildcard_node_hash]
+  const localCurvyNode = namehash("local-curvy.name");
+
+  const universal = m.contract("LocalUniversalResolver", [registry, localCurvyNode], {
+    id: "LocalUniversalResolver",
+  });
+
+  // Configure TLD: .name
+  // registry.setSubnodeOwner(ROOT_NODE, labelhash("name"), deployer)
+  const setupTld = m.call(registry, "setSubnodeOwner", [ROOT_NODE, labelhash("name"), deployer], {
+    id: "setup_tld",
+  });
+
+  // Configure Domain: local-curvy.name
+  // registry.setSubnodeRecord(nameNode, labelhash("local-curvy"), deployer, offchainAddress, ttl)
+  const nameNode = namehash("name");
+
+  m.call(
+    registry,
+    "setSubnodeRecord",
+    [
+      nameNode,
+      labelhash("local-curvy"),
+      deployer,
+      offchain,
+      0, // TTL
+    ],
+    {
+      id: "setup_subnode_record",
+      after: [setupTld], // Ensure TLD is set before setting subdomain
+    },
+  );
+
+  const addresses = JSON.parse(fs.readFileSync("../devenv/addresses.json", "utf-8"));
+  for (const userAddresses of addresses) {
+    // First address gets ETH
+    m.send(`Send_ETH_${userAddresses[0]}`, userAddresses[0], DEPOSIT_AMOUNT, undefined, { from: deployer });
+
+    // Second just gets mock ERC20
+    m.call(erc20Mock, "mockMint", [userAddresses[1], DEPOSIT_AMOUNT], { id: `Mint_ERC20_${userAddresses[1]}` });
+
+    // Third gets nothing
+  }
+
+  m.call(curvyVault, "registerToken", [erc20Mock], { id: "Register_MockERC20" });
+
+  const userAddressForAutomaticShielding = "0x0eeCE19240e3A8826d92da5f4D31581a1DC97779";
+
+  m.send(`Send_ETH_${userAddressForAutomaticShielding}`, userAddressForAutomaticShielding, DEPOSIT_AMOUNT, undefined, {
+    from: deployer,
+  });
+  m.call(erc20Mock, "mockMint", [userAddressForAutomaticShielding, DEPOSIT_AMOUNT], {
+    id: `Mint_ERC20_${userAddressForAutomaticShielding}`,
+  });
+
+  return { erc20Mock, multicall3, curvyVault, portalFactory, universal, registry, offchain };
+});
