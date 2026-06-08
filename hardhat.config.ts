@@ -11,6 +11,9 @@ const config: HardhatUserConfig = {
   plugins: [hardhatToolboxViemPlugin, hardhatIgnitionViemPlugin, hardhatVerifyPlugin],
   paths: {
     sources: isDevenv() ? ["devenv", "contracts"] : "contracts",
+    tests: {
+      solidity: "test/solidity",
+    },
   },
   solidity: {
     npmFilesToBuild: ["@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol"],
