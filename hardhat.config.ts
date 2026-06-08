@@ -123,6 +123,11 @@ const config: HardhatUserConfig = {
       apiKey: configVariable("ETHERSCAN_API_KEY"),
     },
   },
+  test: {
+    solidity: {
+      ffi: true,
+    },
+  },
 };
 
 export default config;

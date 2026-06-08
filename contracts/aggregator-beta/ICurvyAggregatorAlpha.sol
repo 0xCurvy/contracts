@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.10;
 
-import { CurvyTypes } from "../utils/Types.sol";
+import { CurvyTypes } from "../utils/TypesV2.sol";
 
 interface ICurvyAggregatorAlpha {
     //#region Enums
@@ -64,8 +64,8 @@ interface ICurvyAggregatorAlpha {
     /// @notice Commit a batch of pending notes into the notes-tree root.
     /// Verifier expects single public signal `inputHash`; contract recomputes it
     /// from caller-provided `noteIds`, tracked `currentRoot`/`currentIndex`, and
-    /// caller-provided `newNotesRoot`. Layout:
-    ///   inputHash = sha256(noteIds || currentRoot || newRoot || currentIndex || newIndex)
+    /// caller-provided `newNotesRoot`, then reduces mod the BN254 scalar field:
+    ///   inputHash = sha256(noteIds || currentRoot || newRoot || currentIndex || newIndex) mod r
     function commitPendingNotes(
         uint256 batchSize,
         uint256 treeDepth,

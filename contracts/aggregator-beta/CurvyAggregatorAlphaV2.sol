@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import { IPortalFactory } from "../portal/IPortalFactory.sol";
-import { CurvyTypes } from "../utils/Types.sol";
+import { CurvyTypes } from "../utils/TypesV2.sol";
 import { ICurvyAggregatorAlpha } from "./ICurvyAggregatorAlpha.sol";
 import { ICurvyVault } from "../vault/ICurvyVault.sol";
 import { PoseidonT4 } from "../aggregator-alpha/utils/PoseidonT4.sol";
@@ -60,9 +60,9 @@ contract CurvyAggregatorAlphaV2 is
     mapping(uint256 nullifier => bool) public aggregationNullifiers;
     mapping(uint256 nullifier => bool) public withdrawalNullifiers;
 
-    uint256 private _currentNotesTreeRoot;
-    uint256 private _currentNotesBatchIndex;
-    uint256 private _currentNullifiersBatchIndex;
+    uint256 public currentNotesTreeRoot;
+    uint256 public currentNotesBatchIndex;
+    uint256 public currentNullifiersBatchIndex;
 
     /// @dev Rate-based protocol fee (parts per thousand), enforced inside aggregation circuit
     ///      and on-contract for withdrawals.
@@ -72,7 +72,7 @@ contract CurvyAggregatorAlphaV2 is
     ICurvyVault public curvyVault;
     IPortalFactory public portalFactory;
 
-    uint256 private _currentNoteIndex;
+    uint256 public currentNoteIndex;
 
     /// @dev Pending notes commitment verifier per (batchSize, treeDepth). 1 public signal.
     mapping(bytes32 configKey => address) public pendingNotesCommitmentVerifiersByConfig;
@@ -102,6 +102,8 @@ contract CurvyAggregatorAlphaV2 is
         _setRoleAdmin(AUTHORITY_ROLE, AUTHORITY_ROLE);
         _grantRole(AUTHORITY_ROLE, initialOwner);
         _grantRole(OPERATOR_ROLE, initialOwner);
+
+        currentNotesTreeRoot = 4114686047564160449611603615418567457008101555090703535405891656262658644463;
     }
 
     function _authorizeUpgrade(address) internal override onlyRole(AUTHORITY_ROLE) {}
@@ -237,8 +239,8 @@ contract CurvyAggregatorAlphaV2 is
         ];
         if (verifier == address(0)) revert PendingNotesCommitmentVerifierNotConfigured();
 
-        uint256 currentRoot = _currentNotesTreeRoot;
-        uint256 currentIndex = _currentNoteIndex;
+        uint256 currentRoot = currentNotesTreeRoot;
+        uint256 currentIndex = currentNoteIndex;
         uint256 newIndex = currentIndex;
 
         for (uint256 i = 0; i < batchSize; i += 1) {
@@ -250,24 +252,25 @@ contract CurvyAggregatorAlphaV2 is
         }
 
         // Mirror circomlib MultiInputSha256: sha256 of big-endian uint256s
-        // [noteIds..., currentRoot, newRoot, currentIndex, newIndex], reduced
-        // into the BN254 scalar field (Bits2Num(256) wraps mod r in-circuit).
-        uint256 inputHash = uint256(
+        // [noteIds..., currentRoot, newRoot, currentIndex, newIndex]. The circuit
+        // exposes this as a BN254 field element (Bits2Num(256) wraps mod r).
+        uint256 rawInputHash = uint256(
             sha256(abi.encodePacked(noteIds, currentRoot, newNotesRoot, currentIndex, newIndex))
-        ) % SNARK_SCALAR_FIELD;
+        );
+        uint256 inputHash = rawInputHash % SNARK_SCALAR_FIELD;
 
         uint256[1] memory pub;
         pub[0] = inputHash;
         if (!ICurvyPendingNotesCommitmentVerifier_5(verifier).verifyProof(proof_a, proof_b, proof_c, pub))
             revert InvalidProof();
 
-        _currentNotesTreeRoot = newNotesRoot;
-        _currentNoteIndex = newIndex;
+        currentNotesTreeRoot = newNotesRoot;
+        currentNoteIndex = newIndex;
         validNotesRoot[newNotesRoot] = true;
 
-        uint256 batchIndex = _currentNotesBatchIndex;
+        uint256 batchIndex = currentNotesBatchIndex;
         emit CommittedNotes(batchIndex, noteIds);
-        _currentNotesBatchIndex = batchIndex + 1;
+        currentNotesBatchIndex = batchIndex + 1;
     }
 
     //#endregion
@@ -311,9 +314,9 @@ contract CurvyAggregatorAlphaV2 is
 
         _processAndEmitAggregationOutputs(maxInputs, publicSignals);
 
-        uint256 nullifierBatchIndex = _currentNullifiersBatchIndex;
+        uint256 nullifierBatchIndex = currentNullifiersBatchIndex;
         emit CommittedNullifiers(nullifierBatchIndex, nullifiers);
-        _currentNullifiersBatchIndex = nullifierBatchIndex + 1;
+        currentNullifiersBatchIndex = nullifierBatchIndex + 1;
     }
 
     function _processAndEmitAggregationOutputs(uint256 maxInputs, uint256[] memory publicSignals) private {
@@ -410,9 +413,9 @@ contract CurvyAggregatorAlphaV2 is
         }
         curvyVault.withdraw(tokenId, address(uint160(destinationAddress)), netAmount);
 
-        uint256 nullifierBatchIndex = _currentNullifiersBatchIndex;
+        uint256 nullifierBatchIndex = currentNullifiersBatchIndex;
         emit CommittedNullifiers(nullifierBatchIndex, nullifiers);
-        _currentNullifiersBatchIndex = nullifierBatchIndex + 1;
+        currentNullifiersBatchIndex = nullifierBatchIndex + 1;
     }
 
     function _verifyWithdrawal(
@@ -438,19 +441,19 @@ contract CurvyAggregatorAlphaV2 is
     //#region View
 
     function getCurrentNotesTreeRoot() external view override returns (uint256) {
-        return _currentNotesTreeRoot;
+        return currentNotesTreeRoot;
     }
 
     function getCurrentNotesBatchIndex() external view override returns (uint256) {
-        return _currentNotesBatchIndex;
+        return currentNotesBatchIndex;
     }
 
     function getCurrentNullifiersBatchIndex() external view override returns (uint256) {
-        return _currentNullifiersBatchIndex;
+        return currentNullifiersBatchIndex;
     }
 
     function getCurrentNoteIndex() external view override returns (uint256) {
-        return _currentNoteIndex;
+        return currentNoteIndex;
     }
 
     function getPendingNotesCommitmentVerifier(uint256 batchSize, uint256 treeDepth) external view returns (address) {

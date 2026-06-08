@@ -4,9 +4,11 @@ pragma solidity ^0.8.28;
 import { Test } from "forge-std/Test.sol";
 import { console } from "forge-std/console.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { CurvyTypes } from "../../../contracts/utils/Types.sol";
+import { CurvyTypes } from "../../../contracts/utils/TypesV2.sol";
 import { CurvyAggregatorAlphaV2 } from "../../../contracts/aggregator-beta/CurvyAggregatorAlphaV2.sol";
 import { CurvyVaultV1 } from "../../../contracts/vault/CurvyVaultV1.sol";
+
+uint256 constant EMPTY_TREE_ROOT = 4114686047564160449611603615418567457008101555090703535405891656262658644463;
 
 contract CurvyAggregatorAlphaV2TestConfig is Test {
     CurvyAggregatorAlphaV2 public curvyAggregatorAlphaV2;
@@ -39,6 +41,11 @@ contract CurvyAggregatorAlphaV2TestConfig is Test {
         assertEq(address(curvyAggregatorAlphaV2.getPendingNotesCommitmentVerifier(100, 100)), address(0), "getPendingNotesCommitmentVerifier(100, 100) should be 0");
         assertEq(address(curvyAggregatorAlphaV2.getAggregationVerifier(100, 100, 100)), address(0), "getAggregationVerifier(100, 100, 100) should be 0");
         assertEq(address(curvyAggregatorAlphaV2.getWithdrawalVerifier(100, 100)), address(0), "getWithdrawalVerifier(100, 100) should be 0");
+
+        assertEq(curvyAggregatorAlphaV2.getCurrentNotesTreeRoot(), EMPTY_TREE_ROOT, "getCurrentNotesTreeRoot should be 0");
+        assertEq(curvyAggregatorAlphaV2.getCurrentNotesBatchIndex(), 0, "getCurrentNotesBatchIndex should be 0");
+        assertEq(curvyAggregatorAlphaV2.getCurrentNullifiersBatchIndex(), 0, "getCurrentNullifiersBatchIndex should be 0");
+        assertEq(curvyAggregatorAlphaV2.getCurrentNoteIndex(), 0, "getCurrentNoteIndex should be 0");
     }
 
     /// @dev Test the update config of the curvyAggregatorAlphaV2
@@ -48,9 +55,6 @@ contract CurvyAggregatorAlphaV2TestConfig is Test {
         // Update config
         curvyAggregatorAlphaV2.updateConfig(
             CurvyTypes.AggregatorConfigurationUpdate({
-                insertionVerifier: address(0),
-                aggregationVerifier: address(0),
-                withdrawVerifier: address(0),
                 curvyVault: address(mockCurvyVault),
                 portalFactory: address(0),
                 maxDeposits: 100,
@@ -64,7 +68,6 @@ contract CurvyAggregatorAlphaV2TestConfig is Test {
         curvyAggregatorAlphaV2.setFeeNotePublicKey(0, 0);
 
         // Set pending notes commitment verifier
-        bytes32 pendingNotesCommitmentConfigKey = keccak256(abi.encode("pendingNotesCommitment", 100, 100));
         curvyAggregatorAlphaV2.setPendingNotesCommitmentVerifier(
             100,
             100,
@@ -72,7 +75,6 @@ contract CurvyAggregatorAlphaV2TestConfig is Test {
         );
 
         // Set aggregation verifier
-        bytes32 aggregationConfigKey = keccak256(abi.encode("aggregation", 100, 100, 100));
         curvyAggregatorAlphaV2.setAggregationVerifier(
             100,
             100,
@@ -81,7 +83,6 @@ contract CurvyAggregatorAlphaV2TestConfig is Test {
         );
 
         // Set withdrawal verifier
-        bytes32 withdrawalConfigKey = keccak256(abi.encode("withdrawal", 100, 100));
         curvyAggregatorAlphaV2.setWithdrawalVerifier(
             100,
             100,
