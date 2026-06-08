@@ -5,9 +5,6 @@ library CurvyTypes {
     struct AggregatorConfigurationUpdate {
         address curvyVault;
         address portalFactory;
-        uint256 maxDeposits;
-        uint256 maxWithdrawals;
-        uint256 maxAggregations;
     }
 
     struct Note {

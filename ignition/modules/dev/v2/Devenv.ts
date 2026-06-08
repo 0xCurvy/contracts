@@ -27,14 +27,8 @@ export default buildModule("Devenv", (m) => {
     "updateConfig",
     [
       {
-        insertionVerifier: "0x0000000000000000000000000000000000000000",
-        aggregationVerifier: "0x0000000000000000000000000000000000000000",
-        withdrawVerifier: "0x0000000000000000000000000000000000000000",
         curvyVault: curvyVaultProxy,
         portalFactory: portalFactory,
-        maxDeposits: 0n,
-        maxAggregations: 0n,
-        maxWithdrawals: 0n,
       },
     ],
     { id: "Aggregator_WireVaultAndFactory", after: [setVaultAggregator] },

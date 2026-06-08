@@ -21,18 +21,18 @@ export default buildModule("CurvyAggregator", (m) => {
   const aggregationVerifier = m.contract("CurvyAggregationVerifier");
   const withdrawVerifier = m.contract("CurvyWithdrawalVerifier");
 
-  m.call(curvyAggregator, "updateConfig", [
-    {
-      insertionVerifier,
-      aggregationVerifier,
-      withdrawVerifier,
-      curvyVault: "0x0000000000000000000000000000000000000000",
-      portalFactory: "0x0000000000000000000000000000000000000000",
-      maxDeposits: 2,
-      maxAggregations: 2,
-      maxWithdrawals: 2,
-    },
-  ]);
+  // Pending-notes-commitment: (batchSize=5, treeDepth=30)
+  m.call(curvyAggregator, "setPendingNotesCommitmentVerifier", [5, 30, insertionVerifier], {
+    id: "Aggregator_SetPendingNotesCommitmentVerifier",
+  });
+  // Aggregation: (maxInputs=2, maxOutputs=3, treeDepth=30)
+  m.call(curvyAggregator, "setAggregationVerifier", [2, 3, 30, aggregationVerifier], {
+    id: "Aggregator_SetAggregationVerifier",
+  });
+  // Withdrawal: (maxInputs=2, treeDepth=30)
+  m.call(curvyAggregator, "setWithdrawalVerifier", [2, 30, withdrawVerifier], {
+    id: "Aggregator_SetWithdrawalVerifier",
+  });
 
   return {
     implementation,

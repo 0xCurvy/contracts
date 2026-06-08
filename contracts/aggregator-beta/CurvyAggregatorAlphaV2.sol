@@ -51,10 +51,6 @@ contract CurvyAggregatorAlphaV2 is
 
     //#region State (UUPS append-only)
 
-    uint256 public maxDeposits;
-    uint256 public maxAggregations;
-    uint256 public maxWithdrawals;
-
     mapping(uint256 noteId => NoteStatus) public noteStatus;
     mapping(uint256 root => bool) public validNotesRoot;
     mapping(uint256 nullifier => bool) public aggregationNullifiers;
@@ -117,9 +113,6 @@ contract CurvyAggregatorAlphaV2 is
     ) external onlyRole(AUTHORITY_ROLE) returns (bool) {
         if (_update.curvyVault.code.length > 0) curvyVault = ICurvyVault(_update.curvyVault);
         if (_update.portalFactory.code.length > 0) portalFactory = IPortalFactory(_update.portalFactory);
-        if (_update.maxDeposits != 0) maxDeposits = _update.maxDeposits;
-        if (_update.maxAggregations != 0) maxAggregations = _update.maxAggregations;
-        if (_update.maxWithdrawals != 0) maxWithdrawals = _update.maxWithdrawals;
         return true;
     }
 

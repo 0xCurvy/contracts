@@ -40,21 +40,6 @@ contract CurvyAggregatorAlphaV2TestConfig is Test {
 
         // Check default config
         assertEq(
-            curvyAggregatorAlphaV2.maxDeposits(),
-            0,
-            "maxDeposits should be 0"
-        );
-        assertEq(
-            curvyAggregatorAlphaV2.maxAggregations(),
-            0,
-            "maxAggregations should be 0"
-        );
-        assertEq(
-            curvyAggregatorAlphaV2.maxWithdrawals(),
-            0,
-            "maxWithdrawals should be 0"
-        );
-        assertEq(
             curvyAggregatorAlphaV2.protocolFeePerThousand(),
             0,
             "protocolFeePerThousand should be 0"
@@ -125,10 +110,7 @@ contract CurvyAggregatorAlphaV2TestConfig is Test {
         curvyAggregatorAlphaV2.updateConfig(
             CurvyTypes.AggregatorConfigurationUpdate({
                 curvyVault: address(mockCurvyVault),
-                portalFactory: address(0),
-                maxDeposits: 100,
-                maxWithdrawals: 100,
-                maxAggregations: 100
+                portalFactory: address(0)
             })
         );
 
@@ -164,23 +146,6 @@ contract CurvyAggregatorAlphaV2TestConfig is Test {
             address(curvyAggregatorAlphaV2.portalFactory()),
             address(0),
             "portalFactory should be 0"
-        );
-
-        // Check max deposits, aggregations, and withdrawals
-        assertEq(
-            curvyAggregatorAlphaV2.maxDeposits(),
-            100,
-            "maxDeposits should be 100"
-        );
-        assertEq(
-            curvyAggregatorAlphaV2.maxAggregations(),
-            100,
-            "maxAggregations should be 100"
-        );
-        assertEq(
-            curvyAggregatorAlphaV2.maxWithdrawals(),
-            100,
-            "maxWithdrawals should be 100"
         );
 
         // Check fees

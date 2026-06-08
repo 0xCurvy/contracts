@@ -42,10 +42,7 @@ contract WithdrawalTest is Test {
         aggregator.updateConfig(
             CurvyTypesV2.AggregatorConfigurationUpdate({
                 curvyVault: address(vault),
-                portalFactory: address(0),
-                maxDeposits: 100,
-                maxWithdrawals: 100,
-                maxAggregations: 100
+                portalFactory: address(0)
             })
         );
 
