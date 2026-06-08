@@ -126,6 +126,9 @@ const config: HardhatUserConfig = {
   test: {
     solidity: {
       ffi: true,
+      fsPermissions: {
+        readDirectory: ["./test/solidity/curvyAggregatorAlphaV2/fixtures"],
+      },
     },
   },
 };
