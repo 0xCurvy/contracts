@@ -2,9 +2,12 @@ import { spawn } from "node:child_process";
 import hre from "hardhat";
 import { parseEther } from "viem";
 
+const shellSettings: { shell?: boolean } = process.platform === "win32" ? { shell: true } : {};
+const pnpmCmd = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+
 function run(cmd: string, args: readonly string[]): Promise<void> {
   return new Promise((resolve, reject) => {
-    const proc = spawn(cmd, args, { stdio: "inherit" });
+    const proc = spawn(cmd, args, { stdio: "inherit", ...shellSettings });
     proc.on("close", (code) => (code === 0 ? resolve() : reject(code)));
   });
 }
@@ -12,8 +15,8 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
 (async () => {
   process.env.HARDHAT_DEVENV = "true";
 
-  await run("pnpm", ["hardhat", "clean"]);
-  await run("pnpm", ["hardhat", "build"]);
+  await run(pnpmCmd, ["hardhat", "clean"]);
+  await run(pnpmCmd, ["hardhat", "build"]);
 
   const anvil = spawn("anvil", ["-b", "1", "--dump-state", "./cache/anvil_state.json"]);
 
@@ -23,14 +26,16 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
     if (!ready && (msg.includes("Listening") || msg.includes("HTTP"))) {
       ready = true;
 
-      const connection = await hre.network.connect();
+      const connection = await hre.network.connect({ network: "anvil" });
 
       const [sender] = await connection.viem.getWalletClients();
 
+      console.log("Sending transaction to 0xeD456e05CaAb11d66C4c797dD6c1D6f9A7F352b5");
       const sendHash = await sender.sendTransaction({
         to: "0xeD456e05CaAb11d66C4c797dD6c1D6f9A7F352b5",
         value: parseEther("1.0"),
       });
+      console.log(`Send tx hash: ${sendHash}`);
 
       const publicClient = await connection.viem.getPublicClient();
       const sendReceipt = await publicClient.waitForTransactionReceipt({ hash: sendHash, confirmations: 5 });
@@ -48,7 +53,7 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
       console.log("CreateX Deploy tx finalized, contract deployed at:", deployReceipt.contractAddress);
 
       const deploy = spawn(
-        "pnpm",
+        pnpmCmd,
         [
           "hardhat",
           "ignition",
@@ -59,7 +64,7 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
           "anvil",
           "./ignition/modules/dev/v2/Devenv.ts",
         ],
-        { stdio: "inherit" },
+        { stdio: "inherit", ...shellSettings },
       );
 
       deploy.on("close", () => {
