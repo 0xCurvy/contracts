@@ -3,7 +3,7 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 export default buildModule("CurvyAggregator", (m) => {
   const poseidonT4 = m.library("PoseidonT4");
 
-  const implementation = m.contract("CurvyAggregatorV2", [], {
+  const implementation = m.contract("CurvyAggregatorAlphaV2", [], {
     id: "CurvyAggregatorV2Implementation",
     libraries: { PoseidonT4: poseidonT4 },
   });

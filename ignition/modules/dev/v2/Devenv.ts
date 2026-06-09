@@ -1,4 +1,4 @@
-import fs from "node:fs";
+// import fs from "node:fs";
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { labelhash, namehash } from "viem";
 // audit(2026-Q1): No Validation of Address Format - use validated address parameter helper
@@ -94,16 +94,16 @@ export default buildModule("Devenv", (m) => {
     },
   );
 
-  const addresses = JSON.parse(fs.readFileSync("../devenv/addresses.json", "utf-8"));
-  for (const userAddresses of addresses) {
-    // First address gets ETH
-    m.send(`Send_ETH_${userAddresses[0]}`, userAddresses[0], DEPOSIT_AMOUNT, undefined, { from: deployer });
+  // const addresses = JSON.parse(fs.readFileSync("../../devenv/addresses.json", "utf-8"));
+  // for (const userAddresses of addresses) {
+  //   // First address gets ETH
+  //   m.send(`Send_ETH_${userAddresses[0]}`, userAddresses[0], DEPOSIT_AMOUNT, undefined, { from: deployer });
 
-    // Second just gets mock ERC20
-    m.call(erc20Mock, "mockMint", [userAddresses[1], DEPOSIT_AMOUNT], { id: `Mint_ERC20_${userAddresses[1]}` });
+  //   // Second just gets mock ERC20
+  //   m.call(erc20Mock, "mockMint", [userAddresses[1], DEPOSIT_AMOUNT], { id: `Mint_ERC20_${userAddresses[1]}` });
 
-    // Third gets nothing
-  }
+  //   // Third gets nothing
+  // }
 
   m.call(curvyVault, "registerToken", [erc20Mock], { id: "Register_MockERC20" });
 
