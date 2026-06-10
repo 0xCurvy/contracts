@@ -16,7 +16,7 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
   process.env.HARDHAT_DEVENV = "true";
 
   await run(pnpmCmd, ["hardhat", "clean"]);
-  await run(pnpmCmd, ["hardhat", "build"]);
+  await run(pnpmCmd, ["hardhat", "compile"]);
 
   const anvil = spawn("anvil", ["-b", "1", "--dump-state", "./cache/anvil_state.json"]);
 
@@ -64,7 +64,11 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
           "anvil",
           "./ignition/modules/dev/v2/Devenv.ts",
         ],
-        { stdio: "inherit", ...shellSettings },
+        {
+          stdio: "inherit",
+          env: { ...process.env, HARDHAT_DEVENV: "true" },
+          ...shellSettings,
+        },
       );
 
       deploy.on("close", () => {
