@@ -20,12 +20,12 @@
     "@nomicfoundation/hardhat-network-helpers": "^3.0.2",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
     "@types/glob": "^9.0.0",
-    "@types/node": "^22.18.0",
+    "@types/node": "catalog:",
     "forge-std": "github:foundry-rs/forge-std#v1.9.4",
     "glob": "^13.0.1",
     "hardhat": "^3.0.6",
     "rimraf": "^6.0.1",
-    "typescript": "~5.8.3",
+    "typescript": "catalog:",
     "viem": "^2.43.5"
   },
   "dependencies": {
