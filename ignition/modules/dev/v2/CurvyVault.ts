@@ -6,10 +6,15 @@ export default buildModule("CurvyVault", (m) => {
 
   const owner = m.getAccount(0);
 
-  const proxy = m.contract("ERC1967Proxy", [
-    implementation,
-    m.encodeFunctionCall(implementation, "initialize", [owner]),
-  ]);
+  // `devenv/ERC1967Proxy.sol` (added later) collides with the OZ proxy by short
+  // name, so `m.contract("ERC1967Proxy", …)` is ambiguous (HHE1001). Pin the OZ
+  // proxy by fully-qualified name — the one the original deploy used — and keep
+  // the explicit id so the deployed-address key stays `CurvyVault#ERC1967Proxy`.
+  const proxy = m.contract(
+    "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol:ERC1967Proxy",
+    [implementation, m.encodeFunctionCall(implementation, "initialize", [owner])],
+    { id: "ERC1967Proxy" },
+  );
 
   const curvyVault = m.contractAt("CurvyVaultV1", proxy);
 
