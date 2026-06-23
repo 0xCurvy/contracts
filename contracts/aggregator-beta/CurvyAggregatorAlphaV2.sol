@@ -43,6 +43,8 @@ contract CurvyAggregatorAlphaV2 is
     uint256 internal constant TREE_DEPTH = 30;
     uint256 internal constant ENC_NOTE_SIGNALS = 5;
 
+    uint96 private constant MAX_FEE_PER_THOUSAND = 10_000;
+
     /// @dev BN254 scalar field. Verifier rejects public signals >= this value.
     ///      Circuit's `Bits2Num(256)` reconstructs sha256 bits as a field element,
     ///      so the on-chain inputHash must be reduced mod this prime.
@@ -117,6 +119,8 @@ contract CurvyAggregatorAlphaV2 is
     }
 
     function setFees(uint256 _protocolFeePerThousand, uint256 _gasFee) external onlyRole(AUTHORITY_ROLE) {
+        if (_protocolFeePerThousand > MAX_FEE_PER_THOUSAND) revert InvalidProtocolFee();
+
         protocolFeePerThousand = _protocolFeePerThousand;
         gasFee = _gasFee;
     }
@@ -388,8 +392,7 @@ contract CurvyAggregatorAlphaV2 is
         if (!validNotesRoot[notesRoot]) revert UnknownReferencedRoot();
 
         uint256 usedGasFee = gasFee;
-        uint256 protocolFeeAmount = (withdrawnAmount * protocolFeePerThousand) / 1000;
-        if (withdrawnAmount <= usedGasFee + protocolFeeAmount) revert NetAmountNonPositive();
+        if (withdrawnAmount <= usedGasFee) revert NetAmountNonPositive();
 
         _verifyWithdrawal(maxInputs, verifier, proof_a, proof_b, proof_c, publicSignals);
 
@@ -402,7 +405,7 @@ contract CurvyAggregatorAlphaV2 is
             nullifiers[i] = nf;
         }
 
-        uint256 netAmount = withdrawnAmount - usedGasFee - protocolFeeAmount;
+        uint256 netAmount = withdrawnAmount - usedGasFee;
         if (usedGasFee > 0) {
             curvyVault.withdraw(tokenId, msg.sender, usedGasFee);
         }
