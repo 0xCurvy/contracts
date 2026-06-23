@@ -30,7 +30,7 @@ interface ICurvyAggregationVerifier_2_3 is ICurvyVerifier {
         uint256[2] memory a,
         uint256[2][2] memory b,
         uint256[2] memory c,
-        uint256[30] memory input
+        uint256[31] memory input
     ) external view returns (bool r);
 }
 

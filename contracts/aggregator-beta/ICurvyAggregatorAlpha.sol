@@ -78,17 +78,17 @@ interface ICurvyAggregatorAlpha {
 
     /// @notice Submit a single-aggregation request (NoHashing variant).
     /// Hardcoded to maxOutputs=3, treeDepth=30. `maxInputs` selects the verifier.
-    /// publicSignals layout (length = maxInputs + 3 + (3+1)*5 + 5):
+    /// publicSignals layout (length = maxInputs + (3+1) + (3+1)*5 + 5):
     ///   [0..maxInputs-1]                  nullifiers
-    ///   [maxInputs..maxInputs+2]          outputNoteIds
-    ///   [maxInputs+3 + i*5 .. +4]         encryptedNoteData[i] for i in 0..3
+    ///   [maxInputs..maxInputs+3]          outputNoteIds (last entry = fee-note id; committed later)
+    ///   [maxInputs+4 + i*5 .. +4]         encryptedNoteData[i] for i in 0..3
     ///                                     (i=3 is fee note; 5 sigs each:
     ///                                      encryptedAmount, encryptedToken,
     ///                                      ephemeralKey[0], ephemeralKey[1], viewTag)
-    ///   [maxInputs+23]                    notesRoot
-    ///   [maxInputs+24]                    protocolFeePerThousand
-    ///   [maxInputs+25]                    gasFee
-    ///   [maxInputs+26..maxInputs+27]      feeNotePublicKey[0..1]
+    ///   [maxInputs+24]                    notesRoot
+    ///   [maxInputs+25]                    protocolFeePerThousand
+    ///   [maxInputs+26]                    gasFee
+    ///   [maxInputs+27..maxInputs+28]      feeNotePublicKey[0..1]
     function submitAggregationRequest(
         uint256 maxInputs,
         uint256[2] memory proof_a,

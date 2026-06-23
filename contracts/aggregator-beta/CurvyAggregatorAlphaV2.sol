@@ -22,7 +22,7 @@ import {
  * @author Curvy Protocol (https://curvy.box)
  * @dev V2 aggregator wired to the v2 (NoHashing) zk-circuits:
  *      - verifyPendingNotesCommitment(batchSize, 30)         → 1 pubSignal
- *      - verifySingleAggregationNoHashing(maxInputs, 3, 30)  → 30/33 pubSignals
+ *      - verifySingleAggregationNoHashing(maxInputs, 3, 30)  → 31 pubSignals (fee-note id in outputNoteIds)
  *      - verifySingleWithdrawalNoHashing(maxInputs, 30)      → 6/9 pubSignals
  */
 contract CurvyAggregatorAlphaV2 is
@@ -278,7 +278,8 @@ contract CurvyAggregatorAlphaV2 is
         uint256[2] memory proof_c,
         uint256[] memory publicSignals
     ) external override {
-        uint256 expectedLen = maxInputs + AGG_MAX_OUTPUTS + (AGG_MAX_OUTPUTS + 1) * ENC_NOTE_SIGNALS + 5;
+        // Circuit now exposes fee-note id as the (maxOutputs+1)-th entry in outputNoteIds.
+        uint256 expectedLen = maxInputs + (AGG_MAX_OUTPUTS + 1) + (AGG_MAX_OUTPUTS + 1) * ENC_NOTE_SIGNALS + 5;
         if (publicSignals.length != expectedLen) revert PublicSignalsLengthMismatch();
 
         address verifier = aggregationVerifiersByConfig[
@@ -286,7 +287,7 @@ contract CurvyAggregatorAlphaV2 is
         ];
         if (verifier == address(0)) revert AggregationVerifierNotConfigured();
 
-        uint256 trailerStart = maxInputs + AGG_MAX_OUTPUTS + (AGG_MAX_OUTPUTS + 1) * ENC_NOTE_SIGNALS;
+        uint256 trailerStart = maxInputs + (AGG_MAX_OUTPUTS + 1) + (AGG_MAX_OUTPUTS + 1) * ENC_NOTE_SIGNALS;
 
         if (!validNotesRoot[publicSignals[trailerStart]]) revert UnknownReferencedRoot();
         if (publicSignals[trailerStart + 1] != protocolFeePerThousand) revert FeeMismatch();
@@ -323,10 +324,11 @@ contract CurvyAggregatorAlphaV2 is
         ephemeralKeys[0] = new uint256[](totalNotes);
         ephemeralKeys[1] = new uint256[](totalNotes);
 
-        uint256 encBaseStart = maxInputs + AGG_MAX_OUTPUTS;
+        uint256 encBaseStart = maxInputs + (AGG_MAX_OUTPUTS + 1);
         for (uint256 i = 0; i < totalNotes; i += 1) {
             uint256 encBase = encBaseStart + i * ENC_NOTE_SIGNALS;
-            uint256 noteId = i < AGG_MAX_OUTPUTS ? publicSignals[maxInputs + i] : 0;
+            // outputNoteIds now contains AGG_MAX_OUTPUTS regular notes followed by the fee-note id.
+            uint256 noteId = publicSignals[maxInputs + i];
             if (noteId != 0) {
                 if (noteStatus[noteId] != NoteStatus.UNKNOWN) revert NoteAlreadyKnown();
                 noteStatus[noteId] = NoteStatus.PENDING;
@@ -351,8 +353,8 @@ contract CurvyAggregatorAlphaV2 is
         uint256[] memory publicSignals
     ) private view {
         if (maxInputs == 2) {
-            uint256[30] memory pub;
-            for (uint256 i = 0; i < 30; i += 1) pub[i] = publicSignals[i];
+            uint256[31] memory pub;
+            for (uint256 i = 0; i < 31; i += 1) pub[i] = publicSignals[i];
             if (!ICurvyAggregationVerifier_2_3(verifier).verifyProof(proof_a, proof_b, proof_c, pub))
                 revert InvalidProof();
         } else {
