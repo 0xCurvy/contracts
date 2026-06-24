@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.10;
 
-import { CurvyTypes } from "../utils/TypesV2.sol";
+import { CurvyTypes } from "../utils/Types.sol";
 
 interface ICurvyAggregatorAlpha {
     //#region Enums

@@ -2,10 +2,10 @@
 pragma solidity ^0.8.28;
 
 import { IPortalFactory } from "../portal/IPortalFactory.sol";
-import { CurvyTypes } from "../utils/TypesV2.sol";
+import { CurvyTypes } from "../utils/Types.sol";
 import { ICurvyAggregatorAlpha } from "./ICurvyAggregatorAlpha.sol";
 import { ICurvyVault } from "../vault/ICurvyVault.sol";
-import { PoseidonT4 } from "../aggregator-alpha/utils/PoseidonT4.sol";
+import { PoseidonT4 } from "../utils/PoseidonT4.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
