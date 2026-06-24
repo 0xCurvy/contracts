@@ -2,53 +2,50 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { glob } from "glob";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const artifactsDir = join(__dirname, "../artifacts/contracts/");
+const artifactsDir = join(__dirname, "../artifacts/");
 const abiDir = join(process.cwd(), "../sdk/src/contracts/evm/abi/");
 
-function toCamelCase(str: string): string {
-  return str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-}
+/**
+ * Deployed contracts whose ABIs ship in the SDK. Artifact paths are explicit
+ * (relative to `artifacts/`) because after the v1/v2 split several contracts
+ * share a short name (e.g. three `PortalFactory.sol`), so a name/glob match is
+ * ambiguous — the path pins the exact compiled artifact the deploy uses.
+ */
+const exports: { artifact: string; tsFile: string; varName: string }[] = [
+  {
+    artifact: "src/v2/aggregator-alpha/CurvyAggregatorAlphaV2.sol/CurvyAggregatorAlphaV2.json",
+    tsFile: "aggregator-alpha-v2",
+    varName: "aggregatorAlphaV2Abi",
+  },
+  {
+    artifact: "src/v2/vault/CurvyVaultV2.sol/CurvyVaultV2.json",
+    tsFile: "vault",
+    varName: "vaultAbi",
+  },
+  {
+    artifact: "src/v2/portal/PortalFactory.sol/PortalFactory.json",
+    tsFile: "portal-factory",
+    varName: "portalFactoryAbi",
+  },
+];
 
 async function main() {
   await mkdir(abiDir, { recursive: true });
-  const files = await glob("**/*.json", {
-    cwd: artifactsDir,
-  });
 
-  const contractToAbiName: Record<string, string> = {
-    CurvyAggregatorAlpha: "aggregator-alpha",
-    CurvyVault: "vault",
-    PortalFactory: "portal-factory",
-  };
-
-  const contractImplementations: Record<string, string> = {
-    CurvyAggregatorAlpha: "CurvyAggregatorAlphaV1",
-    CurvyVault: "CurvyVaultV1",
-    PortalFactory: "PortalFactory",
-  };
-
-  for (const contract in contractImplementations) {
-    const impl = contractImplementations[contract];
-    const tsFileName = contractToAbiName[contract];
-
-    if (tsFileName) {
-      const artifactFile = files.find((f) => f.includes(`${impl}.json`));
-      if (artifactFile) {
-        const content = await readFile(join(artifactsDir, artifactFile), "utf-8");
-        const json = JSON.parse(content);
-        const abi = json.abi;
-        if (abi) {
-          const variableName = toCamelCase(tsFileName) + "Abi";
-          const tsContent = `export const ${variableName} = ${JSON.stringify(abi, null, 2)} as const;\n`;
-          await writeFile(join(abiDir, `${tsFileName}.ts`), tsContent);
-        }
-      }
+  for (const { artifact, tsFile, varName } of exports) {
+    const content = await readFile(join(artifactsDir, artifact), "utf-8");
+    const { abi } = JSON.parse(content);
+    if (!abi) {
+      throw new Error(`Artifact ${artifact} is malformed: missing abi`);
     }
+
+    const tsContent = `export const ${varName} = ${JSON.stringify(abi, null, 2)} as const;\n`;
+    await writeFile(join(abiDir, `${tsFile}.ts`), tsContent);
+    console.log(`Wrote ${tsFile}.ts (${varName}) from ${artifact}`);
   }
 }
 

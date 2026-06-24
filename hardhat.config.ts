@@ -10,7 +10,7 @@ const isDevenv = () => {
 const config: HardhatUserConfig = {
   plugins: [hardhatToolboxViemPlugin, hardhatIgnitionViemPlugin, hardhatVerifyPlugin],
   paths: {
-    sources: isDevenv() ? ["devenv", "contracts"] : "contracts",
+    sources: isDevenv() ? ["devenv", "src"] : "src",
     tests: {
       solidity: "test/solidity",
     },

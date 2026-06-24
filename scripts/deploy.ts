@@ -126,6 +126,9 @@ async function main() {
       ]);
     }
   }
+
+  console.log("==== Extracting deployed ABIs into SDK ====");
+  await run("pnpm", ["extract-abis"]);
 }
 
 main().catch(console.error);

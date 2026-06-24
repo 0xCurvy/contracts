@@ -1,7 +1,7 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
 export default buildModule("CurvyAggregatorAlpha", (m) => {
-  const poseidonT4 = m.library("PoseidonT4");
+  const poseidonT4 = m.library("src/v1/aggregator-alpha/utils/PoseidonT4.sol:PoseidonT4");
 
   const implementation = m.contract("CurvyAggregatorAlphaV1", [], {
     id: "CurvyAggregatorAlphaV1Implementation",

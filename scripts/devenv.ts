@@ -71,9 +71,13 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
         },
       );
 
-      deploy.on("close", () => {
+      deploy.on("close", async (code) => {
+        if (code === 0) {
+          console.log("Extracting deployed ABIs into SDK");
+          await run(pnpmCmd, ["extract-abis"]).catch((err) => console.error("extract-abis failed:", err));
+        }
         anvil.kill("SIGTERM");
-        process.exit(0);
+        process.exit(code ?? 0);
       });
     }
   });

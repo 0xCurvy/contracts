@@ -48,7 +48,9 @@ export default buildModule("MainDeployment", (m) => {
   );
 
   // === Aggregator upgrade ===
-  const poseidonT4 = m.contractAt("PoseidonT4", poseidonT4Address, { id: "PoseidonT4Existing" });
+  const poseidonT4 = m.contractAt("src/v1/aggregator-alpha/utils/PoseidonT4.sol:PoseidonT4", poseidonT4Address, {
+    id: "PoseidonT4Existing",
+  });
 
   const newAggImpl = m.contract("CurvyAggregatorAlphaV1", [], {
     id: "CurvyAggregatorAlphaV1Implementation_Audited",

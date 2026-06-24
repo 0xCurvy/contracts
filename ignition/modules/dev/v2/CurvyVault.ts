@@ -2,7 +2,7 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { getNetworkParameter } from "../../utils/parameters";
 
 export default buildModule("CurvyVault", (m) => {
-  const implementation = m.contract("CurvyVaultV1", [], { id: "CurvyVaultV1Implementation" });
+  const implementation = m.contract("CurvyVaultV2", [], { id: "CurvyVaultV2Implementation" });
 
   const owner = m.getAccount(0);
 
@@ -16,7 +16,7 @@ export default buildModule("CurvyVault", (m) => {
     { id: "ERC1967Proxy" },
   );
 
-  const curvyVault = m.contractAt("CurvyVaultV1", proxy);
+  const curvyVault = m.contractAt("CurvyVaultV2", proxy);
 
   let previousRegistration: any;
   const erc20Addresses = getNetworkParameter<string[]>("erc20Addresses");
