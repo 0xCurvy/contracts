@@ -90,8 +90,8 @@ contract AggregationTest is Test {
         AggregationFixtures.Input memory fixture = AggregationFixtures.input();
 
         // Verify proof directly against verifier first
-        uint256[30] memory pub;
-        for (uint256 i = 0; i < 30; i++) pub[i] = fixture.public_signals[i];
+        uint256[31] memory pub;
+        for (uint256 i = 0; i < 31; i++) pub[i] = fixture.public_signals[i];
         assertTrue(
             verifier.verifyProof(
                 fixture.proof_a,
