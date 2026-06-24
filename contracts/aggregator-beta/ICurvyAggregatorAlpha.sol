@@ -38,6 +38,7 @@ interface ICurvyAggregatorAlpha {
     error FeeNotePublicKeyMismatch();
     error UnsupportedAggregationConfig();
     error UnsupportedWithdrawalConfig();
+    error InvalidProtocolFee();
 
     //#endregion
 
