@@ -65,7 +65,6 @@ contract CurvyAggregatorAlphaV2 is
     /// @dev Rate-based protocol fee (parts per thousand), enforced inside aggregation circuit
     ///      and on-contract for withdrawals.
     uint256 public protocolFeePerThousand;
-    uint256 public gasFee;
 
     ICurvyVault public curvyVault;
     IPortalFactory public portalFactory;
@@ -83,6 +82,12 @@ contract CurvyAggregatorAlphaV2 is
 
     /// @dev BabyJub public key (x, y) of the protocol fee-note recipient.
     uint256[2] public feeNotePublicKey;
+
+
+    uint256 public constant override GAS_TREE_DEPTH = 5;
+
+    /// @dev Latest commitment gas-fee root (most recently set); reference/SDK convenience.
+    uint256 public commitmentFeeRoot;
 
     //#endregion
 
@@ -108,6 +113,15 @@ contract CurvyAggregatorAlphaV2 is
 
     //#endregion
 
+    //#region Modifiers
+
+    modifier onlyCurvyVault() {
+        if (msg.sender != address(curvyVault)) revert NotCurvyVault();
+        _;
+    }
+
+    //#endregion
+
     //#region Admin
 
     function updateConfig(
@@ -118,11 +132,24 @@ contract CurvyAggregatorAlphaV2 is
         return true;
     }
 
-    function setFees(uint256 _protocolFeePerThousand, uint256 _gasFee) external onlyRole(AUTHORITY_ROLE) {
+    /// @dev `_gasFee` is DEPRECATED: aggregation gas is now pinned per-token via
+    ///      `setCommitmentGasCosts` and withdrawal gas via `setWithdrawalGasCosts`. The flat
+    ///      `gasFee` is retained only for storage-layout (UUPS append-only) compatibility and is
+    ///      no longer read by submit paths.
+    function setProtocolFees(uint256 _protocolFeePerThousand) external onlyRole(AUTHORITY_ROLE) {
         if (_protocolFeePerThousand > MAX_FEE_PER_THOUSAND) revert InvalidProtocolFee();
 
         protocolFeePerThousand = _protocolFeePerThousand;
-        gasFee = _gasFee;
+    }
+
+    function setCommitmentGasFeeRoot(
+        uint256 root
+    ) external override onlyCurvyVault {
+        if (root == 0) revert InvalidGasFeeRoot();
+
+        commitmentFeeRoot = root;
+
+        emit CommitmentGasFeeRootUpdated(root);
     }
 
     function setFeeNotePublicKey(uint256 x, uint256 y) external onlyRole(AUTHORITY_ROLE) {
@@ -188,7 +215,7 @@ contract CurvyAggregatorAlphaV2 is
 
         curvyVault.deposit{ value: msg.value }(tokenAddress, address(this), note.amount);
 
-        uint256 feeAmount = (note.amount * curvyVault.depositFee()) / 10000;
+        uint256 feeAmount = (note.amount * curvyVault.depositFee()) / 10000 + curvyVault.commitmentGasCost(note.token);
         uint256 netAmount = note.amount - feeAmount;
         uint256 noteId = PoseidonT4.hash([note.ownerHash, netAmount, note.token]);
 
@@ -295,7 +322,8 @@ contract CurvyAggregatorAlphaV2 is
 
         if (!validNotesRoot[publicSignals[trailerStart]]) revert UnknownReferencedRoot();
         if (publicSignals[trailerStart + 1] != protocolFeePerThousand) revert FeeMismatch();
-        if (publicSignals[trailerStart + 2] != gasFee) revert FeeMismatch();
+
+        if (commitmentFeeRoot != publicSignals[trailerStart + 2]) revert UnknownGasFeeRoot();
         if (publicSignals[trailerStart + 3] != feeNotePublicKey[0]) revert FeeNotePublicKeyMismatch();
         if (publicSignals[trailerStart + 4] != feeNotePublicKey[1]) revert FeeNotePublicKeyMismatch();
 
@@ -391,8 +419,9 @@ contract CurvyAggregatorAlphaV2 is
 
         if (!validNotesRoot[notesRoot]) revert UnknownReferencedRoot();
 
-        uint256 usedGasFee = gasFee;
-        if (withdrawnAmount <= usedGasFee) revert NetAmountNonPositive();
+//        // Per-token withdrawal gas: tokenId is public here, so a plain mapping is safe.
+//        uint256 usedGasFee = withdrawalGasCost[tokenId];
+//        if (withdrawnAmount <= usedGasFee) revert NetAmountNonPositive();
 
         _verifyWithdrawal(maxInputs, verifier, proof_a, proof_b, proof_c, publicSignals);
 
@@ -405,11 +434,9 @@ contract CurvyAggregatorAlphaV2 is
             nullifiers[i] = nf;
         }
 
-        uint256 netAmount = withdrawnAmount - usedGasFee;
-        if (usedGasFee > 0) {
-            curvyVault.withdraw(tokenId, msg.sender, usedGasFee);
-        }
-        curvyVault.withdraw(tokenId, address(uint160(destinationAddress)), netAmount);
+        // The vault sends the net to the destination and routes the per-token withdrawal gas
+        // reimbursement to msg.sender (the relayer EOA submitting this request).
+        curvyVault.withdraw(tokenId, address(uint160(destinationAddress)), withdrawnAmount, msg.sender);
 
         uint256 nullifierBatchIndex = currentNullifiersBatchIndex;
         emit CommittedNullifiers(nullifierBatchIndex, nullifiers);

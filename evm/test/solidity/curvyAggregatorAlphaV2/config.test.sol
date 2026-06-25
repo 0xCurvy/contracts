@@ -6,11 +6,11 @@ import {console} from "forge-std/console.sol";
 import {
     ERC1967Proxy
 } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {CurvyTypes} from "../../../contracts/utils/TypesV2.sol";
+import {CurvyTypes} from "../../../src/v2/utils/Types.sol";
 import {
     CurvyAggregatorAlphaV2
-} from "../../../contracts/aggregator-beta/CurvyAggregatorAlphaV2.sol";
-import {CurvyVaultV1} from "../../../contracts/vault/CurvyVaultV1.sol";
+} from "../../../src/v2/aggregator-alpha/CurvyAggregatorAlphaV2.sol";
+import {CurvyVaultV1} from "../../../src/v1/vault/CurvyVaultV1.sol";
 
 uint256 constant EMPTY_TREE_ROOT = 4114686047564160449611603615418567457008101555090703535405891656262658644463;
 
@@ -44,7 +44,7 @@ contract CurvyAggregatorAlphaV2TestConfig is Test {
             0,
             "protocolFeePerThousand should be 0"
         );
-        assertEq(curvyAggregatorAlphaV2.gasFee(), 0, "gasFee should be 0");
+        assertEq(curvyAggregatorAlphaV2.commitmentFeeRoot(), 0, "commitmentFeeRoot should be 0");
         assertEq(
             curvyAggregatorAlphaV2.feeNotePublicKey(0),
             0,
@@ -115,7 +115,7 @@ contract CurvyAggregatorAlphaV2TestConfig is Test {
         );
 
         // Set fees
-        curvyAggregatorAlphaV2.setFees(1000, 1000);
+        curvyAggregatorAlphaV2.setProtocolFees(1000);
         curvyAggregatorAlphaV2.setFeeNotePublicKey(0, 0);
 
         // Set pending notes commitment verifier
@@ -153,11 +153,6 @@ contract CurvyAggregatorAlphaV2TestConfig is Test {
             curvyAggregatorAlphaV2.protocolFeePerThousand(),
             1000,
             "protocolFeePerThousand should be 1000"
-        );
-        assertEq(
-            curvyAggregatorAlphaV2.gasFee(),
-            1000,
-            "gasFee should be 1000"
         );
 
         // Check fee note public key

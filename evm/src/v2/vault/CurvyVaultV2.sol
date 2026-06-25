@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.28;
 
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "../aggregator-alpha/ICurvyAggregatorAlpha.sol";
 import "./ICurvyVault.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {CurvyTypes} from "../utils/Types.sol";
+import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract CurvyVaultV2 is
     ICurvyVault,
@@ -46,8 +47,11 @@ contract CurvyVaultV2 is
     mapping(uint256 => address) private _tokenIdToTokenAddress;
 
     uint96 public depositFee;
-    uint96 public __deprecated_transaction_fee;
     uint96 public withdrawalFee;
+
+    mapping(uint256 tokenId => uint256) public withdrawalGasCost;
+    uint256 public latestCommitmentGasCostUpdateBlock;
+    mapping(uint256 tokenId => uint256) public override commitmentGasCost;
 
     address private _curvyAggregator;
 
@@ -98,11 +102,10 @@ contract CurvyVaultV2 is
         emit FeeCollectorAddressChange(initialOwner);
 
         depositFee = 10;
-        __deprecated_transaction_fee = 0;
         withdrawalFee = 20;
     }
 
-    function bootstrapAccessControl() external reinitializer(2) onlyOwner {
+    function bootstrapAccessControl() external reinitializer(1) onlyOwner {
         __AccessControl_init();
         _setRoleAdmin(OPERATOR_ROLE, AUTHORITY_ROLE);
         _setRoleAdmin(AUTHORITY_ROLE, AUTHORITY_ROLE);
@@ -157,6 +160,47 @@ contract CurvyVaultV2 is
         withdrawalFee = feeUpdate.withdrawalFee;
 
         emit FeeChange(feeUpdate);
+    }
+
+    /// @notice Set the full per-token commitment gas-cost table and push the matching tree `root`
+    ///         to the aggregator. The table MUST be complete (one cost per leaf of the depth-
+    ///         GAS_TREE_DEPTH tree) so the single `CommitmentGasCostsUpdated` event emitted here is
+    ///         self-sufficient: off-chain consumers reconstruct the whole leaf set from the event at
+    ///         `latestCommitmentGasCostUpdateBlock` (no historical replay needed).
+    function setCommitmentGasFee(
+        uint256[] calldata tokenIds,
+        uint256[] calldata costs,
+        uint256 root
+    ) external onlyRole(AUTHORITY_ROLE) {
+        if (root == 0) revert InvalidGasFeeRoot();
+        uint256 n = costs.length;
+        if (n != tokenIds.length) revert GasCostLengthMismatch();
+        // Full table: exactly one cost per gas-fee-tree leaf (2^GAS_TREE_DEPTH).
+        if (n != (1 << ICurvyAggregatorAlpha(_curvyAggregator).GAS_TREE_DEPTH())) revert GasCostLengthMismatch();
+
+        // Direct storage writes from calldata — mappings cannot be copied via memory.
+        for (uint256 i = 0; i < n; ) {
+            commitmentGasCost[tokenIds[i]] = costs[i];
+            unchecked {
+                ++i;
+            }
+        }
+
+        ICurvyAggregatorAlpha(_curvyAggregator).setCommitmentGasFeeRoot(root);
+
+        latestCommitmentGasCostUpdateBlock = block.number;
+        emit CommitmentGasCostsUpdated(tokenIds, costs, root);
+    }
+
+    function setWithdrawalGasFee(
+        uint256[] calldata tokenIds,
+        uint256[] calldata costs
+    ) external onlyRole(AUTHORITY_ROLE) {
+        if (tokenIds.length != costs.length) revert GasCostLengthMismatch();
+        for (uint256 i = 0; i < tokenIds.length; i += 1) {
+            withdrawalGasCost[tokenIds[i]] = costs[i];
+        }
+        emit WithdrawalGasCostsUpdated(tokenIds, costs);
     }
 
     function setCurvyAggregatorAddress(address curvyAggregator) external onlyRole(AUTHORITY_ROLE) {
@@ -216,20 +260,27 @@ contract CurvyVaultV2 is
             tokenId = ETH_ID;
         }
 
-        uint256 depositedAmount = amount;
+        uint256 depositedAmount = amount - commitmentGasCost[tokenId];
         if (depositFee != 0) {
             uint256 feeAmount = (amount * depositFee) / FEE_DENOMINATOR;
-            depositedAmount = amount - feeAmount;
+            depositedAmount -= feeAmount;
+
             _balances[to][tokenId] += depositedAmount;
-            _balances[_feeCollectorAddress][tokenId] += feeAmount;
+            _balances[_feeCollectorAddress][tokenId] += feeAmount + commitmentGasCost[tokenId];
         } else {
-            _balances[to][tokenId] += amount;
+            _balances[to][tokenId] += depositedAmount;
+            _balances[_feeCollectorAddress][tokenId] +=  commitmentGasCost[tokenId];
         }
 
         emit Deposit(tokenAddress, to, depositedAmount);
     }
 
-    function withdraw(uint256 tokenId, address to, uint256 amount) external onlyCurvyAggregator {
+    function withdraw(
+        uint256 tokenId,
+        address to,
+        uint256 amount,
+        address gasFeeRecipient
+    ) external onlyCurvyAggregator {
         if (to == address(0)) revert InvalidRecipient();
 
         address tokenAddress = _tokenIdToTokenAddress[tokenId];
@@ -246,14 +297,24 @@ contract CurvyVaultV2 is
             amountAfterFees -= feeAmount;
         }
 
-        // Withdraw
+        // Per-token gas reimbursement is paid out to the relayer EOA (gasFeeRecipient), not
+        // accrued to the fee collector. The proportional withdrawalFee above still accrues.
+        uint256 gasFee = withdrawalGasCost[tokenId];
+        amountAfterFees -= gasFee;
+
+        // Withdraw the net to the destination and the gas reimbursement to the relayer.
         if (tokenId != ETH_ID) {
             // We are withdrawing ERC20s
             IERC20(tokenAddress).safeTransfer(to, amountAfterFees);
+            if (gasFee > 0) IERC20(tokenAddress).safeTransfer(gasFeeRecipient, gasFee);
         } else {
             // We are withdrawing ETH
             (bool success,) = to.call{value: amountAfterFees}("");
             if (!success) revert ETHTransferFailed();
+            if (gasFee > 0) {
+                (bool gasSuccess,) = gasFeeRecipient.call{value: gasFee}("");
+                if (!gasSuccess) revert ETHTransferFailed();
+            }
         }
 
         emit Withdraw(tokenAddress, to, amount);

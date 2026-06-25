@@ -9,13 +9,15 @@ import {
 } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {
     CurvyAggregatorAlphaV2
-} from "../../../contracts/aggregator-beta/CurvyAggregatorAlphaV2.sol";
+} from "../../../src/v2/aggregator-alpha/CurvyAggregatorAlphaV2.sol";
 import {
     CurvyAggregationVerifier
-} from "../../../contracts/aggregator-beta/verifiers/CurvyAggregationVerifier.sol";
+} from "../../../src/v2/aggregator-alpha/verifiers/CurvyAggregationVerifier.sol";
 import {
     ICurvyAggregatorAlpha
-} from "../../../contracts/aggregator-beta/ICurvyAggregatorAlpha.sol";
+} from "../../../src/v2/aggregator-alpha/ICurvyAggregatorAlpha.sol";
+import {CurvyVaultV2} from "../../../src/v2/vault/CurvyVaultV2.sol";
+import {CurvyTypes} from "../../../src/v2/utils/Types.sol";
 import {
     AGG_MAX_INPUTS,
     AGG_MAX_OUTPUTS,
@@ -27,6 +29,7 @@ contract AggregationTest is Test {
     using stdStorage for StdStorage;
 
     CurvyAggregatorAlphaV2 public curvyAggregatorAlphaV2;
+    CurvyVaultV2 public vault;
     CurvyAggregationVerifier public verifier;
 
     function setUp() public {
@@ -43,18 +46,38 @@ contract AggregationTest is Test {
 
         verifier = new CurvyAggregationVerifier();
 
+        // Vault holds the per-token gas-cost table and pushes the root to the aggregator.
+        CurvyVaultV2 vaultImpl = new CurvyVaultV2();
+        vault = CurvyVaultV2(
+            address(
+                new ERC1967Proxy(address(vaultImpl), abi.encodeCall(CurvyVaultV2.initialize, (address(this))))
+            )
+        );
+        vault.setCurvyAggregatorAddress(address(curvyAggregatorAlphaV2));
+
         AggregationFixtures.Input memory fixture = AggregationFixtures.input();
 
+        curvyAggregatorAlphaV2.updateConfig(
+            CurvyTypes.AggregatorConfigurationUpdate({curvyVault: address(vault), portalFactory: address(0)})
+        );
         curvyAggregatorAlphaV2.setAggregationVerifier(
             AGG_MAX_INPUTS,
             AGG_MAX_OUTPUTS,
             AGG_TREE_DEPTH,
             address(verifier)
         );
-        curvyAggregatorAlphaV2.setFees(
-            fixture.protocolFeePerThousand,
-            fixture.gasFee
-        );
+        curvyAggregatorAlphaV2.setProtocolFees(fixture.protocolFeePerThousand);
+        // Per-token commitment gas cost: publish the FULL table (left-aligned with the fixture
+        // costs, zero-padded to 2^GAS_TREE_DEPTH) + the committed root, via the vault. The vault
+        // pushes the root to the aggregator (onlyCurvyVault).
+        uint256 width = 1 << curvyAggregatorAlphaV2.GAS_TREE_DEPTH();
+        uint256[] memory tokenIds = new uint256[](width);
+        uint256[] memory costs = new uint256[](width);
+        for (uint256 i = 0; i < width; i++) {
+            tokenIds[i] = i;
+            costs[i] = i < fixture.commitmentGasCosts.length ? fixture.commitmentGasCosts[i] : 0;
+        }
+        vault.setCommitmentGasFee(tokenIds, costs, fixture.commitPendingNotesGasFeeRoot);
         curvyAggregatorAlphaV2.setFeeNotePublicKey(
             fixture.feeNotePublicKey[0],
             fixture.feeNotePublicKey[1]
@@ -79,8 +102,12 @@ contract AggregationTest is Test {
             curvyAggregatorAlphaV2.protocolFeePerThousand(),
             fixture.protocolFeePerThousand
         );
-        assertEq(curvyAggregatorAlphaV2.gasFee(), fixture.gasFee);
         assertTrue(curvyAggregatorAlphaV2.validNotesRoot(fixture.notesRoot));
+        assertEq(
+            curvyAggregatorAlphaV2.commitmentFeeRoot(),
+            fixture.commitPendingNotesGasFeeRoot,
+            "commitment fee root pushed via vault"
+        );
     }
 
     function test_submitAggregationRequest() public {

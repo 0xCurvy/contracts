@@ -6,7 +6,7 @@ import { Vm } from "forge-std/Vm.sol";
 uint256 constant AGG_MAX_INPUTS = 2;
 uint256 constant AGG_MAX_OUTPUTS = 3;
 uint256 constant AGG_TREE_DEPTH = 30;
-uint256 constant AGG_PUBLIC_SIGNALS_LEN = 30;
+uint256 constant AGG_PUBLIC_SIGNALS_LEN = 31;
 
 string constant AGGREGATION_FIXTURE_PATH =
     "test/solidity/curvyAggregatorAlphaV2/fixtures/aggregation.fixtures.json";
@@ -17,6 +17,9 @@ library AggregationFixtures {
     struct Input {
         uint256 protocolFeePerThousand;
         uint256 gasFee;
+        uint256 tokenId;
+        uint256[] commitmentGasCosts;
+        uint256 commitPendingNotesGasFeeRoot;
         uint256[2] feeNotePublicKey;
         uint256 notesRoot;
         uint256[AGG_MAX_INPUTS] inputNoteIds;
@@ -38,6 +41,9 @@ library AggregationFixtures {
         i.feeNotePublicKey = [feePk[0], feePk[1]];
 
         i.notesRoot = vm.parseJsonUint(j, ".notesRoot");
+        i.tokenId = vm.parseJsonUint(j, ".tokenId");
+        i.commitPendingNotesGasFeeRoot = vm.parseJsonUint(j, ".commitPendingNotesGasFeeRoot");
+        i.commitmentGasCosts = vm.parseJsonUintArray(j, ".commitmentGasCosts");
 
         uint256[] memory inIds = vm.parseJsonUintArray(j, ".inputNoteIds");
         require(inIds.length == AGG_MAX_INPUTS, "AggFixture: inputNoteIds length");

@@ -12,8 +12,10 @@ interface ICurvyVault {
     event TokenDeregistered(address tokenAddress, uint256 tokenId);
     event FeeChange(CurvyTypes.FeeUpdate feeUpdate);
     event CurvyAggregatorAddressChange(address curvyAggregator);
-    // audit(operator/authority): fees now accumulate at _feeCollectorAddress instead of owner()
     event FeeCollectorAddressChange(address indexed feeCollectorAddress);
+
+    event WithdrawalGasCostsUpdated(uint256[] tokenIds, uint256[] costs);
+    event CommitmentGasCostsUpdated(uint256[] tokenIds, uint256[] costs, uint256 root);
 
     //#endregion
 
@@ -27,22 +29,22 @@ interface ICurvyVault {
     error ETHTransferFailed();
     error ERC20TransferFailed();
     error WithdrawalFeeNotSet();
-    // audit(2026-Q1): Collecting zero fees
     error NoFeesToCollect();
-    // audit(2026-Q1): EOA as tokenAddress
     error NotAContract();
-    // audit(2026-Q1): Deregister token does not check vault balance
     error TokenHasOutstandingBalance();
-    // audit(2026-Q1): No upper limit for fee
     error FeeTooHigh();
-    // audit(operator/authority): fee collector address cannot be zero
     error InvalidFeeCollectorAddress();
+    error GasCostLengthMismatch();
+    error InvalidGasFeeRoot();
+    error UnknownGasFeeRoot();
 
     //#endregion
 
     //#region Public functions
 
-    function withdraw(uint256 tokenId, address to, uint256 amount) external;
+    /// @param gasFeeRecipient EOA that receives the per-token withdrawal gas reimbursement
+    ///        (the relayer / `msg.sender` of the aggregator's submitWithdrawalRequest).
+    function withdraw(uint256 tokenId, address to, uint256 amount, address gasFeeRecipient) external;
     function deposit(address tokenAddress, address to, uint256 amount) external payable;
     function deregisterToken(address tokenAddress) external;
 
@@ -54,6 +56,7 @@ interface ICurvyVault {
 
     function depositFee() external view returns (uint96);
     function withdrawalFee() external view returns (uint96);
+    function commitmentGasCost(uint256 tokenId) external view returns (uint256);
 
     //#endregion
 }

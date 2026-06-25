@@ -9,10 +9,10 @@ import {
 } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {
     CurvyAggregatorAlphaV2
-} from "../../../contracts/aggregator-beta/CurvyAggregatorAlphaV2.sol";
+} from "../../../src/v2/aggregator-alpha/CurvyAggregatorAlphaV2.sol";
 import {
     CurvyPendingNotesCommitmentVerifier
-} from "../../../contracts/aggregator-beta/verifiers/CurvyPendingNotesCommitmentVerifier.sol";
+} from "../../../src/v2/aggregator-alpha/verifiers/CurvyPendingNotesCommitmentVerifier.sol";
 import {
     BATCH_SIZE,
     TREE_DEPTH,
@@ -20,7 +20,7 @@ import {
 } from "./fixtures/pendingNotesCommitment.fixtures.sol";
 import {
     ICurvyAggregatorAlpha
-} from "../../../contracts/aggregator-beta/ICurvyAggregatorAlpha.sol";
+} from "../../../src/v2/aggregator-alpha/ICurvyAggregatorAlpha.sol";
 
 contract PendingNotesCommitmentTest is Test {
     using stdStorage for StdStorage;

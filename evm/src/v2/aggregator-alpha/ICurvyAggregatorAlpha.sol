@@ -39,6 +39,9 @@ interface ICurvyAggregatorAlpha {
     error UnsupportedAggregationConfig();
     error UnsupportedWithdrawalConfig();
     error InvalidProtocolFee();
+    error NotCurvyVault();
+    error InvalidGasFeeRoot();
+    error UnknownGasFeeRoot();
 
     //#endregion
 
@@ -54,10 +57,17 @@ interface ICurvyAggregatorAlpha {
     );
     event CommittedNotes(uint256 indexed batchIndex, uint256[] noteIds);
     event CommittedNullifiers(uint256 indexed batchIndex, uint256[] nullifiers);
+    /// @dev Emitted when the vault pushes a new commitment gas-fee root. The full per-token table
+    ///      is emitted by the vault's `CommitmentGasCostsUpdated` (reconstructed off-chain via
+    ///      `CurvyVaultV2.latestCommitmentGasCostUpdateBlock`).
+    event CommitmentGasFeeRootUpdated(uint256 root);
 
     //#endregion
 
     //#region Public functions
+
+    function setCommitmentGasFeeRoot(uint256 root) external;
+    function GAS_TREE_DEPTH() external view returns(uint256);
 
     /// @notice Schedule a deposit-sourced note for inclusion.
     function autoShield(CurvyTypes.Note memory note) external payable;
@@ -88,7 +98,9 @@ interface ICurvyAggregatorAlpha {
     ///                                      ephemeralKey[0], ephemeralKey[1], viewTag)
     ///   [maxInputs+24]                    notesRoot
     ///   [maxInputs+25]                    protocolFeePerThousand
-    ///   [maxInputs+26]                    gasFee
+    ///   [maxInputs+26]                    commitPendingNotesGasFeeRoot (per-token gas-fee tree root;
+    ///                                     replaced the old plaintext `gasFee` in this slot — the
+    ///                                     circuit proves the hidden token's cost against it)
     ///   [maxInputs+27..maxInputs+28]      feeNotePublicKey[0..1]
     function submitAggregationRequest(
         uint256 maxInputs,
@@ -106,8 +118,8 @@ interface ICurvyAggregatorAlpha {
     ///   [maxInputs+1]                     notesRoot
     ///   [maxInputs+2]                     destinationAddress
     ///   [maxInputs+3]                     tokenId
-    /// Fees are taken on-contract: usedGasFee = stored `gasFee`,
-    /// protocolFeeAmount = withdrawnAmount * protocolFeePerThousand / 1000.
+    /// Fees are taken on-contract: usedGasFee = withdrawalGasCost[tokenId] (per-token; tokenId is
+    /// public here), protocolFeeAmount = withdrawnAmount * protocolFeePerThousand / 1000.
     function submitWithdrawalRequest(
         uint256 maxInputs,
         uint256[2] memory proof_a,
