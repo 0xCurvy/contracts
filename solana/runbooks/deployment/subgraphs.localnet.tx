@@ -1,0 +1,90 @@
+
+action "curvy_portal_authority_updated" "svm::deploy_subgraph" {
+    program_id = action.deploy_curvy_portal.program_id
+    program_idl = action.deploy_curvy_portal.program_idl
+    block_height = 0 // action.deploy_curvy_portal.block_height
+    event {
+        name = "AuthorityUpdated"
+    }
+}
+
+action "curvy_portal_operator_updated" "svm::deploy_subgraph" {
+    program_id = action.deploy_curvy_portal.program_id
+    program_idl = action.deploy_curvy_portal.program_idl
+    block_height = 0 // action.deploy_curvy_portal.block_height
+    event {
+        name = "OperatorUpdated"
+    }
+}
+
+action "curvy_portal_pause_toggled" "svm::deploy_subgraph" {
+    program_id = action.deploy_curvy_portal.program_id
+    program_idl = action.deploy_curvy_portal.program_idl
+    block_height = 0 // action.deploy_curvy_portal.block_height
+    event {
+        name = "PauseToggled"
+    }
+}
+
+action "curvy_portal_portal_bridged_sol" "svm::deploy_subgraph" {
+    program_id = action.deploy_curvy_portal.program_id
+    program_idl = action.deploy_curvy_portal.program_idl
+    block_height = 0 // action.deploy_curvy_portal.block_height
+    event {
+        name = "PortalBridgedSol"
+    }
+}
+
+action "curvy_portal_portal_bridged_spl" "svm::deploy_subgraph" {
+    program_id = action.deploy_curvy_portal.program_id
+    program_idl = action.deploy_curvy_portal.program_idl
+    block_height = 0 // action.deploy_curvy_portal.block_height
+    event {
+        name = "PortalBridgedSpl"
+    }
+}
+
+action "curvy_portal_portal_config_initialized" "svm::deploy_subgraph" {
+    program_id = action.deploy_curvy_portal.program_id
+    program_idl = action.deploy_curvy_portal.program_idl
+    block_height = 0 // action.deploy_curvy_portal.block_height
+    event {
+        name = "PortalConfigInitialized"
+    }
+}
+
+action "curvy_portal_portal_recovered_sol" "svm::deploy_subgraph" {
+    program_id = action.deploy_curvy_portal.program_id
+    program_idl = action.deploy_curvy_portal.program_idl
+    block_height = 0 // action.deploy_curvy_portal.block_height
+    event {
+        name = "PortalRecoveredSol"
+    }
+}
+
+action "curvy_portal_portal_recovered_spl" "svm::deploy_subgraph" {
+    program_id = action.deploy_curvy_portal.program_id
+    program_idl = action.deploy_curvy_portal.program_idl
+    block_height = 0 // action.deploy_curvy_portal.block_height
+    event {
+        name = "PortalRecoveredSpl"
+    }
+}
+
+action "curvy_portal_stealth_sol_vault_prepared" "svm::deploy_subgraph" {
+    program_id = action.deploy_curvy_portal.program_id
+    program_idl = action.deploy_curvy_portal.program_idl
+    block_height = 0 // action.deploy_curvy_portal.block_height
+    event {
+        name = "StealthSolVaultPrepared"
+    }
+}
+
+action "curvy_portal_stealth_spl_ata_prepared" "svm::deploy_subgraph" {
+    program_id = action.deploy_curvy_portal.program_id
+    program_idl = action.deploy_curvy_portal.program_idl
+    block_height = 0 // action.deploy_curvy_portal.block_height
+    event {
+        name = "StealthSplAtaPrepared"
+    }
+}
