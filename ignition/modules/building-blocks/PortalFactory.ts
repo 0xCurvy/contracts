@@ -1,17 +1,25 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { encodeDeployData } from "viem";
-import artifact from "../../../../artifacts/src/v2/portal/PortalFactory.sol/PortalFactory.json";
-import { getAddressParameter, getEnvironmentParameter } from "../../utils/parameters";
+import artifact from "../../../artifacts/src/v2/portal/PortalFactory.sol/PortalFactory.json";
+import { getAddressParameter, getEnvironmentParameter } from "../utils/parameters";
 
 /**
- * V2 PortalFactory deploy. Same ICreateX + CREATE2 flow as the audited V1
- * module, but the underlying `PortalFactory.sol` now deploys EIP-1167 minimal
- * proxies (a `Portal` and `SolanaPortal` impl are constructed inside the
- * factory ctor and become clone templates). Different bytecode → different
- * CREATE2 address than the V1 factory, even with the same salt.
+ * V2 PortalFactory building block — deployed deterministically via ICreateX
+ * `deployCreate2` from the per-environment `create2_salt` + `owner`. The V2
+ * `PortalFactory.sol` constructs `Portal` and `SolanaPortal` impls in its ctor
+ * and uses them as EIP-1167 minimal-proxy clone templates.
  *
- * Module name and future IDs are distinct from V1's so this can be appended
- * to the same `--deployment-id` journal without reconciliation collisions.
+ * This is the factory used by the local devenv stack (and any greenfield
+ * deploy). Its deployed-address key `PortalFactory#PortalFactory` is consumed
+ * by `packages/devenv` (mock-server, add-localnet, tests) and the contracts
+ * package tests — DO NOT rename the module or the final `contractAt` id.
+ *
+ * NOTE: the module id `"PortalFactory"` is intentionally shared with the frozen
+ * `legacy/PortalFactory.ts` (the audited *V1* factory). They never appear in the
+ * same deployment journal — this V2 block runs under `local_anvil`/greenfield
+ * ids, while the legacy V1 block only reconciles the production/staging journals.
+ * The production V2 factory is a separate module (`deployments/PortalFactory.ts`,
+ * id `PortalFactoryV2`).
  */
 export default buildModule("PortalFactory", (m) => {
   const ownerAddress = getEnvironmentParameter<`0x${string}`>("owner");

@@ -1,8 +1,8 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { encodeDeployData } from "viem";
-import artifact from "../../../../artifacts/src/v1/portal/v1/PortalFactory.sol/PortalFactory.json";
+import artifact from "../../../artifacts/src/v1/portal/v1/PortalFactory.sol/PortalFactory.json";
 // audit(2026-Q1): Moving constant to JSON
-import { getAddressParameter, getEnvironmentParameter } from "../../utils/parameters";
+import { getAddressParameter, getEnvironmentParameter } from "../utils/parameters";
 
 export default buildModule("PortalFactory", (m) => {
   const ownerAddress = getEnvironmentParameter<`0x${string}`>("owner");

@@ -1,5 +1,5 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import { getAddressParameter } from "../utils/parameters";
+import { getAddressParameter } from "../../utils/parameters";
 import PortalFactoryV2 from "./PortalFactory";
 
 export default buildModule("DeploymentV2", (m) => {

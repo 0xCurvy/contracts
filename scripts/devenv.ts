@@ -62,7 +62,7 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
           "local_anvil",
           "--network",
           "anvil",
-          "./ignition/modules/dev/v2/Devenv.ts",
+          "./ignition/modules/deployments/dev/Devenv.ts",
         ],
         {
           stdio: "inherit",

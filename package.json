@@ -14,7 +14,10 @@
     "deploy:staging": "ENVIRONMENT=staging hardhat run scripts/deploy.ts",
     "deploy:production": "ENVIRONMENT=production hardhat run scripts/deploy.ts",
     "update-aggregator:staging": "ENVIRONMENT=staging hardhat run scripts/update-aggregator.ts",
-    "update-aggregator:production": "ENVIRONMENT=production hardhat run scripts/update-aggregator.ts"
+    "update-aggregator:production": "ENVIRONMENT=production hardhat run scripts/update-aggregator.ts",
+    "deploy-v2:staging": "ENVIRONMENT=staging hardhat run scripts/deploy-v2.ts",
+    "deploy-v2:production": "ENVIRONMENT=production hardhat run scripts/deploy-v2.ts",
+    "register-resolver": "hardhat run scripts/register-resolver.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.0.3",

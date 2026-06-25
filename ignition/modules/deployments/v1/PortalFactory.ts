@@ -1,7 +1,7 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { encodeDeployData } from "viem";
-import artifact from "../../../artifacts/src/v2/portal/PortalFactory.sol/PortalFactory.json";
-import { getAddressParameter, getEnvironmentParameter } from "../utils/parameters";
+import artifact from "../../../../artifacts/src/v2/portal/PortalFactory.sol/PortalFactory.json";
+import { getAddressParameter, getEnvironmentParameter } from "../../utils/parameters";
 
 /**
  * V2 PortalFactory deploy. Same ICreateX + CREATE2 flow as the audited V1

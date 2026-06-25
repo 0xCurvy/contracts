@@ -1,11 +1,11 @@
-import fs from "node:fs";
+// import fs from "node:fs";
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { labelhash, namehash } from "viem";
-import PortalFactory from "./PortalFactory";
+import CurvyAggregator from "../../building-blocks/CurvyAggregator";
+import CurvyVault from "../../building-blocks/CurvyVault";
+import PortalFactory from "../../building-blocks/PortalFactory";
 // audit(2026-Q1): No Validation of Address Format - use validated address parameter helper
-import { getAddressParameter } from "../utils/parameters";
-import CurvyAggregatorAlpha from "./CurvyAggregatorAlpha";
-import CurvyVault from "./CurvyVault";
+import { getAddressParameter } from "../../utils/parameters";
 
 const DEPOSIT_AMOUNT = 1000n * 10n ** 18n;
 
@@ -14,27 +14,21 @@ export default buildModule("Devenv", (m) => {
   // (MainDeployment.ts is the V1 launch on existing proxies — not for local
   // dev where there are no pre-existing proxies. The building blocks below
   // give us the same end state as a beta-style fresh deploy.)
-  const { curvyAggregatorAlpha, proxy: curvyAggregatorAlphaProxy } = m.useModule(CurvyAggregatorAlpha);
+  const { curvyAggregator, proxy: curvyAggregatorProxy } = m.useModule(CurvyAggregator);
   const { curvyVault, proxy: curvyVaultProxy } = m.useModule(CurvyVault);
   const { portalFactory } = m.useModule(PortalFactory);
 
   // Wire vault to aggregator
-  const setVaultAggregator = m.call(curvyVault, "setCurvyAggregatorAddress", [curvyAggregatorAlpha]);
+  const setVaultAggregator = m.call(curvyVault, "setCurvyAggregatorAddress", [curvyAggregator]);
 
   // Wire aggregator to vault + portal factory (verifiers were already set by CurvyAggregatorAlpha module)
   const wireAggregator = m.call(
-    curvyAggregatorAlpha,
+    curvyAggregator,
     "updateConfig",
     [
       {
-        insertionVerifier: "0x0000000000000000000000000000000000000000",
-        aggregationVerifier: "0x0000000000000000000000000000000000000000",
-        withdrawVerifier: "0x0000000000000000000000000000000000000000",
         curvyVault: curvyVaultProxy,
         portalFactory: portalFactory,
-        maxDeposits: 0n,
-        maxAggregations: 0n,
-        maxWithdrawals: 0n,
       },
     ],
     { id: "Aggregator_WireVaultAndFactory", after: [setVaultAggregator] },
@@ -43,7 +37,7 @@ export default buildModule("Devenv", (m) => {
   // Wire portal factory to vault, aggregator, and the network's LiFi diamond
   // audit(2026-Q1): No Validation of Address Format - validates 0x-prefixed 20-byte hex
   const lifiDiamondAddress = getAddressParameter("lifiDiamondAddress", "network");
-  m.call(portalFactory, "updateConfig", [curvyVaultProxy, curvyAggregatorAlphaProxy, lifiDiamondAddress], {
+  m.call(portalFactory, "updateConfig", [curvyVaultProxy, curvyAggregatorProxy, lifiDiamondAddress], {
     id: "PortalFactory_Wire",
     after: [wireAggregator],
   });
@@ -100,16 +94,16 @@ export default buildModule("Devenv", (m) => {
     },
   );
 
-  const addresses = JSON.parse(fs.readFileSync("../devenv/addresses.json", "utf-8"));
-  for (const userAddresses of addresses) {
-    // First address gets ETH
-    m.send(`Send_ETH_${userAddresses[0]}`, userAddresses[0], DEPOSIT_AMOUNT, undefined, { from: deployer });
+  // const addresses = JSON.parse(fs.readFileSync("../../devenv/addresses.json", "utf-8"));
+  // for (const userAddresses of addresses) {
+  //   // First address gets ETH
+  //   m.send(`Send_ETH_${userAddresses[0]}`, userAddresses[0], DEPOSIT_AMOUNT, undefined, { from: deployer });
 
-    // Second just gets mock ERC20
-    m.call(erc20Mock, "mockMint", [userAddresses[1], DEPOSIT_AMOUNT], { id: `Mint_ERC20_${userAddresses[1]}` });
+  //   // Second just gets mock ERC20
+  //   m.call(erc20Mock, "mockMint", [userAddresses[1], DEPOSIT_AMOUNT], { id: `Mint_ERC20_${userAddresses[1]}` });
 
-    // Third gets nothing
-  }
+  //   // Third gets nothing
+  // }
 
   m.call(curvyVault, "registerToken", [erc20Mock], { id: "Register_MockERC20" });
 

@@ -35,15 +35,16 @@ async function main() {
     const legacyByEnv = getNetworkParameter<LegacyProxiesByEnv>("legacyProxies", networkName);
     const legacy = legacyByEnv[environment];
     if (!legacy) {
-      throw new Error(
-        `chain '${networkName}' is missing legacyProxies.${environment} in network-parameters.json`,
-      );
+      throw new Error(`chain '${networkName}' is missing legacyProxies.${environment} in network-parameters.json`);
     }
 
     console.log(`==== ${deploymentId} aggregator verifiers update ====`);
 
+    // Key must match the module name run below (AggregatorVerifiers → useModule
+    // MainDeploymentV2). Previously keyed "MainDeployment", so the params never
+    // bound and MainDeploymentV2's required proxy params were undefined.
     const parameters = {
-      MainDeployment: {
+      MainDeploymentV2: {
         vaultProxyAddress: legacy.vaultProxy,
         aggregatorProxyAddress: legacy.aggregatorProxy,
         poseidonT4Address: legacy.poseidonT4,
@@ -65,7 +66,7 @@ async function main() {
         "--parameters",
         paramFile,
         "--verify",
-        "./ignition/modules/AggregatorVerifiers.ts",
+        "./ignition/modules/upgrades/AggregatorVerifiers.ts",
       ]);
     } finally {
       fs.unlinkSync(paramFile);

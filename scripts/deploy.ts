@@ -86,7 +86,7 @@ async function main() {
           "--parameters",
           paramFile,
           "--verify",
-          "./ignition/modules/current/MainDeployment.ts",
+          "./ignition/modules/deployments/v1/MainDeployment.ts",
         ]);
       } finally {
         fs.unlinkSync(paramFile);
@@ -112,7 +112,7 @@ async function main() {
         "--network",
         networkName,
         "--verify",
-        "./ignition/modules/current/Deployment.ts",
+        "./ignition/modules/deployments/v1/Deployment.ts",
       ]);
 
       console.log(`Manually verifying PortalFactory...`);
