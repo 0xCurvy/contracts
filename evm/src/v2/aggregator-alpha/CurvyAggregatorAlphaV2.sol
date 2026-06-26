@@ -62,8 +62,9 @@ contract CurvyAggregatorAlphaV2 is
     uint256 public currentNotesBatchIndex;
     uint256 public currentNullifiersBatchIndex;
 
-    /// @dev Rate-based protocol fee (parts per thousand), enforced inside aggregation circuit
-    ///      and on-contract for withdrawals.
+    /// @dev Rate-based protocol fee (parts per thousand), enforced ONLY inside the aggregation
+    ///      circuit (validated on-contract via FeeMismatch). Withdrawals do NOT use this — they
+    ///      charge the vault's `withdrawalFee` (basis points) in CurvyVaultV2.withdraw.
     uint256 public protocolFeePerThousand;
 
     ICurvyVault public curvyVault;
@@ -83,8 +84,6 @@ contract CurvyAggregatorAlphaV2 is
     /// @dev BabyJub public key (x, y) of the protocol fee-note recipient.
     uint256[2] public feeNotePublicKey;
 
-
-    uint256 public constant override GAS_TREE_DEPTH = 5;
 
     /// @dev Latest commitment gas-fee root (most recently set); reference/SDK convenience.
     uint256 public commitmentFeeRoot;
@@ -215,7 +214,10 @@ contract CurvyAggregatorAlphaV2 is
 
         curvyVault.deposit{ value: msg.value }(tokenAddress, address(this), note.amount);
 
-        uint256 feeAmount = (note.amount * curvyVault.depositFee()) / 10000 + curvyVault.commitmentGasCost(note.token);
+        CurvyTypes.GasFees memory tokenGasFees = curvyVault.perTokenGasFees(note.token);
+        uint256 gasFees = tokenGasFees.portalDeployment + tokenGasFees.pendingNoteCommitment;
+
+        uint256 feeAmount = (note.amount * curvyVault.depositFee()) / 10000 + gasFees;
         uint256 netAmount = note.amount - feeAmount;
         uint256 noteId = PoseidonT4.hash([note.ownerHash, netAmount, note.token]);
 

@@ -4,6 +4,7 @@ pragma solidity ^0.8.10;
 import {CurvyTypes} from "../utils/Types.sol";
 
 interface ICurvyVault {
+
     //#region Events
 
     event Deposit(address indexed tokenAddress, address indexed to, uint256 amount);
@@ -15,7 +16,7 @@ interface ICurvyVault {
     event FeeCollectorAddressChange(address indexed feeCollectorAddress);
 
     event WithdrawalGasCostsUpdated(uint256[] tokenIds, uint256[] costs);
-    event CommitmentGasCostsUpdated(uint256[] tokenIds, uint256[] costs, uint256 root);
+    event CommitmentGasCostsUpdated(CurvyTypes.GasFees[] gasFees, uint256 root);
 
     //#endregion
 
@@ -34,7 +35,7 @@ interface ICurvyVault {
     error TokenHasOutstandingBalance();
     error FeeTooHigh();
     error InvalidFeeCollectorAddress();
-    error GasCostLengthMismatch();
+    error GasFeesLengthMismatch();
     error InvalidGasFeeRoot();
     error UnknownGasFeeRoot();
 
@@ -56,7 +57,7 @@ interface ICurvyVault {
 
     function depositFee() external view returns (uint96);
     function withdrawalFee() external view returns (uint96);
-    function commitmentGasCost(uint256 tokenId) external view returns (uint256);
+    function perTokenGasFees(uint256 tokenId) external view returns (CurvyTypes.GasFees memory fees);
 
     //#endregion
 }

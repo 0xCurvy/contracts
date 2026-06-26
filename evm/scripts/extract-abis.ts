@@ -7,7 +7,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const artifactsDir = join(__dirname, "../artifacts/");
-const abiDir = join(process.cwd(), "../sdk/src/contracts/evm/abi/");
+// SDK ABI directory. Resolve from __dirname (not process.cwd()) so it's invariant
+// to where the script is invoked from. After the packages reorg the SDK moved to
+// `packages/@0xcurvy/sdk`; this path is `<repo>/packages/@0xcurvy/sdk/...`
+// (scripts → evm → contracts → packages → @0xcurvy/sdk).
+const abiDir = join(__dirname, "../../../@0xcurvy/sdk/src/contracts/evm/abi/");
 
 /**
  * Deployed contracts whose ABIs ship in the SDK. Artifact paths are explicit
@@ -20,6 +24,15 @@ const exports: { artifact: string; tsFile: string; varName: string }[] = [
     artifact: "src/v2/aggregator-alpha/CurvyAggregatorAlphaV2.sol/CurvyAggregatorAlphaV2.json",
     tsFile: "aggregator-alpha-v2",
     varName: "aggregatorAlphaV2Abi",
+  },
+  // The v3 stack (SDK actions, portal-broadcaster, devenv deploy) imports the vault
+  // ABI as `vaultV2Abi` from `vault-v2.ts`; the legacy backend still imports `vaultAbi`
+  // from `vault.ts`. Both are the CurvyVaultV2 ABI — emit both from the one artifact so
+  // they stay in lockstep (drop the `vault`/`vaultAbi` entry once the legacy backend is gone).
+  {
+    artifact: "src/v2/vault/CurvyVaultV2.sol/CurvyVaultV2.json",
+    tsFile: "vault-v2",
+    varName: "vaultV2Abi",
   },
   {
     artifact: "src/v2/vault/CurvyVaultV2.sol/CurvyVaultV2.json",

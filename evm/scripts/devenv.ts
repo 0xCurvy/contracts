@@ -1,6 +1,66 @@
 import { spawn } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { vaultV2Abi } from "@0xcurvy/curvy-sdk";
+import { GAS_FEE_TREE_DEPTH, MerkleTree } from "@0xcurvy/curvy-sdk/proving";
 import hre from "hardhat";
-import { parseEther } from "viem";
+import { type Hex, parseEther } from "viem";
+
+const DEPLOYED_ADDRESSES_PATH = "./ignition/deployments/local_anvil/deployed_addresses.json";
+
+/**
+ * Initialise the full per-token `GasFees` table on the vault and push the matching commitment
+ * gas-fee tree root to the aggregator (via the vault, which also emits the
+ * `CommitmentGasCostsUpdated(GasFees[], root)` event the SDK reconstructs the table from).
+ *
+ * Each `GasFees` entry has three legs: `portalDeployment` + `pendingNoteCommitment` (both
+ * deducted on DEPOSIT) and `withdrawal` (paid to the relayer EOA on WITHDRAWAL). Aggregation
+ * commits ONLY the `pendingNoteCommitment` leg, so the aggregator's `commitmentFeeRoot` is the
+ * depth-`GAS_FEE_TREE_DEPTH` tree over the per-token `pendingNoteCommitment` values — the SDK
+ * reconstructs the same tree (fetchAggregatorFees), and the aggregator reverts
+ * `UnknownGasFeeRoot()` if it doesn't match. The table MUST be the full 2^depth leaf set,
+ * sorted by ascending tokenId (the vault enforces this). The values below are dev placeholders
+ * for tokens 0 (ETH) and 1 (ERC20) — adjust as needed.
+ */
+async function initPerTokenGasFees(
+  // biome-ignore lint/suspicious/noExplicitAny: hardhat-viem client types aren't worth importing here
+  deployer: any,
+  // biome-ignore lint/suspicious/noExplicitAny: hardhat-viem client types aren't worth importing here
+  publicClient: any,
+): Promise<bigint> {
+  const addresses = JSON.parse(readFileSync(DEPLOYED_ADDRESSES_PATH, "utf8")) as Record<string, string>;
+  const vault = addresses["CurvyVault#ERC1967Proxy"] as Hex | undefined;
+  if (!vault) throw new Error(`vault proxy address missing from ${DEPLOYED_ADDRESSES_PATH}`);
+
+  const leafCount = 1 << GAS_FEE_TREE_DEPTH; // 2^5 = 32 (full table)
+  // Per-token commitment-leg values (also the gas-fee tree leaves). Dev placeholders.
+  const commitmentLeaves = new Array<bigint>(leafCount).fill(0n);
+  commitmentLeaves[0] = 1n * 10n ** 17n; // 0.1 ETH — token 0 (ETH)
+  commitmentLeaves[1] = 2n * 10n ** 17n; // 0.2 ETH — token 1 (ERC20)
+
+  // Full GasFees table, one entry per leaf, ASCENDING tokenId (vault requires sorted/unique).
+  const gasFees = commitmentLeaves.map((commitment, i) => ({
+    tokenId: BigInt(i),
+    portalDeployment: i <= 1 ? 5n * 10n ** 16n : 0n, // 0.05 ETH (deposit-only) for active tokens
+    pendingNoteCommitment: commitment,
+    withdrawal: i <= 1 ? 5n * 10n ** 16n : 0n, // 0.05 ETH (relayer reimbursement) for active tokens
+  }));
+
+  // commitmentFeeRoot commits the COMMITMENT leg only — compute it exactly as the SDK does
+  // (fetchAggregatorFees / buildAggregateRequest) so the aggregation proof's root matches.
+  const root = MerkleTree.fromOrderedLeaves({ depth: GAS_FEE_TREE_DEPTH }, commitmentLeaves).root();
+
+  console.log(`Setting per-token gas fees + commitment root on vault ${vault}: ${root}`);
+  const hash = await deployer.writeContract({
+    address: vault,
+    abi: vaultV2Abi,
+    functionName: "setPerTokenGasFees",
+    args: [gasFees, root],
+  });
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  if (receipt.status !== "success") throw new Error(`setPerTokenGasFees reverted on-chain: ${hash}`);
+  console.log(`Per-token gas fees set: ${hash} (gasUsed: ${receipt.gasUsed})`);
+  return receipt.gasUsed as bigint;
+}
 
 const shellSettings: { shell?: boolean } = process.platform === "win32" ? { shell: true } : {};
 const pnpmCmd = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
@@ -73,6 +133,16 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
 
       deploy.on("close", async (code) => {
         if (code === 0) {
+          // Initialise the on-chain per-token gas fees + commitment root (anvil is still alive,
+          // so this lands in the dumped state that `start:anvil` reloads). Must precede the dump.
+          try {
+            await initPerTokenGasFees(sender, publicClient);
+          } catch (err) {
+            console.error("initPerTokenGasFees failed:", err);
+            anvil.kill("SIGTERM");
+            process.exit(1);
+          }
+
           console.log("Extracting deployed ABIs into SDK");
           await run(pnpmCmd, ["extract-abis"]).catch((err) => console.error("extract-abis failed:", err));
         }

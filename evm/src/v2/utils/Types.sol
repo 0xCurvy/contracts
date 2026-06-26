@@ -27,4 +27,11 @@ library CurvyTypes {
         uint96 depositFee;
         uint96 withdrawalFee;
     }
+
+    struct GasFees {
+        uint256 tokenId;
+        uint256 portalDeployment;
+        uint256 pendingNoteCommitment;
+        uint256 withdrawal;
+    }
 }

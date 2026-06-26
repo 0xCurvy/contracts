@@ -67,7 +67,6 @@ interface ICurvyAggregatorAlpha {
     //#region Public functions
 
     function setCommitmentGasFeeRoot(uint256 root) external;
-    function GAS_TREE_DEPTH() external view returns(uint256);
 
     /// @notice Schedule a deposit-sourced note for inclusion.
     function autoShield(CurvyTypes.Note memory note) external payable;
@@ -118,8 +117,12 @@ interface ICurvyAggregatorAlpha {
     ///   [maxInputs+1]                     notesRoot
     ///   [maxInputs+2]                     destinationAddress
     ///   [maxInputs+3]                     tokenId
-    /// Fees are taken on-contract: usedGasFee = withdrawalGasCost[tokenId] (per-token; tokenId is
-    /// public here), protocolFeeAmount = withdrawnAmount * protocolFeePerThousand / 1000.
+    /// Fees are taken on-contract IN THE VAULT (CurvyVaultV2.withdraw): the per-token gas
+    /// `withdrawalGasCost[tokenId]` is transferred DIRECTLY to the submitting EOA
+    /// (gasFeeRecipient = msg.sender), and the protocol fee `withdrawnAmount * withdrawalFee /
+    /// 10000` accrues to the vault fee collector. NOTE: withdrawals use the vault's
+    /// `withdrawalFee` (basis points), NOT the aggregator's `protocolFeePerThousand` (that is
+    /// for aggregations only).
     function submitWithdrawalRequest(
         uint256 maxInputs,
         uint256[2] memory proof_a,

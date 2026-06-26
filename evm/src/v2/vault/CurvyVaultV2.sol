@@ -11,6 +11,8 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
+
+
 contract CurvyVaultV2 is
     ICurvyVault,
     Initializable,
@@ -49,9 +51,9 @@ contract CurvyVaultV2 is
     uint96 public depositFee;
     uint96 public withdrawalFee;
 
-    mapping(uint256 tokenId => uint256) public withdrawalGasCost;
-    uint256 public latestCommitmentGasCostUpdateBlock;
-    mapping(uint256 tokenId => uint256) public override commitmentGasCost;
+    uint256 public constant GAS_TREE_DEPTH = 5;
+    uint256 public gasFeeUpdateBlock;
+    mapping(uint256 tokenId => CurvyTypes.GasFees) internal _perTokenGasFees;
 
     address private _curvyAggregator;
 
@@ -162,45 +164,39 @@ contract CurvyVaultV2 is
         emit FeeChange(feeUpdate);
     }
 
+
     /// @notice Set the full per-token commitment gas-cost table and push the matching tree `root`
     ///         to the aggregator. The table MUST be complete (one cost per leaf of the depth-
     ///         GAS_TREE_DEPTH tree) so the single `CommitmentGasCostsUpdated` event emitted here is
     ///         self-sufficient: off-chain consumers reconstruct the whole leaf set from the event at
     ///         `latestCommitmentGasCostUpdateBlock` (no historical replay needed).
-    function setCommitmentGasFee(
-        uint256[] calldata tokenIds,
-        uint256[] calldata costs,
-        uint256 root
+    function setPerTokenGasFees(
+        CurvyTypes.GasFees[] calldata gasFees,
+        uint256 commitmentGasFeeRoot
     ) external onlyRole(AUTHORITY_ROLE) {
-        if (root == 0) revert InvalidGasFeeRoot();
-        uint256 n = costs.length;
-        if (n != tokenIds.length) revert GasCostLengthMismatch();
-        // Full table: exactly one cost per gas-fee-tree leaf (2^GAS_TREE_DEPTH).
-        if (n != (1 << ICurvyAggregatorAlpha(_curvyAggregator).GAS_TREE_DEPTH())) revert GasCostLengthMismatch();
+        if (commitmentGasFeeRoot == 0) revert InvalidGasFeeRoot();
+        uint256 n = gasFees.length;
 
-        // Direct storage writes from calldata — mappings cannot be copied via memory.
+        if (n != (1 << GAS_TREE_DEPTH)) revert GasFeesLengthMismatch();
+
+        uint256 prevTokenId;
         for (uint256 i = 0; i < n; ) {
-            commitmentGasCost[tokenIds[i]] = costs[i];
+            CurvyTypes.GasFees memory gasFee = gasFees[i];
+            uint256 tokenId = gasFee.tokenId;
+
+            if (i != 0 && tokenId <= prevTokenId) revert("Unsorted or duplicate tokenId");
+            prevTokenId = tokenId;
+
+            _perTokenGasFees[gasFees[i].tokenId] = gasFees[i];
             unchecked {
                 ++i;
             }
         }
 
-        ICurvyAggregatorAlpha(_curvyAggregator).setCommitmentGasFeeRoot(root);
+        ICurvyAggregatorAlpha(_curvyAggregator).setCommitmentGasFeeRoot(commitmentGasFeeRoot);
 
-        latestCommitmentGasCostUpdateBlock = block.number;
-        emit CommitmentGasCostsUpdated(tokenIds, costs, root);
-    }
-
-    function setWithdrawalGasFee(
-        uint256[] calldata tokenIds,
-        uint256[] calldata costs
-    ) external onlyRole(AUTHORITY_ROLE) {
-        if (tokenIds.length != costs.length) revert GasCostLengthMismatch();
-        for (uint256 i = 0; i < tokenIds.length; i += 1) {
-            withdrawalGasCost[tokenIds[i]] = costs[i];
-        }
-        emit WithdrawalGasCostsUpdated(tokenIds, costs);
+        gasFeeUpdateBlock = block.number;
+        emit CommitmentGasCostsUpdated(gasFees, commitmentGasFeeRoot);
     }
 
     function setCurvyAggregatorAddress(address curvyAggregator) external onlyRole(AUTHORITY_ROLE) {
@@ -241,6 +237,11 @@ contract CurvyVaultV2 is
 
     //#region Public functions
 
+    function perTokenGasFees(uint256 tokenId) external view override returns (CurvyTypes.GasFees memory fees)
+    {
+        return _perTokenGasFees[tokenId];
+    }
+
     function deposit(address tokenAddress, address to, uint256 amount) public payable onlyCurvyAggregator() {
         if (to == address(0x0)) revert InvalidRecipient();
 
@@ -260,16 +261,19 @@ contract CurvyVaultV2 is
             tokenId = ETH_ID;
         }
 
-        uint256 depositedAmount = amount - commitmentGasCost[tokenId];
+        CurvyTypes.GasFees memory tokenGasFees = _perTokenGasFees[tokenId];
+        uint256 gasFees = tokenGasFees.pendingNoteCommitment + tokenGasFees.portalDeployment;
+
+        uint256 depositedAmount = amount - gasFees;
         if (depositFee != 0) {
             uint256 feeAmount = (amount * depositFee) / FEE_DENOMINATOR;
             depositedAmount -= feeAmount;
 
             _balances[to][tokenId] += depositedAmount;
-            _balances[_feeCollectorAddress][tokenId] += feeAmount + commitmentGasCost[tokenId];
+            _balances[_feeCollectorAddress][tokenId] += feeAmount + gasFees;
         } else {
             _balances[to][tokenId] += depositedAmount;
-            _balances[_feeCollectorAddress][tokenId] +=  commitmentGasCost[tokenId];
+            _balances[_feeCollectorAddress][tokenId] +=  gasFees;
         }
 
         emit Deposit(tokenAddress, to, depositedAmount);
@@ -299,7 +303,7 @@ contract CurvyVaultV2 is
 
         // Per-token gas reimbursement is paid out to the relayer EOA (gasFeeRecipient), not
         // accrued to the fee collector. The proportional withdrawalFee above still accrues.
-        uint256 gasFee = withdrawalGasCost[tokenId];
+        uint256 gasFee = _perTokenGasFees[tokenId].withdrawal;
         amountAfterFees -= gasFee;
 
         // Withdraw the net to the destination and the gas reimbursement to the relayer.
