@@ -14,6 +14,7 @@ interface IPortal {
     error InvalidSignatureOrTamperedData();
     error BridgeCallFailed();
     error AlreadyInitialized();
+    error NoBalance();
 
     //#endregion
 
@@ -31,7 +32,17 @@ interface IPortal {
         address curvyVaultProxyAddress
     ) external;
 
-    function bridge(address lifiDiamondAddress, bytes calldata bridgeData, uint256 amount, address currency) external;
+    /// @dev `payable` so the operator (factory caller) can fund the LiFi native `msg.value`
+    /// for ERC20 bridges that charge a native fee — the portal forwards it through and never
+    /// needs an ETH balance of its own. `gasFee` (in `currency`) reimburses the operator for
+    /// that fronted ETH out of the portal's ERC20 balance.
+    function bridge(
+        address lifiDiamondAddress,
+        bytes calldata bridgeData,
+        uint256 amount,
+        address currency,
+        uint256 gasFee
+    ) external payable;
 
     /**
      * @notice Used by the user to recover funds from the Portal.

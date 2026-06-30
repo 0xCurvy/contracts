@@ -120,8 +120,9 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
         bytes calldata bridgeData,
         CurvyTypes.Note memory note,
         address currency,
-        address recovery
-    ) public onlyRole(OPERATOR_ROLE) {
+        address recovery,
+        uint256 gasFee
+    ) public payable onlyRole(OPERATOR_ROLE) {
         if (_lifiDiamondAddress == address(0)) {
             revert UnsupportedBridging();
         }
@@ -140,7 +141,8 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
         address portalAddress = Clones.cloneDeterministic(portalImpl, salt);
         IPortal(portalAddress).initialize(note.ownerHash, address(0), 0, recovery);
 
-        IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, note.amount, currency);
+        // Forward the operator-supplied native fee straight to the portal's LiFi call.
+        IPortal(portalAddress).bridge{value: msg.value}(_lifiDiamondAddress, bridgeData, note.amount, currency, gasFee);
 
         emit EntryBridgePortalDeployed(portalAddress, note.ownerHash, recovery, currency);
     }
@@ -151,8 +153,9 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
         address currency,
         address exitAddress,
         uint256 exitChainId,
-        address recovery
-    ) public onlyRole(OPERATOR_ROLE) {
+        address recovery,
+        uint256 gasFee
+    ) public payable onlyRole(OPERATOR_ROLE) {
         if (_lifiDiamondAddress == address(0)) {
             revert UnsupportedBridging();
         }
@@ -180,7 +183,7 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
         address portalAddress = Clones.cloneDeterministic(portalImpl, salt);
         IPortal(portalAddress).initialize(0, exitAddress, exitChainId, recovery);
 
-        IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, amount, currency);
+        IPortal(portalAddress).bridge{value: msg.value}(_lifiDiamondAddress, bridgeData, amount, currency, gasFee);
 
         emit ExitBridgePortalDeployed(portalAddress, exitAddress, exitChainId, recovery, currency);
     }
@@ -227,8 +230,9 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
         address currency,
         bytes32 exitAddress,
         uint256 exitChainId,
-        address recovery
-    ) public onlyRole(OPERATOR_ROLE) {
+        address recovery,
+        uint256 gasFee
+    ) public payable onlyRole(OPERATOR_ROLE) {
         if (_lifiDiamondAddress == address(0)) {
             revert UnsupportedBridging();
         }
@@ -247,7 +251,7 @@ contract PortalFactory is IPortalFactory, Ownable, AccessControl {
         SolanaPortal(portalAddress).initialize(exitAddress, exitChainId, recovery);
 
         // SolanaPortal exposes the same `bridge` selector as Portal; reuse the IPortal cast.
-        IPortal(portalAddress).bridge(_lifiDiamondAddress, bridgeData, amount, currency);
+        IPortal(portalAddress).bridge{value: msg.value}(_lifiDiamondAddress, bridgeData, amount, currency, gasFee);
 
         emit SolanaExitBridgePortalDeployed(portalAddress, exitAddress, exitChainId, recovery, currency);
     }

@@ -11,11 +11,8 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {
-    ICurvyPendingNotesCommitmentVerifier_5,
-    ICurvyAggregationVerifier_2_3,
-    ICurvyWithdrawalVerifier_2
-} from "./verifiers/ICurvyVerifiers.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+import { ICurvyPendingNotesCommitmentVerifier_5 } from "./verifiers/ICurvyVerifiers.sol";
 
 /**
  * @title CurvyAggregatorAlphaV2
@@ -39,7 +36,6 @@ contract CurvyAggregatorAlphaV2 is
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
     bytes32 public constant AUTHORITY_ROLE = keccak256("AUTHORITY_ROLE");
 
-    uint256 internal constant AGG_MAX_OUTPUTS = 3;
     uint256 internal constant TREE_DEPTH = 30;
     uint256 internal constant ENC_NOTE_SIGNALS = 5;
 
@@ -55,8 +51,7 @@ contract CurvyAggregatorAlphaV2 is
 
     mapping(uint256 noteId => NoteStatus) public noteStatus;
     mapping(uint256 root => bool) public validNotesRoot;
-    mapping(uint256 nullifier => bool) public aggregationNullifiers;
-    mapping(uint256 nullifier => bool) public withdrawalNullifiers;
+    mapping(uint256 nullifier => bool) public nullifiers;
 
     uint256 public currentNotesTreeRoot;
     uint256 public currentNotesBatchIndex;
@@ -83,7 +78,6 @@ contract CurvyAggregatorAlphaV2 is
 
     /// @dev BabyJub public key (x, y) of the protocol fee-note recipient.
     uint256[2] public feeNotePublicKey;
-
 
     /// @dev Latest commitment gas-fee root (most recently set); reference/SDK convenience.
     uint256 public commitmentFeeRoot;
@@ -158,43 +152,39 @@ contract CurvyAggregatorAlphaV2 is
 
     function setPendingNotesCommitmentVerifier(
         uint256 batchSize,
-        uint256 treeDepth,
         address verifier
     ) external onlyRole(AUTHORITY_ROLE) {
-        pendingNotesCommitmentVerifiersByConfig[_pendingNotesCommitmentVerifierKey(batchSize, treeDepth)] = verifier;
+        pendingNotesCommitmentVerifiersByConfig[_pendingNotesCommitmentVerifierKey(batchSize)] = verifier;
     }
 
     function setAggregationVerifier(
         uint256 maxInputs,
         uint256 maxOutputs,
-        uint256 treeDepth,
         address verifier
     ) external onlyRole(AUTHORITY_ROLE) {
-        aggregationVerifiersByConfig[_aggregationVerifierKey(maxInputs, maxOutputs, treeDepth)] = verifier;
+        aggregationVerifiersByConfig[_aggregationVerifierKey(maxInputs, maxOutputs)] = verifier;
     }
 
     function setWithdrawalVerifier(
         uint256 maxInputs,
-        uint256 treeDepth,
         address verifier
     ) external onlyRole(AUTHORITY_ROLE) {
-        withdrawalVerifiersByConfig[_withdrawalVerifierKey(maxInputs, treeDepth)] = verifier;
+        withdrawalVerifiersByConfig[_withdrawalVerifierKey(maxInputs)] = verifier;
     }
 
-    function _pendingNotesCommitmentVerifierKey(uint256 batchSize, uint256 treeDepth) private pure returns (bytes32) {
-        return keccak256(abi.encode("pendingNotesCommitment", batchSize, treeDepth));
+    function _pendingNotesCommitmentVerifierKey(uint256 batchSize) private pure returns (bytes32) {
+        return keccak256(abi.encode("pendingNotesCommitment", batchSize, TREE_DEPTH));
     }
 
     function _aggregationVerifierKey(
         uint256 maxInputs,
-        uint256 maxOutputs,
-        uint256 treeDepth
+        uint256 maxOutputs
     ) private pure returns (bytes32) {
-        return keccak256(abi.encode("aggregation", maxInputs, maxOutputs, treeDepth));
+        return keccak256(abi.encode("aggregation", maxInputs, maxOutputs, TREE_DEPTH));
     }
 
-    function _withdrawalVerifierKey(uint256 maxInputs, uint256 treeDepth) private pure returns (bytes32) {
-        return keccak256(abi.encode("withdrawal", maxInputs, treeDepth));
+    function _withdrawalVerifierKey(uint256 maxInputs) private pure returns (bytes32) {
+        return keccak256(abi.encode("withdrawal", maxInputs, TREE_DEPTH));
     }
 
     //#endregion
@@ -217,7 +207,7 @@ contract CurvyAggregatorAlphaV2 is
         CurvyTypes.GasFees memory tokenGasFees = curvyVault.perTokenGasFees(note.token);
         uint256 gasFees = tokenGasFees.portalDeployment + tokenGasFees.pendingNoteCommitment;
 
-        uint256 feeAmount = (note.amount * curvyVault.depositFee()) / 10000 + gasFees;
+        uint256 feeAmount = (note.amount * curvyVault.depositFee()) / 10_000 + gasFees;
         uint256 netAmount = note.amount - feeAmount;
         uint256 noteId = PoseidonT4.hash([note.ownerHash, netAmount, note.token]);
 
@@ -251,7 +241,6 @@ contract CurvyAggregatorAlphaV2 is
     /// @inheritdoc ICurvyAggregatorAlpha
     function commitPendingNotes(
         uint256 batchSize,
-        uint256 treeDepth,
         uint256[] memory noteIds,
         uint256 newNotesRoot,
         uint256[2] memory proof_a,
@@ -261,7 +250,7 @@ contract CurvyAggregatorAlphaV2 is
         if (noteIds.length != batchSize) revert NoteIdsLengthMismatch();
 
         address verifier = pendingNotesCommitmentVerifiersByConfig[
-            _pendingNotesCommitmentVerifierKey(batchSize, treeDepth)
+            _pendingNotesCommitmentVerifierKey(batchSize)
         ];
         if (verifier == address(0)) revert PendingNotesCommitmentVerifierNotConfigured();
 
@@ -306,49 +295,52 @@ contract CurvyAggregatorAlphaV2 is
     /// @inheritdoc ICurvyAggregatorAlpha
     function submitAggregationRequest(
         uint256 maxInputs,
+        uint256 maxOutputs,
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
         uint256[] memory publicSignals
     ) external override {
-        // Circuit now exposes fee-note id as the (maxOutputs+1)-th entry in outputNoteIds.
-        uint256 expectedLen = maxInputs + (AGG_MAX_OUTPUTS + 1) + (AGG_MAX_OUTPUTS + 1) * ENC_NOTE_SIGNALS + 5;
-        if (publicSignals.length != expectedLen) revert PublicSignalsLengthMismatch();
+        // outputNoteIds carry maxOutputs regular notes + 1 fee note; each note has ENC_NOTE_SIGNALS
+        // encrypted signals; the 5-word trailer is [notesRoot, feePerThousand, gasFeeRoot, feePk.x, feePk.y].
+        uint256 totalNotes = maxOutputs + 1;
+        uint256 trailerStart = maxInputs + totalNotes + totalNotes * ENC_NOTE_SIGNALS;
+        if (publicSignals.length != trailerStart + 5) revert PublicSignalsLengthMismatch();
 
-        address verifier = aggregationVerifiersByConfig[
-            _aggregationVerifierKey(maxInputs, AGG_MAX_OUTPUTS, TREE_DEPTH)
-        ];
+        // (maxInputs, maxOutputs) select the verifier; treeDepth is pinned to TREE_DEPTH inside the key.
+        address verifier = aggregationVerifiersByConfig[_aggregationVerifierKey(maxInputs, maxOutputs)];
         if (verifier == address(0)) revert AggregationVerifierNotConfigured();
-
-        uint256 trailerStart = maxInputs + (AGG_MAX_OUTPUTS + 1) + (AGG_MAX_OUTPUTS + 1) * ENC_NOTE_SIGNALS;
 
         if (!validNotesRoot[publicSignals[trailerStart]]) revert UnknownReferencedRoot();
         if (publicSignals[trailerStart + 1] != protocolFeePerThousand) revert FeeMismatch();
-
         if (commitmentFeeRoot != publicSignals[trailerStart + 2]) revert UnknownGasFeeRoot();
         if (publicSignals[trailerStart + 3] != feeNotePublicKey[0]) revert FeeNotePublicKeyMismatch();
         if (publicSignals[trailerStart + 4] != feeNotePublicKey[1]) revert FeeNotePublicKeyMismatch();
 
-        _verifyAggregation(maxInputs, verifier, proof_a, proof_b, proof_c, publicSignals);
+        if (!_verifyGroth16(verifier, proof_a, proof_b, proof_c, publicSignals)) revert InvalidProof();
 
-        uint256[] memory nullifiers = new uint256[](maxInputs);
+        uint256[] memory commitedNullifiers = new uint256[](maxInputs);
         for (uint256 i = 0; i < maxInputs; i += 1) {
             uint256 nf = publicSignals[i];
             if (nf == 0) continue;
-            if (aggregationNullifiers[nf] || withdrawalNullifiers[nf]) revert NullifierAlreadyRegistered();
-            aggregationNullifiers[nf] = true;
-            nullifiers[i] = nf;
+            if (nullifiers[nf]) revert NullifierAlreadyRegistered();
+            nullifiers[nf] = true;
+            commitedNullifiers[i] = nf;
         }
 
-        _processAndEmitAggregationOutputs(maxInputs, publicSignals);
+        _processAndEmitAggregationOutputs(maxInputs, maxOutputs, publicSignals);
 
         uint256 nullifierBatchIndex = currentNullifiersBatchIndex;
-        emit CommittedNullifiers(nullifierBatchIndex, nullifiers);
+        emit CommittedNullifiers(nullifierBatchIndex, commitedNullifiers);
         currentNullifiersBatchIndex = nullifierBatchIndex + 1;
     }
 
-    function _processAndEmitAggregationOutputs(uint256 maxInputs, uint256[] memory publicSignals) private {
-        uint256 totalNotes = AGG_MAX_OUTPUTS + 1;
+    function _processAndEmitAggregationOutputs(
+        uint256 maxInputs,
+        uint256 maxOutputs,
+        uint256[] memory publicSignals
+    ) private {
+        uint256 totalNotes = maxOutputs + 1;
         uint256[] memory noteIds = new uint256[](totalNotes);
         uint16[] memory viewTags = new uint16[](totalNotes);
         uint256[] memory tokens = new uint256[](totalNotes);
@@ -358,10 +350,10 @@ contract CurvyAggregatorAlphaV2 is
         ephemeralKeys[0] = new uint256[](totalNotes);
         ephemeralKeys[1] = new uint256[](totalNotes);
 
-        uint256 encBaseStart = maxInputs + (AGG_MAX_OUTPUTS + 1);
+        uint256 encBaseStart = maxInputs + totalNotes;
         for (uint256 i = 0; i < totalNotes; i += 1) {
             uint256 encBase = encBaseStart + i * ENC_NOTE_SIGNALS;
-            // outputNoteIds now contains AGG_MAX_OUTPUTS regular notes followed by the fee-note id.
+            // outputNoteIds contains maxOutputs regular notes followed by the fee-note id.
             uint256 noteId = publicSignals[maxInputs + i];
             if (noteId != 0) {
                 if (noteStatus[noteId] != NoteStatus.UNKNOWN) revert NoteAlreadyKnown();
@@ -378,22 +370,51 @@ contract CurvyAggregatorAlphaV2 is
         emit PendingNotes(noteIds, ephemeralKeys, viewTags, tokens, amounts, isPlaintext);
     }
 
-    function _verifyAggregation(
-        uint256 maxInputs,
+    /// @dev Config-agnostic Groth16 dispatch. A snarkjs verifier's `verifyProof` takes a
+    ///      FIXED-size `uint256[N]` whose `N` (and therefore the function selector) is baked
+    ///      in at circuit-compile time — so it cannot be reached through a typed interface
+    ///      with a dynamic `uint256[]` (different selector + ABI layout → the call reverts).
+    ///      We instead build the verifier's exact calldata by hand: selector for the N-sized
+    ///      signature, then the proof + signals packed inline (fixed-size array params carry
+    ///      no offset/length), and `staticcall` it. This supports ANY (maxInputs, maxOutputs)
+    ///      with one code path — registering a new verifier needs no change here.
+    ///      `publicSignals.length` is validated by the caller, so `N` matches the circuit.
+    function _verifyGroth16(
         address verifier,
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
-        uint256[] memory publicSignals
-    ) private view {
-        if (maxInputs == 2) {
-            uint256[31] memory pub;
-            for (uint256 i = 0; i < 31; i += 1) pub[i] = publicSignals[i];
-            if (!ICurvyAggregationVerifier_2_3(verifier).verifyProof(proof_a, proof_b, proof_c, pub))
-                revert InvalidProof();
-        } else {
-            revert UnsupportedAggregationConfig();
-        }
+        uint256[] memory signals
+    ) private view returns (bool) {
+        // Selector is parameterized by the signal count: verifyProof(...,uint256[N]).
+        bytes4 selector = bytes4(
+            keccak256(
+                abi.encodePacked(
+                    "verifyProof(uint256[2],uint256[2][2],uint256[2],uint256[",
+                    Strings.toString(signals.length),
+                    "])"
+                )
+            )
+        );
+
+        // Fixed-size array params are ABI-encoded inline (no offset/length word), and
+        // `abi.encodePacked` of a uint256[] lays each element down as one 32-byte word
+        // with no length prefix — exactly the verifier's expected calldata tail.
+        bytes memory payload = abi.encodePacked(
+            selector,
+            proof_a[0],
+            proof_a[1],
+            proof_b[0][0],
+            proof_b[0][1],
+            proof_b[1][0],
+            proof_b[1][1],
+            proof_c[0],
+            proof_c[1],
+            signals
+        );
+
+        (bool ok, bytes memory ret) = verifier.staticcall(payload);
+        return ok && ret.length == 32 && abi.decode(ret, (bool));
     }
 
     //#endregion
@@ -411,7 +432,7 @@ contract CurvyAggregatorAlphaV2 is
         uint256 expectedLen = 1 + maxInputs + 3;
         if (publicSignals.length != expectedLen) revert PublicSignalsLengthMismatch();
 
-        address verifier = withdrawalVerifiersByConfig[_withdrawalVerifierKey(maxInputs, TREE_DEPTH)];
+        address verifier = withdrawalVerifiersByConfig[_withdrawalVerifierKey(maxInputs)];
         if (verifier == address(0)) revert WithdrawalVerifierNotConfigured();
 
         uint256 withdrawnAmount = publicSignals[0];
@@ -421,19 +442,15 @@ contract CurvyAggregatorAlphaV2 is
 
         if (!validNotesRoot[notesRoot]) revert UnknownReferencedRoot();
 
-//        // Per-token withdrawal gas: tokenId is public here, so a plain mapping is safe.
-//        uint256 usedGasFee = withdrawalGasCost[tokenId];
-//        if (withdrawnAmount <= usedGasFee) revert NetAmountNonPositive();
+        if (!_verifyGroth16(verifier, proof_a, proof_b, proof_c, publicSignals)) revert InvalidWithdrawProof();
 
-        _verifyWithdrawal(maxInputs, verifier, proof_a, proof_b, proof_c, publicSignals);
-
-        uint256[] memory nullifiers = new uint256[](maxInputs);
+        uint256[] memory commitedNullifiers = new uint256[](maxInputs);
         for (uint256 i = 0; i < maxInputs; i += 1) {
             uint256 nf = publicSignals[1 + i];
             if (nf == 0) continue;
-            if (withdrawalNullifiers[nf] || aggregationNullifiers[nf]) revert NullifierAlreadyRegistered();
-            withdrawalNullifiers[nf] = true;
-            nullifiers[i] = nf;
+            if (nullifiers[nf]) revert NullifierAlreadyRegistered();
+            nullifiers[nf] = true;
+            commitedNullifiers[i] = nf;
         }
 
         // The vault sends the net to the destination and routes the per-token withdrawal gas
@@ -441,26 +458,8 @@ contract CurvyAggregatorAlphaV2 is
         curvyVault.withdraw(tokenId, address(uint160(destinationAddress)), withdrawnAmount, msg.sender);
 
         uint256 nullifierBatchIndex = currentNullifiersBatchIndex;
-        emit CommittedNullifiers(nullifierBatchIndex, nullifiers);
+        emit CommittedNullifiers(nullifierBatchIndex, commitedNullifiers);
         currentNullifiersBatchIndex = nullifierBatchIndex + 1;
-    }
-
-    function _verifyWithdrawal(
-        uint256 maxInputs,
-        address verifier,
-        uint256[2] memory proof_a,
-        uint256[2][2] memory proof_b,
-        uint256[2] memory proof_c,
-        uint256[] memory publicSignals
-    ) private view {
-        if (maxInputs == 2) {
-            uint256[6] memory pub;
-            for (uint256 i = 0; i < 6; i += 1) pub[i] = publicSignals[i];
-            if (!ICurvyWithdrawalVerifier_2(verifier).verifyProof(proof_a, proof_b, proof_c, pub))
-                revert InvalidWithdrawProof();
-        } else {
-            revert UnsupportedWithdrawalConfig();
-        }
     }
 
     //#endregion
@@ -483,20 +482,19 @@ contract CurvyAggregatorAlphaV2 is
         return currentNoteIndex;
     }
 
-    function getPendingNotesCommitmentVerifier(uint256 batchSize, uint256 treeDepth) external view returns (address) {
-        return pendingNotesCommitmentVerifiersByConfig[_pendingNotesCommitmentVerifierKey(batchSize, treeDepth)];
+    function getPendingNotesCommitmentVerifier(uint256 batchSize) external view returns (address) {
+        return pendingNotesCommitmentVerifiersByConfig[_pendingNotesCommitmentVerifierKey(batchSize)];
     }
 
     function getAggregationVerifier(
         uint256 maxInputs,
-        uint256 maxOutputs,
-        uint256 treeDepth
+        uint256 maxOutputs
     ) external view override returns (address) {
-        return aggregationVerifiersByConfig[_aggregationVerifierKey(maxInputs, maxOutputs, treeDepth)];
+        return aggregationVerifiersByConfig[_aggregationVerifierKey(maxInputs, maxOutputs)];
     }
 
-    function getWithdrawalVerifier(uint256 maxInputs, uint256 treeDepth) external view override returns (address) {
-        return withdrawalVerifiersByConfig[_withdrawalVerifierKey(maxInputs, treeDepth)];
+    function getWithdrawalVerifier(uint256 maxInputs) external view override returns (address) {
+        return withdrawalVerifiersByConfig[_withdrawalVerifierKey(maxInputs)];
     }
 
     //#endregion

@@ -18,6 +18,7 @@ contract SolanaPortal {
     error InsufficientBalanceForLiFiBridging();
     error BridgeCallFailed();
     error AlreadyInitialized();
+    error NoBalance();
 
     address private constant NATIVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
@@ -63,8 +64,9 @@ contract SolanaPortal {
         address lifiDiamondAddress,
         bytes calldata bridgeData,
         uint256 amount,
-        address currency
-    ) external onlyOnce {
+        address currency,
+        uint256 gasFee
+    ) external payable onlyOnce {
         if (currency != address(0) && currency != NATIVE_ETH) {
             IERC20 token = IERC20(currency);
 
@@ -72,8 +74,14 @@ contract SolanaPortal {
             if (balance < amount) revert InsufficientBalanceForLiFiBridging();
 
             token.forceApprove(lifiDiamondAddress, amount);
-            (bool success, bytes memory result) = lifiDiamondAddress.call(bridgeData);
+            // Operator-fronted native fee, forwarded through as msg.value (portal holds no ETH).
+            (bool success, bytes memory result) = lifiDiamondAddress.call{value: msg.value}(bridgeData);
             token.forceApprove(lifiDiamondAddress, 0);
+
+            // Reimburse the operator (in `currency`) for the fronted ETH; guarded against 0-transfers.
+            if (gasFee > 0) {
+                token.safeTransfer(msg.sender, gasFee);
+            }
 
             if (!success) {
                 if (result.length > 0) {
@@ -104,11 +112,21 @@ contract SolanaPortal {
         if (to == address(0)) revert InvalidRecoveryAddress();
         if (tokenAddress == NATIVE_ETH || tokenAddress == address(0)) {
             uint256 balance = address(this).balance;
+
+            if (balance == 0) {
+                revert NoBalance();
+            }
+
             (bool success, ) = to.call{ value: balance }("");
             require(success, "PortalSolanaExit: ETH transfer failed");
         } else {
             IERC20 token = IERC20(tokenAddress);
             uint256 balance = token.balanceOf(address(this));
+
+            if (balance == 0) {
+                revert NoBalance();
+            }
+
             token.safeTransfer(to, balance);
         }
     }

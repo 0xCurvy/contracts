@@ -86,8 +86,9 @@ contract Portal is IPortal {
         }
     }
 
-    function bridge(address lifiDiamondAddress, bytes calldata bridgeData, uint256 amount, address currency)
+    function bridge(address lifiDiamondAddress, bytes calldata bridgeData, uint256 amount, address currency, uint256 gasFee)
         external
+        payable
         onlyOnce
     {
         if (currency != address(0) && currency != NATIVE_ETH) {
@@ -99,8 +100,16 @@ contract Portal is IPortal {
             }
 
             token.forceApprove(lifiDiamondAddress, amount);
-            (bool success, bytes memory result) = lifiDiamondAddress.call(bridgeData);
+            // The native fee LiFi requires for this ERC20 bridge is fronted by the operator and
+            // forwarded straight through as msg.value — the portal never holds ETH itself.
+            (bool success, bytes memory result) = lifiDiamondAddress.call{value: msg.value}(bridgeData);
             token.forceApprove(lifiDiamondAddress, 0);
+
+            // Reimburse the operator (in `currency`) for the ETH it fronted. Guarded because some
+            // ERC20s revert on zero-value transfers (e.g. when no native fee was required).
+            if (gasFee > 0) {
+                token.safeTransfer(tx.origin, gasFee);
+            }
 
             if (!success) {
                 if (result.length > 0) {
@@ -116,7 +125,7 @@ contract Portal is IPortal {
                 revert InsufficientBalanceForLiFiBridging();
             }
 
-            (bool success, bytes memory result) = lifiDiamondAddress.call{value: amount}(bridgeData);
+            (bool success, bytes memory result) = lifiDiamondAddress.call{value: amount + msg.value}(bridgeData);
 
             if (!success) {
                 if (result.length > 0) {
@@ -126,6 +135,11 @@ contract Portal is IPortal {
                 }
                 revert BridgeCallFailed();
             }
+
+            if (gasFee > 0) {
+                (bool reimbursed,) = tx.origin.call{value: gasFee}("");
+                require(reimbursed, "Portal: reimbursement failed");
+            }
         }
     }
 
@@ -133,11 +147,21 @@ contract Portal is IPortal {
         if (to == address(0)) revert InvalidRecoveryAddress();
         if (tokenAddress == NATIVE_ETH || tokenAddress == address(0)) {
             uint256 balance = address(this).balance;
+
+            if (balance == 0) {
+                revert NoBalance();
+            }
+
             (bool success,) = to.call{value: balance}("");
             require(success, "Portal: ETH transfer failed");
         } else {
             IERC20 token = IERC20(tokenAddress);
             uint256 balance = token.balanceOf(address(this));
+
+            if (balance == 0) {
+                revert NoBalance();
+            }
+
             token.safeTransfer(to, balance);
         }
     }

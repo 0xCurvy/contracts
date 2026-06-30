@@ -90,12 +90,15 @@ interface IPortalFactory {
 
     function deployShieldPortal(CurvyTypes.Note memory note, address recovery) external;
 
+    /// @dev `payable`: the operator forwards the LiFi native fee (msg.value) for ERC20 bridges that
+    /// charge one; the portal passes it through. `gasFee` reimburses the operator in `currency`.
     function deployEntryBridgePortal(
         bytes calldata bridgeData,
         CurvyTypes.Note memory note,
         address currency,
-        address recovery
-    ) external;
+        address recovery,
+        uint256 gasFee
+    ) external payable;
 
     function deployExitBridgePortal(
         bytes calldata bridgeData,
@@ -103,8 +106,9 @@ interface IPortalFactory {
         address currency,
         address exitAddress,
         uint256 exitChainId,
-        address recovery
-    ) external;
+        address recovery,
+        uint256 gasFee
+    ) external payable;
 
     function deploySolanaExitBridgePortal(
         bytes calldata bridgeData,
@@ -112,8 +116,9 @@ interface IPortalFactory {
         address currency,
         bytes32 exitAddress,
         uint256 exitChainId,
-        address recovery
-    ) external;
+        address recovery,
+        uint256 gasFee
+    ) external payable;
 
     function deployRecoveryEntryPortal(uint256 ownerHash, address recovery, address tokenAddress, address to) external;
 

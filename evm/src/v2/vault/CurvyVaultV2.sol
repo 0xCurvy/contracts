@@ -51,9 +51,23 @@ contract CurvyVaultV2 is
     uint96 public depositFee;
     uint96 public withdrawalFee;
 
-    uint256 public constant GAS_TREE_DEPTH = 5;
+    uint256 public constant GAS_TREE_DEPTH = 6;
     uint256 public gasFeeUpdateBlock;
-    mapping(uint256 tokenId => CurvyTypes.GasFees) internal _perTokenGasFees;
+
+    /// @dev Internal packed gas-fee record. `tokenId` is the mapping key, so it is NOT
+    ///      re-stored in the value (the old layout did, costing a full extra — and always
+    ///      non-zero — cold storage slot per token). Each cost is a per-token gas
+    ///      reimbursement in token base units; uint128 (~3.4e38) is far above any real
+    ///      fee. portalDeployment + pendingNoteCommitment share one slot and withdrawal
+    ///      takes a second, so a record is 2 slots instead of the previous 4 — halving the
+    ///      SSTOREs in `setPerTokenGasFees`.
+    struct PackedGasFees {
+        uint128 portalDeployment;
+        uint128 pendingNoteCommitment;
+        uint128 withdrawal;
+    }
+
+    mapping(uint256 tokenId => PackedGasFees) internal _perTokenGasFees;
 
     address private _curvyAggregator;
 
@@ -127,6 +141,12 @@ contract CurvyVaultV2 is
         if (_tokenAddressToTokenId[tokenAddress] != 0) revert TokenAlreadyRegistered();
         if (tokenAddress.code.length == 0) revert NotAContract();
 
+        // tokenId is the leaf index into the gas-fee tree (capacity 1<<GAS_TREE_DEPTH, indices
+        // 0..2^DEPTH-1; index 0 unused). The next id is `_numberOfTokens + 1`, so cap it at the
+        // last usable leaf — otherwise its gas cost could never be proven (the circuit constrains
+        // token < 2^gasTreeDepth) and `setPerTokenGasFees` would write past the buffer.
+        if (_numberOfTokens + 1 >= (1 << GAS_TREE_DEPTH)) revert TokenCapacityReached();
+
         // Register ID
         _numberOfTokens++;
         _tokenIdToTokenAddress[_numberOfTokens] = tokenAddress;
@@ -165,29 +185,47 @@ contract CurvyVaultV2 is
     }
 
 
-    /// @notice Set the full per-token commitment gas-cost table and push the matching tree `root`
-    ///         to the aggregator. The table MUST be complete (one cost per leaf of the depth-
-    ///         GAS_TREE_DEPTH tree) so the single `CommitmentGasCostsUpdated` event emitted here is
-    ///         self-sufficient: off-chain consumers reconstruct the whole leaf set from the event at
-    ///         `latestCommitmentGasCostUpdateBlock` (no historical replay needed).
+    /// @notice Update the per-token commitment gas costs for the REGISTERED tokens and push the
+    ///         matching tree `root` to the aggregator. The gas-fee tree has a fixed capacity of
+    ///         `1 << GAS_TREE_DEPTH` leaves; only the first `_numberOfTokens` are ever real, the
+    ///         rest are a zero buffer reserved for tokens registered later. So callers pass at most
+    ///         one entry per registered token — never the full padded table. Unused buffer leaves
+    ///         stay zero, so off-chain consumers reconstruct the whole leaf set from the
+    ///         `CommitmentGasCostsUpdated` event by placing each entry at its `tokenId` index and
+    ///         zero-filling the rest; pass the full registered set to keep one event self-sufficient.
     function setPerTokenGasFees(
         CurvyTypes.GasFees[] calldata gasFees,
         uint256 commitmentGasFeeRoot
     ) external onlyRole(AUTHORITY_ROLE) {
         if (commitmentGasFeeRoot == 0) revert InvalidGasFeeRoot();
-        uint256 n = gasFees.length;
 
-        if (n != (1 << GAS_TREE_DEPTH)) revert GasFeesLengthMismatch();
+        // Bound by the registered-token count, NOT the tree capacity: only tokens that exist get a
+        // real leaf, so we never pay to write the zero buffer (leaves [_numberOfTokens .. 1<<DEPTH)).
+        uint256 registered = _numberOfTokens;
+        uint256 n = gasFees.length;
+        if (n > registered) revert GasFeesLengthMismatch();
 
         uint256 prevTokenId;
         for (uint256 i = 0; i < n; ) {
-            CurvyTypes.GasFees memory gasFee = gasFees[i];
+            CurvyTypes.GasFees calldata gasFee = gasFees[i];
             uint256 tokenId = gasFee.tokenId;
 
-            if (i != 0 && tokenId <= prevTokenId) revert("Unsorted or duplicate tokenId");
+            // tokenIds are 1.._numberOfTokens (the real leaves); reject 0 / out-of-range.
+            if (tokenId == 0 || tokenId > registered) revert TokenNotRegistered();
+            if (i != 0 && tokenId <= prevTokenId) revert UnsortedOrDuplicateTokenId();
             prevTokenId = tokenId;
 
-            _perTokenGasFees[gasFees[i].tokenId] = gasFees[i];
+            if (
+                gasFee.portalDeployment > type(uint128).max ||
+                gasFee.pendingNoteCommitment > type(uint128).max ||
+                gasFee.withdrawal > type(uint128).max
+            ) revert GasFeeTooLarge();
+
+            _perTokenGasFees[tokenId] = PackedGasFees({
+                portalDeployment: uint128(gasFee.portalDeployment),
+                pendingNoteCommitment: uint128(gasFee.pendingNoteCommitment),
+                withdrawal: uint128(gasFee.withdrawal)
+            });
             unchecked {
                 ++i;
             }
@@ -239,7 +277,13 @@ contract CurvyVaultV2 is
 
     function perTokenGasFees(uint256 tokenId) external view override returns (CurvyTypes.GasFees memory fees)
     {
-        return _perTokenGasFees[tokenId];
+        PackedGasFees storage packed = _perTokenGasFees[tokenId];
+        return CurvyTypes.GasFees({
+            tokenId: tokenId,
+            portalDeployment: packed.portalDeployment,
+            pendingNoteCommitment: packed.pendingNoteCommitment,
+            withdrawal: packed.withdrawal
+        });
     }
 
     function deposit(address tokenAddress, address to, uint256 amount) public payable onlyCurvyAggregator() {
@@ -261,8 +305,9 @@ contract CurvyVaultV2 is
             tokenId = ETH_ID;
         }
 
-        CurvyTypes.GasFees memory tokenGasFees = _perTokenGasFees[tokenId];
-        uint256 gasFees = tokenGasFees.pendingNoteCommitment + tokenGasFees.portalDeployment;
+        PackedGasFees storage tokenGasFees = _perTokenGasFees[tokenId];
+        // Both costs live in the same packed slot, so this is a single SLOAD.
+        uint256 gasFees = uint256(tokenGasFees.pendingNoteCommitment) + tokenGasFees.portalDeployment;
 
         uint256 depositedAmount = amount - gasFees;
         if (depositFee != 0) {

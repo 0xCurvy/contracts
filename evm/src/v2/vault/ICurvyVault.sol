@@ -38,6 +38,9 @@ interface ICurvyVault {
     error GasFeesLengthMismatch();
     error InvalidGasFeeRoot();
     error UnknownGasFeeRoot();
+    error UnsortedOrDuplicateTokenId();
+    error GasFeeTooLarge();
+    error TokenCapacityReached();
 
     //#endregion
 

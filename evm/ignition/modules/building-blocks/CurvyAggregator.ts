@@ -27,15 +27,15 @@ export default buildModule("CurvyAggregator", (m) => {
   const withdrawVerifier = m.contract("CurvyWithdrawalVerifier");
 
   // Pending-notes-commitment: (batchSize=5, treeDepth=30)
-  m.call(curvyAggregator, "setPendingNotesCommitmentVerifier", [5, 30, insertionVerifier], {
+  m.call(curvyAggregator, "setPendingNotesCommitmentVerifier", [5, insertionVerifier], {
     id: "Aggregator_SetPendingNotesCommitmentVerifier",
   });
   // Aggregation: (maxInputs=2, maxOutputs=3, treeDepth=30)
-  m.call(curvyAggregator, "setAggregationVerifier", [2, 3, 30, aggregationVerifier], {
+  m.call(curvyAggregator, "setAggregationVerifier", [2, 3, aggregationVerifier], {
     id: "Aggregator_SetAggregationVerifier",
   });
   // Withdrawal: (maxInputs=2, treeDepth=30)
-  m.call(curvyAggregator, "setWithdrawalVerifier", [2, 30, withdrawVerifier], {
+  m.call(curvyAggregator, "setWithdrawalVerifier", [2, withdrawVerifier], {
     id: "Aggregator_SetWithdrawalVerifier",
   });
 

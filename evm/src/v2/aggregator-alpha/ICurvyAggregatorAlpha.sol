@@ -78,7 +78,6 @@ interface ICurvyAggregatorAlpha {
     ///   inputHash = sha256(noteIds || currentRoot || newRoot || currentIndex || newIndex) mod r
     function commitPendingNotes(
         uint256 batchSize,
-        uint256 treeDepth,
         uint256[] memory noteIds,
         uint256 newNotesRoot,
         uint256[2] memory proof_a,
@@ -87,22 +86,24 @@ interface ICurvyAggregatorAlpha {
     ) external;
 
     /// @notice Submit a single-aggregation request (NoHashing variant).
-    /// Hardcoded to maxOutputs=3, treeDepth=30. `maxInputs` selects the verifier.
-    /// publicSignals layout (length = maxInputs + (3+1) + (3+1)*5 + 5):
-    ///   [0..maxInputs-1]                  nullifiers
-    ///   [maxInputs..maxInputs+3]          outputNoteIds (last entry = fee-note id; committed later)
-    ///   [maxInputs+4 + i*5 .. +4]         encryptedNoteData[i] for i in 0..3
-    ///                                     (i=3 is fee note; 5 sigs each:
-    ///                                      encryptedAmount, encryptedToken,
-    ///                                      ephemeralKey[0], ephemeralKey[1], viewTag)
-    ///   [maxInputs+24]                    notesRoot
-    ///   [maxInputs+25]                    protocolFeePerThousand
-    ///   [maxInputs+26]                    commitPendingNotesGasFeeRoot (per-token gas-fee tree root;
-    ///                                     replaced the old plaintext `gasFee` in this slot — the
-    ///                                     circuit proves the hidden token's cost against it)
-    ///   [maxInputs+27..maxInputs+28]      feeNotePublicKey[0..1]
+    /// treeDepth is fixed at TREE_DEPTH (30); `(maxInputs, maxOutputs)` select the verifier.
+    /// Let totalNotes = maxOutputs + 1 (regular outputs + fee note) and
+    /// trailerStart = maxInputs + totalNotes + totalNotes * 5.
+    /// publicSignals layout (length = trailerStart + 5):
+    ///   [0..maxInputs-1]                              nullifiers
+    ///   [maxInputs..maxInputs+maxOutputs]             outputNoteIds (last entry = fee-note id; committed later)
+    ///   [maxInputs+totalNotes + i*5 .. +4]            encryptedNoteData[i] for i in 0..maxOutputs
+    ///                                                 (last i is the fee note; 5 sigs each:
+    ///                                                  encryptedAmount, encryptedToken,
+    ///                                                  ephemeralKey[0], ephemeralKey[1], viewTag)
+    ///   [trailerStart]                                notesRoot
+    ///   [trailerStart+1]                              protocolFeePerThousand
+    ///   [trailerStart+2]                              commitPendingNotesGasFeeRoot (per-token gas-fee tree
+    ///                                                 root; the circuit proves the hidden token's cost against it)
+    ///   [trailerStart+3..trailerStart+4]              feeNotePublicKey[0..1]
     function submitAggregationRequest(
         uint256 maxInputs,
+        uint256 maxOutputs,
         uint256[2] memory proof_a,
         uint256[2][2] memory proof_b,
         uint256[2] memory proof_c,
@@ -137,18 +138,16 @@ interface ICurvyAggregatorAlpha {
 
     function noteStatus(uint256 noteId) external view returns (NoteStatus);
     function validNotesRoot(uint256 root) external view returns (bool);
-    function aggregationNullifiers(uint256 nullifier) external view returns (bool);
-    function withdrawalNullifiers(uint256 nullifier) external view returns (bool);
+    function nullifiers(uint256 nullifier) external view returns (bool);
     function getCurrentNotesTreeRoot() external view returns (uint256);
     function getCurrentNotesBatchIndex() external view returns (uint256);
     function getCurrentNullifiersBatchIndex() external view returns (uint256);
     function getCurrentNoteIndex() external view returns (uint256);
     function getAggregationVerifier(
         uint256 maxInputs,
-        uint256 maxOutputs,
-        uint256 treeDepth
+        uint256 maxOutputs
     ) external view returns (address);
-    function getWithdrawalVerifier(uint256 maxInputs, uint256 treeDepth) external view returns (address);
+    function getWithdrawalVerifier(uint256 maxInputs) external view returns (address);
 
     //#endregion
 }
