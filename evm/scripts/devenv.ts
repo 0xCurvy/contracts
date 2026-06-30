@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { vaultV2Abi } from "@0xcurvy/curvy-sdk";
+import { aggregatorAlphaV2Abi, vaultV2Abi } from "@0xcurvy/curvy-sdk";
 import { GAS_FEE_TREE_DEPTH, MerkleTree } from "@0xcurvy/curvy-sdk/proving";
 import hre from "hardhat";
 import { type Hex, parseEther } from "viem";
@@ -31,19 +31,19 @@ async function initPerTokenGasFees(
   const vault = addresses["CurvyVault#ERC1967Proxy"] as Hex | undefined;
   if (!vault) throw new Error(`vault proxy address missing from ${DEPLOYED_ADDRESSES_PATH}`);
 
-  const leafCount = 1 << GAS_FEE_TREE_DEPTH; // 2^5 = 32 (full table)
   // Per-token commitment-leg values (also the gas-fee tree leaves). Dev placeholders.
-  const commitmentLeaves = new Array<bigint>(leafCount).fill(0n);
-  commitmentLeaves[0] = 1n * 10n ** 17n; // 0.1 ETH — token 0 (ETH)
-  commitmentLeaves[1] = 2n * 10n ** 17n; // 0.2 ETH — token 1 (ERC20)
+  const commitmentLeaves = [1n * 10n ** 17n, 2n * 10n ** 17n];
 
   // Full GasFees table, one entry per leaf, ASCENDING tokenId (vault requires sorted/unique).
-  const gasFees = commitmentLeaves.map((commitment, i) => ({
-    tokenId: BigInt(i),
-    portalDeployment: i <= 1 ? 5n * 10n ** 16n : 0n, // 0.05 ETH (deposit-only) for active tokens
-    pendingNoteCommitment: commitment,
-    withdrawal: i <= 1 ? 5n * 10n ** 16n : 0n, // 0.05 ETH (relayer reimbursement) for active tokens
-  }));
+  const gasFees = commitmentLeaves.map((commitment, _i) => {
+    const i = _i + 1;
+    return {
+      tokenId: BigInt(i),
+      portalDeployment: i <= 2 ? 5n * 10n ** 16n : 0n, // 0.05 ETH (deposit-only) for active tokens
+      pendingNoteCommitment: commitment,
+      withdrawal: i <= 2 ? 5n * 10n ** 16n : 0n, // 0.05 ETH (relayer reimbursement) for active tokens
+    };
+  });
 
   // commitmentFeeRoot commits the COMMITMENT leg only — compute it exactly as the SDK does
   // (fetchAggregatorFees / buildAggregateRequest) so the aggregation proof's root matches.
@@ -60,6 +60,39 @@ async function initPerTokenGasFees(
   if (receipt.status !== "success") throw new Error(`setPerTokenGasFees reverted on-chain: ${hash}`);
   console.log(`Per-token gas fees set: ${hash} (gasUsed: ${receipt.gasUsed})`);
   return receipt.gasUsed as bigint;
+}
+
+// Localnet default fee-collector BabyJubjub key. MUST equal @0xcurvy/common DEV_FEE_COLLECTOR
+// .babyJubjubPublicKey and the metadata FEE_COLLECTOR_BABYJUBJUB, so the SDK's auto-resolved
+// feeRecipient (served by metadata) matches this on-chain key. Override via FEE_COLLECTOR_BABYJUBJUB
+// for staging/prod (the operator's real fee collector; private keys stay offline).
+const DEV_FEE_COLLECTOR_BABYJUBJUB =
+  "5509359784107808046541889973707062912186356978136525798140528612444721440004.5125768395023217094469327424244994953312297627197683956739233494456001838760";
+
+/** Set the aggregator's on-chain fee-note public key so aggregation proofs that charge a
+ *  protocol/gas fee verify (the circuit binds the fee note owner to this key). */
+async function initFeeNotePublicKey(
+  // biome-ignore lint/suspicious/noExplicitAny: hardhat-viem client types aren't worth importing here
+  deployer: any,
+  // biome-ignore lint/suspicious/noExplicitAny: hardhat-viem client types aren't worth importing here
+  publicClient: any,
+): Promise<void> {
+  const addresses = JSON.parse(readFileSync(DEPLOYED_ADDRESSES_PATH, "utf8")) as Record<string, string>;
+  const aggregator = addresses["CurvyAggregator#ERC1967Proxy"] as Hex | undefined;
+  if (!aggregator) throw new Error(`aggregator proxy address missing from ${DEPLOYED_ADDRESSES_PATH}`);
+
+  const babyJubjub = process.env.FEE_COLLECTOR_BABYJUBJUB ?? DEV_FEE_COLLECTOR_BABYJUBJUB;
+  const [x, y] = babyJubjub.split(".");
+  console.log(`Setting fee-note public key on aggregator ${aggregator}`);
+  const hash = await deployer.writeContract({
+    address: aggregator,
+    abi: aggregatorAlphaV2Abi,
+    functionName: "setFeeNotePublicKey",
+    args: [BigInt(x), BigInt(y)],
+  });
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  if (receipt.status !== "success") throw new Error(`setFeeNotePublicKey reverted on-chain: ${hash}`);
+  console.log(`Fee-note public key set: ${hash}`);
 }
 
 const shellSettings: { shell?: boolean } = process.platform === "win32" ? { shell: true } : {};
@@ -137,8 +170,9 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
           // so this lands in the dumped state that `start:anvil` reloads). Must precede the dump.
           try {
             await initPerTokenGasFees(sender, publicClient);
+            await initFeeNotePublicKey(sender, publicClient);
           } catch (err) {
-            console.error("initPerTokenGasFees failed:", err);
+            console.error("aggregator/vault config init failed:", err);
             anvil.kill("SIGTERM");
             process.exit(1);
           }
