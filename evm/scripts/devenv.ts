@@ -45,9 +45,14 @@ async function initPerTokenGasFees(
     };
   });
 
-  // commitmentFeeRoot commits the COMMITMENT leg only — compute it exactly as the SDK does
-  // (fetchAggregatorFees / buildAggregateRequest) so the aggregation proof's root matches.
-  const root = MerkleTree.fromOrderedLeaves({ depth: GAS_FEE_TREE_DEPTH }, commitmentLeaves).root();
+  // commitmentFeeRoot commits the COMMITMENT leg only. Build the tree EXACTLY as the SDK does
+  // (fetchAggregatorFees): a full 2^GAS_FEE_TREE_DEPTH leaf set with leaf[tokenId] = pendingNote
+  // commitment, zeros elsewhere. The aggregation circuit proves the input token's leaf at index =
+  // tokenId, so the values MUST be placed BY TOKEN ID — not packed densely at [0,1,…]. (Packing
+  // densely puts tokenId 1/2 at leaf 0/1, an off-by-one vs the SDK that reverts UnknownGasFeeRoot.)
+  const gasFeeLeaves = new Array<bigint>(1 << GAS_FEE_TREE_DEPTH).fill(0n);
+  for (const gf of gasFees) gasFeeLeaves[Number(gf.tokenId)] = gf.pendingNoteCommitment;
+  const root = MerkleTree.fromOrderedLeaves({ depth: GAS_FEE_TREE_DEPTH }, gasFeeLeaves).root();
 
   console.log(`Setting per-token gas fees + commitment root on vault ${vault}: ${root}`);
   const hash = await deployer.writeContract({
