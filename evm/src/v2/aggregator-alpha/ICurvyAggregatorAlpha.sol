@@ -42,6 +42,9 @@ interface ICurvyAggregatorAlpha {
     error NotCurvyVault();
     error InvalidGasFeeRoot();
     error UnknownGasFeeRoot();
+    /// @dev `updateConfig` was given a non-zero address that contains no code. Pass `address(0)`
+    ///      to explicitly unset, or a deployed contract address.
+    error ConfigAddressHasNoCode(address target);
 
     //#endregion
 
@@ -58,8 +61,8 @@ interface ICurvyAggregatorAlpha {
     event CommittedNotes(uint256 indexed batchIndex, uint256[] noteIds);
     event CommittedNullifiers(uint256 indexed batchIndex, uint256[] nullifiers);
     /// @dev Emitted when the vault pushes a new commitment gas-fee root. The full per-token table
-    ///      is emitted by the vault's `CommitmentGasCostsUpdated` (reconstructed off-chain via
-    ///      `CurvyVaultV2.latestCommitmentGasCostUpdateBlock`).
+    ///      is emitted by the vault's `CommitmentGasCostsUpdated` (the block of the latest update
+    ///      is exposed via `CurvyVaultV2.gasFeeUpdateBlock`).
     event CommitmentGasFeeRootUpdated(uint256 root);
 
     //#endregion

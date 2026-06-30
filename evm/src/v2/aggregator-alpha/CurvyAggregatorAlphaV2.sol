@@ -39,7 +39,12 @@ contract CurvyAggregatorAlphaV2 is
     uint256 internal constant TREE_DEPTH = 30;
     uint256 internal constant ENC_NOTE_SIGNALS = 5;
 
-    uint96 private constant MAX_FEE_PER_THOUSAND = 10_000;
+    /// @dev Max protocol fee in parts-per-thousand: 1000 == 100%. Kept in LOCKSTEP with the
+    ///      aggregation circuit's bound on `protocolFeePerThousand`. The on-chain `FeeMismatch`
+    ///      check (submitAggregationRequest) only asserts the proven fee equals this stored
+    ///      value, so the contract cap MUST match the circuit's to stay sound. The previous
+    ///      10_000 allowed a nonsensical 1000% fee.
+    uint96 private constant MAX_FEE_PER_THOUSAND = 1000;
 
     /// @dev BN254 scalar field. Verifier rejects public signals >= this value.
     ///      Circuit's `Bits2Num(256)` reconstructs sha256 bits as a field element,
@@ -117,12 +122,25 @@ contract CurvyAggregatorAlphaV2 is
 
     //#region Admin
 
+    /// @dev Updates the wired vault / portal-factory addresses. Each field is treated explicitly:
+    ///      `address(0)` is an intentional UNSET (clears the wiring), while any non-zero address
+    ///      MUST contain code — config targets are always contracts. A non-zero address with no
+    ///      code reverts with `ConfigAddressHasNoCode` rather than being silently dropped (the old
+    ///      behaviour returned `true` for a no-op, masking misconfiguration). To keep a field
+    ///      unchanged, pass its current value.
     function updateConfig(
         CurvyTypes.AggregatorConfigurationUpdate memory _update
     ) external onlyRole(AUTHORITY_ROLE) returns (bool) {
-        if (_update.curvyVault.code.length > 0) curvyVault = ICurvyVault(_update.curvyVault);
-        if (_update.portalFactory.code.length > 0) portalFactory = IPortalFactory(_update.portalFactory);
+        curvyVault = ICurvyVault(_validateConfigContract(_update.curvyVault));
+        portalFactory = IPortalFactory(_validateConfigContract(_update.portalFactory));
         return true;
+    }
+
+    /// @dev Returns `target` unchanged when it is `address(0)` (explicit unset) or a contract;
+    ///      reverts when a non-zero `target` has no code.
+    function _validateConfigContract(address target) private view returns (address) {
+        if (target != address(0) && target.code.length == 0) revert ConfigAddressHasNoCode(target);
+        return target;
     }
 
     /// @dev `_gasFee` is DEPRECATED: aggregation gas is now pinned per-token via

@@ -15,7 +15,6 @@ interface ICurvyVault {
     event CurvyAggregatorAddressChange(address curvyAggregator);
     event FeeCollectorAddressChange(address indexed feeCollectorAddress);
 
-    event WithdrawalGasCostsUpdated(uint256[] tokenIds, uint256[] costs);
     event CommitmentGasCostsUpdated(CurvyTypes.GasFees[] gasFees, uint256 root);
 
     //#endregion
