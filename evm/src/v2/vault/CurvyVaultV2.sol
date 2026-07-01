@@ -5,7 +5,6 @@ import "../aggregator-alpha/ICurvyAggregatorAlpha.sol";
 import "./ICurvyVault.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {CurvyTypes} from "../utils/Types.sol";
-import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -16,7 +15,6 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 contract CurvyVaultV2 is
     ICurvyVault,
     Initializable,
-    EIP712Upgradeable,
     UUPSUpgradeable,
     OwnableUpgradeable,
     AccessControlUpgradeable
@@ -106,7 +104,6 @@ contract CurvyVaultV2 is
         _tokenIdToTokenAddress[ETH_ID] = ETH_ADDRESS;
         _numberOfTokens = 1;
 
-        __EIP712_init("Curvy Privacy Vault", "1.0");
         __Ownable_init(initialOwner);
 
         __AccessControl_init();
