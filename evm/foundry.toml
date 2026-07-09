@@ -1,0 +1,23 @@
+# Foundry profile for generating `curvy-bindings` via `forge bind --alloy`.
+#
+# ADDITIVE / non-invasive: this coexists with the existing Hardhat project. Nothing
+# Hardhat-owned is touched — forge's build output is isolated under
+# `bindings/curvy-bindings/.forge/` so it never collides with Hardhat's `cache/` or
+# `artifacts/` directories.
+#
+# The compiler settings MIRROR `hardhat.config.ts`'s `default`/`production` profiles
+# (solc 0.8.28, optimizer enabled, runs = 200, evmVersion = cancun [solc 0.8.28
+# default], bytecodeHash = ipfs) so the forge-built *creation bytecode* matches the
+# Hardhat artifacts the validated `curvy-deployer` uses. See the per-contract parity
+# gate in `bindings/curvy-bindings/README.md`.
+[profile.default]
+src = "src"
+libs = ["node_modules"]
+out = "bindings/curvy-bindings/.forge/out"
+cache_path = "bindings/curvy-bindings/.forge/cache"
+solc = "0.8.28"
+optimizer = true
+optimizer_runs = 200
+evm_version = "cancun"
+bytecode_hash = "ipfs"
+cbor_metadata = true
