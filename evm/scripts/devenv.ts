@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { aggregatorAlphaV2Abi, vaultV2Abi } from "@0xcurvy/curvy-sdk";
 import { GAS_FEE_TREE_DEPTH, MerkleTree } from "@0xcurvy/curvy-sdk/proving";
+import { initCore } from "@0xcurvy/curvy-sdk/rust-core";
 import hre from "hardhat";
 import { type Hex, parseEther } from "viem";
 
@@ -112,6 +113,9 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
 
 (async () => {
   process.env.HARDHAT_DEVENV = "true";
+
+  // MerkleTree methods are synchronous after the shared Rust/WASM core is loaded.
+  await initCore();
 
   await run(pnpmCmd, ["hardhat", "clean"]);
   await run(pnpmCmd, ["hardhat", "compile"]);
