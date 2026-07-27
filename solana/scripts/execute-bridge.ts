@@ -8,12 +8,12 @@
  *   1. Derive vault PDA from ownerHash + recoveryKey
  *   2. Check vault balance
  *   3. Fetch LiFi quote (SOL → ETH on Arbitrum)
- *   4. Call bridge_relay_sol or bridge_sol on the curvy-portal program
+ *   4. Call bridge_relay_sol on the curvy-portal program
  *
  * Usage:
  *   npx tsx scripts/execute-bridge.ts \
  *     --ownerHash <bigint> --recoveryKey <hex> \
- *     [--bridge across|relaydepository] \
+ *     [--bridge relaydepository] \
  *     [--cluster mainnet|devnet] \
  *     [--dry-run]
  *
@@ -28,12 +28,6 @@ const { Program, BN } = anchor;
 
 import { ChainId, createConfig, getQuote } from "@lifi/sdk";
 import { secp256k1 } from "@noble/curves/secp256k1.js";
-import {
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-  getAssociatedTokenAddress,
-  NATIVE_MINT,
-  TOKEN_PROGRAM_ID,
-} from "@solana/spl-token";
 import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, VersionedTransaction } from "@solana/web3.js";
 import { createHash } from "crypto";
 import { readFileSync } from "fs";
@@ -54,13 +48,12 @@ const CONFIG_SEED = Buffer.from("config");
 const RECOVERY_DOMAIN = Buffer.from("curvy-solana-recovery-v1");
 
 const RELAY_PROGRAM_ID = new PublicKey("99vQwtBwYtrqqD9YSXbdum3KBdxPAVxYTaQ3cfnJSrN2");
-const ACROSS_PROGRAM_ID = new PublicKey("DLv3NggMiSaef97YCkew5xKUHDh13tVGZ7tydt3ZeAru");
 
 const LIFI_SOLANA_CHAIN_ID = 1151111081099710;
 const NATIVE_SOL_ADDRESS = "11111111111111111111111111111111";
 const NATIVE_ETH_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-const ALLOWED_BRIDGES = ["across", "relaydepository"] as const;
+const ALLOWED_BRIDGES = ["relaydepository"] as const;
 type Bridge = (typeof ALLOWED_BRIDGES)[number];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -95,15 +88,8 @@ function explorerTxUrl(sig: string, cluster: string): string {
   return `https://explorer.solana.com/tx/${sig}${suffix}`;
 }
 
-function evmAddressToPubkey(address20Hex: string): PublicKey {
-  const hex = address20Hex.replace("0x", "");
-  const buf = Buffer.alloc(32, 0);
-  Buffer.from(hex, "hex").copy(buf, 12);
-  return new PublicKey(buf);
-}
-
 /**
- * Extract relay_id from a LiFi quote's serialized Solana transaction.
+ * Extract the exact Relay deposit and LiFi fee transfers from a quote.
  *
  * Parses the raw V0 message to avoid needing address lookup table resolution.
  * Scans all compiled instructions for one whose program is the relay depository
@@ -114,10 +100,18 @@ function evmAddressToPubkey(address20Hex: string): PublicKey {
  *   [8..16]  amount: u64 LE
  *   [16..48] id: [u8; 32]  ← this is the relay_id
  */
-function extractRelayIdFromQuote(quote: any): { relayId: number[] } {
+function extractRelayQuote(
+  quote: any,
+  operator: PublicKey,
+  grossAmount: bigint,
+): {
+  relayAmount: bigint;
+  relayId: number[];
+  feeTransfers: Array<{ recipient: PublicKey; amount: bigint }>;
+} {
   const txData = quote.transactionRequest?.data;
   if (!txData) {
-    throw new Error("LiFi quote has no transactionRequest.data — cannot extract relay_id");
+    throw new Error("LiFi quote has no transactionRequest.data — cannot extract Relay deposit");
   }
 
   let txBuffer: Buffer;
@@ -133,50 +127,52 @@ function extractRelayIdFromQuote(quote: any): { relayId: number[] } {
   const lifiTx = VersionedTransaction.deserialize(txBuffer);
   const msg = lifiTx.message;
 
-  // deposit_native discriminator
   const DEPOSIT_NATIVE_DISC = [13, 158, 13, 223, 95, 213, 28, 6];
-
-  // Static account keys from the message header
   const staticKeys = msg.staticAccountKeys;
+  const feeStep = quote.includedSteps?.find((step: any) => step.tool === "feeCollection");
+  const expectedFee = feeStep
+    ? BigInt(feeStep.action.fromAmount) - BigInt(feeStep.estimate.toAmount)
+    : 0n;
+  const feeTransfers: Array<{ recipient: PublicKey; amount: bigint }> = [];
+  let relayAmount: bigint | undefined;
+  let relayId: number[] | undefined;
 
-  // Compiled instructions reference accounts by index into (staticKeys ++ lookupKeys)
-  // We only need to check the programIdIndex against static keys to find the relay program
   for (const cix of msg.compiledInstructions) {
-    // Check if the program is the relay depository
     const programKey = staticKeys[cix.programIdIndex];
-    if (!programKey || !programKey.equals(RELAY_PROGRAM_ID)) continue;
-
-    // Check data length and discriminator
-    if (cix.data.length < 48) continue;
-    let discMatch = true;
-    for (let j = 0; j < 8; j++) {
-      if (cix.data[j] !== DEPOSIT_NATIVE_DISC[j]) {
-        discMatch = false;
-        break;
+    if (programKey?.equals(RELAY_PROGRAM_ID) && cix.data.length >= 48) {
+      const discMatch = DEPOSIT_NATIVE_DISC.every((byte, index) => cix.data[index] === byte);
+      if (discMatch) {
+        relayAmount = Buffer.from(cix.data.slice(8, 16)).readBigUInt64LE();
+        relayId = Array.from(cix.data.slice(16, 48));
       }
     }
-    if (!discMatch) continue;
 
-    const relayId = Array.from(cix.data.slice(16, 48));
-    return { relayId };
+    if (
+      programKey?.equals(SystemProgram.programId) &&
+      cix.data.length >= 12 &&
+      Buffer.from(cix.data.slice(0, 4)).readUInt32LE() === 2
+    ) {
+      const sender = staticKeys[cix.accountKeyIndexes[0]];
+      const recipient = staticKeys[cix.accountKeyIndexes[1]];
+      if (sender?.equals(operator) && recipient) {
+        feeTransfers.push({
+          recipient,
+          amount: Buffer.from(cix.data.slice(4, 12)).readBigUInt64LE(),
+        });
+      }
+    }
   }
 
-  throw new Error(
-    "Could not find deposit_native instruction in LiFi transaction. " +
-      "The quote may use a different bridge mechanism.",
-  );
-}
-
-function outputAmountBytes32(amount: bigint): number[] {
-  const arr = new Array(32).fill(0);
-  const beBytes: number[] = [];
-  let n = amount;
-  for (let i = 0; i < 8; i++) {
-    beBytes.unshift(Number(n & 0xffn));
-    n >>= 8n;
+  if (relayAmount === undefined || !relayId) {
+    throw new Error("Could not find deposit_native instruction in LiFi transaction");
   }
-  for (let i = 0; i < 8; i++) arr[24 + i] = beBytes[i];
-  return arr;
+  const actualFee = feeTransfers.reduce((sum, fee) => sum + fee.amount, 0n);
+  if (actualFee !== expectedFee || relayAmount + actualFee !== grossAmount) {
+    throw new Error(
+      `LiFi amount mismatch: gross=${grossAmount}, relay=${relayAmount}, fees=${actualFee}, quotedFees=${expectedFee}`,
+    );
+  }
+  return { relayAmount, relayId, feeTransfers };
 }
 
 // ─── Arg parsing ─────────────────────────────────────────────────────────────
@@ -193,7 +189,7 @@ function parseArgs(): {
   let ownerHash: string | undefined;
   let recoveryKey: string | undefined;
   let toAddress: string | undefined;
-  let bridge: Bridge = "across";
+  let bridge: Bridge = "relaydepository";
   let cluster: "mainnet" | "devnet" = "mainnet";
   let dryRun = false;
 
@@ -222,7 +218,7 @@ function parseArgs(): {
 
   if (!ownerHash || !recoveryKey || !toAddress) {
     console.error(
-      "Usage: npx tsx scripts/execute-bridge.ts --ownerHash <bigint> --recoveryKey <hex> --toAddress <0xEvmAddress> [--bridge across|relaydepository] [--cluster mainnet|devnet] [--dry-run]\n\n" +
+      "Usage: npx tsx scripts/execute-bridge.ts --ownerHash <bigint> --recoveryKey <hex> --toAddress <0xEvmAddress> [--bridge relaydepository] [--cluster mainnet|devnet] [--dry-run]\n\n" +
         "Get ownerHash and recoveryKey from: yarn generate-portal-data --s <s> --v <v>",
     );
     process.exit(1);
@@ -293,7 +289,7 @@ async function main() {
     toChain: ChainId.ARB,
     fromToken: NATIVE_SOL_ADDRESS,
     toToken: NATIVE_ETH_ADDRESS,
-    fromAddress: vaultPda.toBase58(),
+    fromAddress: operator.publicKey.toBase58(),
     toAddress,
     fromAmount: bridgeableLamports.toString(),
     slippage: 0.01,
@@ -317,8 +313,17 @@ async function main() {
     };
     if (bridge === "relaydepository") {
       try {
-        const { relayId } = extractRelayIdFromQuote(quote);
+        const { relayAmount, relayId, feeTransfers } = extractRelayQuote(
+          quote,
+          operator.publicKey,
+          BigInt(bridgeableLamports),
+        );
         dryRunInfo.relayId = Buffer.from(relayId).toString("hex");
+        dryRunInfo.relayAmount = relayAmount.toString();
+        dryRunInfo.feeTransfers = feeTransfers.map((fee) => ({
+          recipient: fee.recipient.toBase58(),
+          amount: fee.amount.toString(),
+        }));
       } catch (e: any) {
         dryRunInfo.relayIdError = e.message;
       }
@@ -342,87 +347,49 @@ async function main() {
   const ownerHashArray = Array.from(ownerHashBytes);
   const recoveryIdArray = Array.from(recoveryIdentifier.toBytes());
 
-  if (bridge === "relaydepository") {
-    // Extract relay_id from the LiFi quote's serialized transaction
-    const { relayId } = extractRelayIdFromQuote(quote);
+  const { relayAmount, relayId, feeTransfers } = extractRelayQuote(
+    quote,
+    operator.publicKey,
+    BigInt(bridgeableLamports),
+  );
 
-    const [relayDepo] = PublicKey.findProgramAddressSync([Buffer.from("relay_depository")], RELAY_PROGRAM_ID);
-    const [relayVault] = PublicKey.findProgramAddressSync([Buffer.from("vault")], RELAY_PROGRAM_ID);
+  const [relayDepo] = PublicKey.findProgramAddressSync([Buffer.from("relay_depository")], RELAY_PROGRAM_ID);
+  const [relayVault] = PublicKey.findProgramAddressSync([Buffer.from("vault")], RELAY_PROGRAM_ID);
 
-    console.log(`Relay ID:  ${Buffer.from(relayId).toString("hex")} (from LiFi quote)`);
-    console.log(`Amount:    ${bridgeableLamports} lamports`);
+  console.log(`Relay ID:  ${Buffer.from(relayId).toString("hex")} (from LiFi quote)`);
+  console.log(`Relay amount: ${relayAmount} lamports`);
+  console.log(`LiFi fees:    ${feeTransfers.reduce((sum, fee) => sum + fee.amount, 0n)} lamports`);
 
-    const tx = await program.methods
-      .bridgeRelaySol(ownerHashArray, recoveryIdArray, new BN(bridgeableLamports), relayId)
-      .accounts({
-        operator: operator.publicKey,
-        config: configPda,
-        portal: metaPda,
-        vault: vaultPda,
-        relayProgram: RELAY_PROGRAM_ID,
-        relayDepository: relayDepo,
-        relayVault: relayVault,
-        systemProgram: SystemProgram.programId,
-      })
-      .rpc();
+  const tx = await program.methods
+    .bridgeRelaySol(
+      ownerHashArray,
+      recoveryIdArray,
+      new BN(bridgeableLamports),
+      new BN(relayAmount.toString()),
+      feeTransfers.map((fee) => new BN(fee.amount.toString())),
+      relayId,
+    )
+    .accounts({
+      operator: operator.publicKey,
+      config: configPda,
+      portal: metaPda,
+      vault: vaultPda,
+      relayProgram: RELAY_PROGRAM_ID,
+      relayDepository: relayDepo,
+      relayVault: relayVault,
+      systemProgram: SystemProgram.programId,
+    })
+    .remainingAccounts(
+      feeTransfers.map((fee) => ({
+        pubkey: fee.recipient,
+        isSigner: false,
+        isWritable: true,
+      })),
+    )
+    .rpc();
 
-    console.log(`\nBridged via Relay!`);
-    console.log(explorerTxUrl(tx, cluster));
-  } else {
-    // Across bridge
-    const acrossStateSeed = BigInt(0);
-    const stateSeedBuf = Buffer.alloc(8);
-    stateSeedBuf.writeBigUInt64LE(acrossStateSeed);
-
-    const [acrossState] = PublicKey.findProgramAddressSync([Buffer.from("state"), stateSeedBuf], ACROSS_PROGRAM_ID);
-    const [acrossEventAuth] = PublicKey.findProgramAddressSync([Buffer.from("__event_authority")], ACROSS_PROGRAM_ID);
-    const vaultWsolAta = await getAssociatedTokenAddress(NATIVE_MINT, vaultPda, true);
-    const acrossVault = await getAssociatedTokenAddress(NATIVE_MINT, acrossState, true);
-
-    const recipient = evmAddressToPubkey(toAddress);
-    const outputToken = evmAddressToPubkey(NATIVE_ETH_ADDRESS);
-    const outputAmountBn = BigInt(toAmountMin ?? toAmount ?? "0");
-    const outputAmount = outputAmountBytes32(outputAmountBn);
-
-    const now = Math.floor(Date.now() / 1000);
-    const fillDeadline = now + 3600;
-
-    console.log(`Amount:      ${bridgeableLamports} lamports`);
-    console.log(`Recipient:   ${toAddress}`);
-
-    const tx = await program.methods
-      .bridgeSol(ownerHashArray, recoveryIdArray, new BN(bridgeableLamports), new BN(acrossStateSeed.toString()), {
-        recipient,
-        outputToken,
-        outputAmount,
-        destinationChainId: new BN(42161),
-        exclusiveRelayer: PublicKey.default,
-        quoteTimestamp: now,
-        fillDeadline,
-        exclusivityParameter: 0,
-        message: Buffer.from([]),
-      })
-      .accounts({
-        operator: operator.publicKey,
-        config: configPda,
-        portal: metaPda,
-        vault: vaultPda,
-        vaultWsolAta,
-        wsolMint: NATIVE_MINT,
-        acrossProgram: ACROSS_PROGRAM_ID,
-        acrossState,
-        acrossDelegate: acrossState,
-        acrossVault,
-        acrossEventAuthority: acrossEventAuth,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      })
-      .rpc();
-
-    console.log(`\nBridged via Across!`);
-    console.log(explorerTxUrl(tx, cluster));
-  }
+  console.log(`\nBridged via Relay!`);
+  console.log(explorerTxUrl(tx, cluster));
 
   const finalBalance = await connection.getBalance(vaultPda);
   console.log(`\nVault balance after: ${finalBalance / LAMPORTS_PER_SOL} SOL`);

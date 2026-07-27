@@ -1,10 +1,9 @@
 use anchor_lang::prelude::*;
 
-use crate::seeds::CONFIG_SEED;
 use crate::error::PortalError;
 use crate::events::PauseToggled;
+use crate::seeds::CONFIG_SEED;
 use crate::state::PortalConfig;
-
 
 pub fn handler(ctx: Context<Pause>, paused: bool) -> Result<()> {
     let config = &mut ctx.accounts.config;
@@ -31,6 +30,3 @@ pub struct Pause<'info> {
     )]
     pub config: Account<'info, PortalConfig>,
 }
-
-
-

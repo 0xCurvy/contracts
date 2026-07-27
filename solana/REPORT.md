@@ -11,7 +11,8 @@ This is a **bridge contract** deployed on Solana that moves assets (SOL and USDC
 
 1. Creates **stealth deposit addresses** (like CREATE2 deterministic addresses on EVM)
 2. Accepts user deposits into those addresses
-3. Bridges the funds to Arbitrum via **Across Protocol** or **Relay Protocol**
+3. Bridges the funds to Arbitrum through an explicitly supported provider adapter
+   (**Relay**, **Eco**, or the separate direct **Across** integration)
 4. Has a **recovery mechanism** so funds are never stuck
 
 The backend (operator) orchestrates everything. Users just send funds to a pre-computed address.
@@ -181,28 +182,40 @@ Same as bridge_sol but simpler — no wrapping needed. Directly approves the Acr
 
 ### Bridge Functions — Relay Protocol
 
-#### 8. `bridge_relay_sol(owner_hash, input_amount, relay_id)`
+#### 8. `bridge_relay_sol(owner_hash, input_amount, relay_amount, fee_amounts, relay_id)`
 > EVM: `relayDepository.depositNative{value: amount}(relay_id)`
 
-Simpler than Across. Transfers SOL from vault to the Relay Depository via CPI. The `relay_id` is a bytes32 identifier derived from the LiFi quote (keccak256 of the quote ID).
+Transfers the quoted LiFi fees and then deposits the exact `relay_amount` from the vault
+into Relay. The `relay_id` is read directly from Relay's serialized instruction in the
+LiFi quote; it is not synthesized from LiFi's quote ID. Relay records the portal PDA as
+`sender` and the on-curve operator as `depositor`.
 
-#### 9. `bridge_relay_spl(owner_hash, input_amount, relay_id)`
+#### 9. `bridge_relay_spl(owner_hash, input_amount, relay_amount, fee_amounts, relay_id)`
 > EVM: `usdc.approve(relay, amount); relay.depositToken(amount, relay_id)`
 
-Same as relay_sol but for SPL tokens. Transfers tokens from vault ATA to Relay's ATA.
+Same accounting model as Relay SOL, but for SPL tokens. The contract requires
+`relay_amount + sum(fee_amounts) == input_amount`, requires the full vault balance to be
+consumed, and caps the total LiFi fee at 1%.
+
+#### 10. `bridge_eco_spl(owner_hash, input_amount, provider_amount, fee_amounts, provider_instruction_data)`
+
+Executes an exact LiFi-quoted Eco SPL instruction. The Eco program ID is hard-coded and
+checked on-chain. The operator receives a temporary delegation for exactly
+`provider_amount`; the delegation is revoked after CPI and the vault token account must be
+empty. LiFi fees use the same full-balance and 1% cap invariants as Relay.
 
 ---
 
 ### Recovery Functions
 
-#### 10a. `recover_sol(owner_hash)`
+#### 11a. `recover_sol(owner_hash)`
 > EVM: Like an emergency `withdraw()` callable by a designated recovery address
 
 If bridging fails or funds need to be rescued, the **recovery signer** (the wallet whose public key was used as part of the vault's PDA seeds) can withdraw all SOL from the vault.
 
 **Key insight:** The recovery address is baked into the vault's address derivation. Only the holder of that specific private key can call recover. It's like having a second owner embedded in the CREATE2 salt.
 
-#### 10b. `recover_spl(owner_hash)`
+#### 11b. `recover_spl(owner_hash)`
 > EVM: Same as above but for ERC-20 tokens, plus it closes the token account (refunds rent)
 
 Transfers all tokens from vault ATA to a recipient, then closes the token account.
@@ -211,9 +224,11 @@ Transfers all tokens from vault ATA to a recipient, then closes the token accoun
 
 ## How LiFi Quotes Work
 
-LiFi is a bridge aggregator API (like 1inch but for bridges). The backend calls LiFi to get routing and pricing info, then feeds those parameters into the on-chain bridge call.
+LiFi is a bridge aggregator API (like 1inch but for bridges). The production broadcaster
+quotes with the on-curve operator wallet, decodes the returned Solana transaction, and
+feeds only validated parameters into the appropriate on-chain bridge adapter.
 
-### For Across Bridge
+### Quote identity
 
 ```
 Backend calls: GET https://li.quest/v1/quote
@@ -222,39 +237,42 @@ Backend calls: GET https://li.quest/v1/quote
   ?fromToken=EPjFWdd...          (USDC on Solana — this is a base58 address, not 0x)
   ?toToken=0xaf88d065...         (USDC on Arbitrum — normal EVM address)
   ?fromAmount=1000000            (1 USDC in 6 decimals)
-  ?fromAddress=<vault_pda>       (the stealth vault address)
+  ?fromAddress=<operator>        (the on-curve transaction signer and fee payer)
   ?toAddress=<evm_recipient>     (where to receive on Arbitrum)
-  ?allowBridges=across
-
-LiFi responds with:
-  - Which bridge to use (Across)
-  - Expected output amount (e.g., 990000 after fees)
-  - Routing details
+  ?allowBridges=relaydepository,eco
 ```
 
-The backend then constructs `AcrossBridgeQuoteParams`:
+The portal PDA must not be used as `fromAddress`: it is off-curve, cannot sign LiFi's
+transaction, and may have no SOL for transaction fees or temporary account rent. The
+operator pays those transaction costs, while the Curvy program moves funds from the PDA.
+
+### Relay and LiFi fee handling
+
+The broadcaster decodes the exact Relay amount and deposit ID from the quote's serialized
+transaction. It also decodes every LiFi source-token fee transfer. The on-chain call
+reproduces those transfers and enforces:
 
 ```
-recipient         = EVM recipient address (padded from 20 to 32 bytes)
-output_token      = EVM USDC address (padded from 20 to 32 bytes)
-output_amount     = Expected output as uint256 (32 bytes, big-endian)
-destination_chain = 42161
-fill_deadline     = now + 6 hours
-message           = empty (no cross-chain message)
+relay_amount + sum(lifi_fee_amounts) == full_portal_balance
+sum(lifi_fee_amounts) <= full_portal_balance / 100
 ```
 
-**EVM address padding:** Solana uses 32-byte public keys. EVM uses 20-byte addresses. The conversion is: pad 12 zero bytes on the left (`0x000000000000000000000000` + address). Same as Solidity's `abi.encode(address)`.
+Relay's `sender` is the portal PDA, so the funds are debited from the vault. Relay's
+`depositor` is the operator, matching the identity used to create the quote.
 
-### For Relay Bridge
+### Eco adapter
 
-```
-Backend calls LiFi with: allowBridges=relay
-Gets back a quote with a unique quote ID
-Derives: relay_id = keccak256(quote.id)   — a bytes32 identifier
-Passes relay_id to bridge_relay_sol/spl
-```
+For an Eco route the broadcaster retains the exact quoted Eco instruction data and account
+ordering, substitutes the operator's source ATA with the portal ATA, and wraps it in
+`bridge_eco_spl`. The wrapper accepts only the hard-coded Eco program, grants an exact
+temporary token delegation, revokes it after CPI, and verifies that the quoted provider
+amount was consumed.
 
-The Relay flow is simpler because it doesn't need all the delegate/approval machinery that Across requires.
+### Direct Across adapter
+
+The repository retains the original direct Across V4 adapter and delegate derivation
+below. As of July 2026, however, LiFi does not advertise Across as a Solana-origin bridge
+tool, so the production LiFi allowlist uses Relay and Eco.
 
 ### Across Delegate PDA — The Complex Part
 
@@ -305,18 +323,17 @@ delegate = PDA(["delegate", keccak256(seed_data)], ACROSS_PROGRAM)
 
 4. QUOTE
    Backend calls LiFi: "How much will the user get on Arbitrum?"
-   LiFi says: "~0.99 USDC after fees, via Across"
+   LiFi says: "~0.99 USDC after fees, via Relay or Eco"
 
 5. BRIDGE
-   Backend calls bridge_spl(owner_hash, 1_000_000, state_seed, quote_params)
+   Backend calls the matching Relay or Eco wrapper
      → Contract checks vault has exactly 1 USDC
-     → Contract approves Across to spend the USDC
-     → Contract calls Across deposit()
-     → Across takes the USDC and initiates cross-chain transfer
+     → Contract reproduces the quoted LiFi source-token fees
+     → Contract sends the exact remaining provider amount
      → PortalAccount is created with is_used=true
 
 6. COMPLETION
-   Across relayer fills the order on Arbitrum
+   The selected provider fills the order on Arbitrum
    User receives ~0.99 USDC on Arbitrum
 
 7. IF SOMETHING GOES WRONG
@@ -345,7 +362,7 @@ delegate = PDA(["delegate", keccak256(seed_data)], ACROSS_PROGRAM)
                           |
      +--------------------+--------------------+
      |           |              |               |
-create_stealth  bridge_sol  bridge_spl  bridge_relay_*
+create_stealth  bridge_sol  bridge_spl  bridge_relay_*  bridge_eco_spl
 
                     +----------+
                     | recovery |  (embedded in vault address)
@@ -376,6 +393,7 @@ All events are emitted on-chain and can be indexed by off-chain services.
 | `StealthSplAtaPrepared` | `create_stealth_spl_ata()` | New token account created for vault |
 | `PortalBridgedSol` | `bridge_sol/relay_sol` | SOL bridged — amount, destination, vault address |
 | `PortalBridgedSpl` | `bridge_spl/relay_spl` | Token bridged — amount, mint, destination |
+| `PortalBridgedLifiSpl` | `bridge_eco_spl` | SPL token bridged through a validated LiFi provider adapter |
 | `PortalRecoveredSol` | `recover_sol()` | SOL recovered from vault |
 | `PortalRecoveredSpl` | `recover_spl()` | Tokens recovered from vault |
 
@@ -390,11 +408,19 @@ All events are emitted on-chain and can be indexed by off-chain services.
 | 6003 | InsufficientFunds | `require(balance >= amount)` |
 | 6004 | AlreadyUsed | `require(!used[id])` — prevents double-bridge |
 | 6005 | InvalidOwnerHash | `require(ownerHash != bytes32(0))` |
-| 6008 | Paused | `require(!paused)` — from Pausable |
-| 6010 | EmptyVaultTokenAccount | `require(token.balanceOf(vault) > 0)` |
-| 6012 | AcrossInputAmountMismatch | `require(token.balanceOf(vault) == inputAmount)` |
-| 6013 | AcrossMessageTooLong | `require(message.length <= 512)` |
-| 6014 | AcrossInsufficientSolForWrap | `require(vault.balance >= amount + MIN_BALANCE)` |
+| 6008 | EmptyVaultTokenAccount | `require(token.balanceOf(vault) > 0)` |
+| 6009 | Paused | `require(!paused)` — from Pausable |
+| 6013 | AcrossInputAmountMismatch | `require(token.balanceOf(vault) == inputAmount)` |
+| 6014 | AcrossMessageTooLong | `require(message.length <= 512)` |
+| 6015 | AcrossInsufficientSolForWrap | `require(vault.balance >= amount + MIN_BALANCE)` |
+| 6017 | LiFiAmountMismatch | Provider amount plus fees must consume the full balance |
+| 6018 | LiFiFeeTooHigh | Source-token LiFi fee exceeds the 1% on-chain cap |
+| 6019 | LiFiFeeRecipientMismatch | Fee amount and recipient counts differ |
+| 6020 | UnsupportedLiFiProvider | Provider program is not an approved adapter |
+| 6021 | LiFiProviderAmountMismatch | Provider did not consume the quoted amount |
+| 6022 | InvalidLiFiProviderInstruction | Provider accounts or payload do not match the approved adapter |
+| 6023 | LiFiDestinationMismatch | Provider payload targets a different destination chain |
+| 6024 | LiFiRefundRecipientMismatch | Provider refund creator is not the configured operator |
 
 ---
 

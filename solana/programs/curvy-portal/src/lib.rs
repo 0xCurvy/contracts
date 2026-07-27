@@ -93,24 +93,65 @@ pub mod curvy_portal {
         )
     }
 
-    pub fn bridge_relay_sol(
-        ctx: Context<BridgeRelaySol>,
+    pub fn bridge_relay_sol<'info>(
+        ctx: Context<'_, '_, '_, 'info, BridgeRelaySol<'info>>,
         owner_hash: [u8; 32],
         recovery_identifier: [u8; 32],
         input_amount: u64,
+        relay_amount: u64,
+        fee_amounts: Vec<u64>,
         relay_id: [u8; 32],
     ) -> Result<()> {
-        instructions::bridge_relay_sol::handler(ctx, owner_hash, recovery_identifier, input_amount, relay_id)
+        instructions::bridge_relay_sol::handler(
+            ctx,
+            owner_hash,
+            recovery_identifier,
+            input_amount,
+            relay_amount,
+            fee_amounts,
+            relay_id,
+        )
     }
 
-    pub fn bridge_relay_spl(
-        ctx: Context<BridgeRelaySpl>,
+    pub fn bridge_relay_spl<'info>(
+        ctx: Context<'_, '_, '_, 'info, BridgeRelaySpl<'info>>,
         owner_hash: [u8; 32],
         recovery_identifier: [u8; 32],
         input_amount: u64,
+        relay_amount: u64,
+        fee_amounts: Vec<u64>,
         relay_id: [u8; 32],
     ) -> Result<()> {
-        instructions::bridge_relay_spl::handler(ctx, owner_hash, recovery_identifier, input_amount, relay_id)
+        instructions::bridge_relay_spl::handler(
+            ctx,
+            owner_hash,
+            recovery_identifier,
+            input_amount,
+            relay_amount,
+            fee_amounts,
+            relay_id,
+        )
+    }
+
+    /// Admin/operator: execute an amount-checked Eco LiFi SPL route from the vault ATA.
+    pub fn bridge_eco_spl<'info>(
+        ctx: Context<'_, '_, '_, 'info, BridgeEcoSpl<'info>>,
+        owner_hash: [u8; 32],
+        recovery_identifier: [u8; 32],
+        input_amount: u64,
+        provider_amount: u64,
+        fee_amounts: Vec<u64>,
+        provider_instruction_data: Vec<u8>,
+    ) -> Result<()> {
+        instructions::bridge_eco_spl::handler(
+            ctx,
+            owner_hash,
+            recovery_identifier,
+            input_amount,
+            provider_amount,
+            fee_amounts,
+            provider_instruction_data,
+        )
     }
 
     pub fn recover_sol(

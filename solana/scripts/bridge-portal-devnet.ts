@@ -278,7 +278,14 @@ async function main() {
     console.log(`Relay ID: ${relayIdHex}`);
 
     const tx = await program.methods
-      .bridgeRelaySol(ownerHash, recoveryIdArray, new BN(inputAmount.toString()), relayId)
+      .bridgeRelaySol(
+        ownerHash,
+        recoveryIdArray,
+        new BN(inputAmount.toString()),
+        new BN(inputAmount.toString()),
+        [],
+        relayId,
+      )
       .accounts({
         operator: operator.publicKey,
         config: configPda,
@@ -314,7 +321,14 @@ async function main() {
     console.log(`Relay ID: ${relayIdHex}`);
 
     const tx = await program.methods
-      .bridgeRelaySpl(ownerHash, recoveryIdArray, new BN(inputAmount.toString()), relayId)
+      .bridgeRelaySpl(
+        ownerHash,
+        recoveryIdArray,
+        new BN(inputAmount.toString()),
+        new BN(inputAmount.toString()),
+        [],
+        relayId,
+      )
       .accounts({
         operator: operator.publicKey,
         config: configPda,

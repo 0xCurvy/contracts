@@ -52,4 +52,28 @@ pub enum PortalError {
 
     #[msg("Across bridge: mint must be wrapped SOL (native mint)")]
     InvalidNativeMint,
+
+    #[msg("LiFi quote amounts do not consume the full portal balance")]
+    LiFiAmountMismatch,
+
+    #[msg("LiFi fee exceeds the portal safety limit")]
+    LiFiFeeTooHigh,
+
+    #[msg("LiFi fee recipient count does not match the quoted fee amounts")]
+    LiFiFeeRecipientMismatch,
+
+    #[msg("Unsupported LiFi bridge provider")]
+    UnsupportedLiFiProvider,
+
+    #[msg("LiFi provider did not consume the quoted portal token amount")]
+    LiFiProviderAmountMismatch,
+
+    #[msg("LiFi provider instruction does not match the approved adapter layout")]
+    InvalidLiFiProviderInstruction,
+
+    #[msg("LiFi provider destination does not match the portal destination chain")]
+    LiFiDestinationMismatch,
+
+    #[msg("LiFi provider refund recipient does not match the operator")]
+    LiFiRefundRecipientMismatch,
 }

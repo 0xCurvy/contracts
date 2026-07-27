@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 
-use crate::seeds::CONFIG_SEED;
 use crate::error::PortalError;
 use crate::events::{AuthorityUpdated, OperatorUpdated};
+use crate::seeds::CONFIG_SEED;
 use crate::state::PortalConfig;
 
 pub fn handler(
@@ -33,7 +33,6 @@ pub fn handler(
     Ok(())
 }
 
-
 #[derive(Accounts)]
 pub struct UpdateConfig<'info> {
     #[account(
@@ -48,5 +47,3 @@ pub struct UpdateConfig<'info> {
     )]
     pub config: Account<'info, PortalConfig>,
 }
-
-

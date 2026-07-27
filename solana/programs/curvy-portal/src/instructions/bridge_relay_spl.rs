@@ -1,23 +1,33 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::token::{self, Mint, Token, TokenAccount, TransferChecked};
 
 use crate::error::PortalError;
 use crate::events::PortalBridgedSpl;
+use crate::instructions::validate_lifi_amounts;
 use crate::seeds::{CONFIG_SEED, PORTAL_META_SEED, PORTAL_SEED};
 use crate::state::{PortalAccount, PortalConfig};
 
-pub fn handler(
-    ctx: Context<BridgeRelaySpl>,
+pub fn handler<'info>(
+    ctx: Context<'_, '_, '_, 'info, BridgeRelaySpl<'info>>,
     owner_hash: [u8; 32],
     recovery_identifier: [u8; 32],
     input_amount: u64,
+    relay_amount: u64,
+    fee_amounts: Vec<u64>,
     relay_id: [u8; 32],
 ) -> Result<()> {
-    require!(input_amount > 0, PortalError::InsufficientFunds);
-
     let token_balance = ctx.accounts.vault_token_account.amount;
-    require!(input_amount == token_balance, PortalError::InsufficientFunds);
+    require!(
+        input_amount == token_balance,
+        PortalError::InsufficientFunds
+    );
+    require!(
+        fee_amounts.len() == ctx.remaining_accounts.len(),
+        PortalError::LiFiFeeRecipientMismatch
+    );
+
+    validate_lifi_amounts(input_amount, relay_amount, &fee_amounts)?;
 
     let owner_hash_ref = owner_hash.as_ref();
     let recovery_id_ref = recovery_identifier.as_ref();
@@ -31,10 +41,34 @@ pub fn handler(
     ];
     let signer_seeds = [vault_seeds];
 
+    for (fee_recipient, fee_amount) in ctx.remaining_accounts.iter().zip(fee_amounts) {
+        if fee_amount == 0 {
+            continue;
+        }
+        let transfer_accounts = TransferChecked {
+            from: ctx.accounts.vault_token_account.to_account_info(),
+            mint: ctx.accounts.mint.to_account_info(),
+            to: fee_recipient.to_account_info(),
+            authority: ctx.accounts.vault.to_account_info(),
+        };
+        token::transfer_checked(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                transfer_accounts,
+                &signer_seeds,
+            ),
+            fee_amount,
+            ctx.accounts.mint.decimals,
+        )?;
+    }
+
     let cpi_accounts = crate::relay_depository::cpi::accounts::DepositToken {
         relay_depository: ctx.accounts.relay_depository.to_account_info(),
         sender: ctx.accounts.vault.to_account_info(),
-        depositor: ctx.accounts.vault.to_account_info(),
+        // Relay derives the destination order from the depositor identity. LiFi
+        // quotes against the on-curve operator, while the PDA remains the token
+        // sender and signs this CPI.
+        depositor: ctx.accounts.operator.to_account_info(),
         vault: ctx.accounts.relay_vault.to_account_info(),
         mint: ctx.accounts.mint.to_account_info(),
         sender_token_account: ctx.accounts.vault_token_account.to_account_info(),
@@ -48,7 +82,7 @@ pub fn handler(
         cpi_accounts,
         &signer_seeds,
     );
-    crate::relay_depository::cpi::deposit_token(cpi_ctx, input_amount, relay_id)?;
+    crate::relay_depository::cpi::deposit_token(cpi_ctx, relay_amount, relay_id)?;
 
     let portal = &mut ctx.accounts.portal;
     let clock = Clock::get()?;
@@ -81,7 +115,14 @@ pub fn handler(
 }
 
 #[derive(Accounts)]
-#[instruction(owner_hash: [u8; 32], recovery_identifier: [u8; 32], input_amount: u64, relay_id: [u8; 32])]
+#[instruction(
+    owner_hash: [u8; 32],
+    recovery_identifier: [u8; 32],
+    input_amount: u64,
+    relay_amount: u64,
+    fee_amounts: Vec<u64>,
+    relay_id: [u8; 32]
+)]
 pub struct BridgeRelaySpl<'info> {
     #[account(
         mut,

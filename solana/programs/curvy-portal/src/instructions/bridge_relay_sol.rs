@@ -1,19 +1,27 @@
 use anchor_lang::prelude::*;
+use anchor_lang::system_program::{self, Transfer};
 use anchor_spl::token::spl_token::native_mint;
 
 use crate::error::PortalError;
 use crate::events::PortalBridgedSol;
+use crate::instructions::validate_lifi_amounts;
 use crate::seeds::{CONFIG_SEED, PORTAL_META_SEED, PORTAL_SEED};
 use crate::state::{PortalAccount, PortalConfig};
 
-pub fn handler(
-    ctx: Context<BridgeRelaySol>,
+pub fn handler<'info>(
+    ctx: Context<'_, '_, '_, 'info, BridgeRelaySol<'info>>,
     owner_hash: [u8; 32],
     recovery_identifier: [u8; 32],
     input_amount: u64,
+    relay_amount: u64,
+    fee_amounts: Vec<u64>,
     relay_id: [u8; 32],
 ) -> Result<()> {
-    require!(input_amount > 0, PortalError::InsufficientFunds);
+    require!(
+        fee_amounts.len() == ctx.remaining_accounts.len(),
+        PortalError::LiFiFeeRecipientMismatch
+    );
+    validate_lifi_amounts(input_amount, relay_amount, &fee_amounts)?;
 
     let rent = Rent::get()?;
     let min_vault_rent = rent.minimum_balance(0);
@@ -38,10 +46,28 @@ pub fn handler(
     ];
     let signer_seeds = [vault_seeds];
 
+    for (fee_recipient, fee_amount) in ctx.remaining_accounts.iter().zip(fee_amounts) {
+        if fee_amount == 0 {
+            continue;
+        }
+        system_program::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.system_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.vault.to_account_info(),
+                    to: fee_recipient.to_account_info(),
+                },
+                &signer_seeds,
+            ),
+            fee_amount,
+        )?;
+    }
+
     let cpi_accounts = crate::relay_depository::cpi::accounts::DepositNative {
         relay_depository: ctx.accounts.relay_depository.to_account_info(),
         sender: ctx.accounts.vault.to_account_info(),
-        depositor: ctx.accounts.vault.to_account_info(),
+        // Relay credits the on-curve identity LiFi used to construct the quote.
+        depositor: ctx.accounts.operator.to_account_info(),
         vault: ctx.accounts.relay_vault.to_account_info(),
         system_program: ctx.accounts.system_program.to_account_info(),
     };
@@ -50,7 +76,7 @@ pub fn handler(
         cpi_accounts,
         &signer_seeds,
     );
-    crate::relay_depository::cpi::deposit_native(cpi_ctx, input_amount, relay_id)?;
+    crate::relay_depository::cpi::deposit_native(cpi_ctx, relay_amount, relay_id)?;
 
     let portal = &mut ctx.accounts.portal;
     let clock = Clock::get()?;
@@ -81,7 +107,14 @@ pub fn handler(
 }
 
 #[derive(Accounts)]
-#[instruction(owner_hash: [u8; 32], recovery_identifier: [u8; 32], input_amount: u64, relay_id: [u8; 32])]
+#[instruction(
+    owner_hash: [u8; 32],
+    recovery_identifier: [u8; 32],
+    input_amount: u64,
+    relay_amount: u64,
+    fee_amounts: Vec<u64>,
+    relay_id: [u8; 32]
+)]
 pub struct BridgeRelaySol<'info> {
     #[account(
         mut,

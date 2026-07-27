@@ -10,7 +10,8 @@
  *   npx tsx scripts/quote-bridge.ts --ownerHash <bigint> --recoveryKey <hex> --bridge relaydepository
  *
  * Options:
- *   --bridge <across|relaydepository>   Bridge to use (default: across)
+ *   --bridge <relaydepository>          LiFi bridge to use
+ *   --fromAddress <operator pubkey>     On-curve transaction signer used for the quote
  *   --cluster <mainnet|devnet>          Network (default: mainnet)
  *
  * Env:
@@ -34,7 +35,7 @@ const LIFI_SOLANA_CHAIN_ID = 1151111081099710;
 const NATIVE_SOL_ADDRESS = "11111111111111111111111111111111";
 const NATIVE_ETH_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-const ALLOWED_BRIDGES = ["across", "relaydepository"] as const;
+const ALLOWED_BRIDGES = ["relaydepository"] as const;
 type Bridge = (typeof ALLOWED_BRIDGES)[number];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -63,6 +64,7 @@ function deriveRecoveryIdentifier(secpPrivKeyHex: string): PublicKey {
 function parseArgs(): {
   ownerHash: string;
   recoveryKey: string;
+  fromAddress: string;
   toAddress: string;
   bridge: Bridge;
   cluster: "mainnet" | "devnet";
@@ -70,13 +72,15 @@ function parseArgs(): {
   const args = process.argv.slice(2);
   let ownerHash: string | undefined;
   let recoveryKey: string | undefined;
+  let fromAddress = process.env.OPERATOR_ADDRESS;
   let toAddress: string | undefined;
-  let bridge: Bridge = "across";
+  let bridge: Bridge = "relaydepository";
   let cluster: "mainnet" | "devnet" = "mainnet";
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--ownerHash" && args[i + 1]) ownerHash = args[++i];
     else if (args[i] === "--recoveryKey" && args[i + 1]) recoveryKey = args[++i];
+    else if (args[i] === "--fromAddress" && args[i + 1]) fromAddress = args[++i];
     else if (args[i] === "--toAddress" && args[i + 1]) toAddress = args[++i];
     else if (args[i] === "--bridge" && args[i + 1]) {
       const b = args[++i] as Bridge;
@@ -95,21 +99,21 @@ function parseArgs(): {
     }
   }
 
-  if (!ownerHash || !recoveryKey || !toAddress) {
+  if (!ownerHash || !recoveryKey || !fromAddress || !toAddress) {
     console.error(
-      "Usage: npx tsx scripts/quote-bridge.ts --ownerHash <bigint> --recoveryKey <hex> --toAddress <0xEvmAddress> [--bridge across|relaydepository] [--cluster mainnet|devnet]\n\n" +
+      "Usage: npx tsx scripts/quote-bridge.ts --ownerHash <bigint> --recoveryKey <hex> --fromAddress <operatorPubkey> --toAddress <0xEvmAddress> [--bridge relaydepository] [--cluster mainnet|devnet]\n\n" +
         "Get ownerHash and recoveryKey from: yarn generate-portal-data --s <s> --v <v>",
     );
     process.exit(1);
   }
 
-  return { ownerHash, recoveryKey, toAddress, bridge, cluster };
+  return { ownerHash, recoveryKey, fromAddress, toAddress, bridge, cluster };
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
-  const { ownerHash, recoveryKey, toAddress, bridge, cluster } = parseArgs();
+  const { ownerHash, recoveryKey, fromAddress, toAddress, bridge, cluster } = parseArgs();
 
   const programId = cluster === "mainnet" ? MAINNET_PROGRAM_ID : DEVNET_PROGRAM_ID;
   const defaultRpc = cluster === "mainnet" ? "https://api.mainnet-beta.solana.com" : "https://api.devnet.solana.com";
@@ -158,7 +162,9 @@ async function main() {
     toChain: ChainId.ARB,
     fromToken: NATIVE_SOL_ADDRESS,
     toToken: NATIVE_ETH_ADDRESS,
-    fromAddress: vaultPda.toBase58(),
+    // The vault is a PDA and cannot satisfy LiFi's signer/rent simulation.
+    // The Curvy program maps this on-curve identity back to the PDA sender.
+    fromAddress,
     toAddress,
     fromAmount: vaultLamports.toString(),
     slippage: 0.01,

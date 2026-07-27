@@ -59,6 +59,25 @@ pub struct PortalBridgedSpl {
 }
 
 #[event]
+pub struct PortalBridgedLifiSpl {
+    pub owner_hash: [u8; 32],
+    pub recovery_identifier: [u8; 32],
+    pub portal: Pubkey,
+    pub vault: Pubkey,
+    pub operator: Pubkey,
+    pub vault_token_account: Pubkey,
+    pub provider_program: Pubkey,
+    pub mint: Pubkey,
+    pub tokens: u64,
+    pub provider_tokens: u64,
+    pub fee_tokens: u64,
+    pub created_at: i64,
+    pub portal_bump: u8,
+    pub vault_bump: u8,
+    pub destination_chain_id: u64,
+}
+
+#[event]
 pub struct PortalRecoveredSol {
     pub owner_hash: [u8; 32],
     pub recovery_identifier: [u8; 32],
@@ -96,4 +115,3 @@ pub struct StealthSplAtaPrepared {
     pub mint: Pubkey,
     pub vault_token_account: Pubkey,
 }
-

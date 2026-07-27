@@ -1,9 +1,10 @@
 # Curvy Portal — Solana
 
 Anchor program that mirrors the EVM Portal Factory: deterministic vault PDAs receive user
-deposits, the backend operator atomically bridges them to Arbitrum via LiFi (Across V4 or
-Relay Depository), and a SECP256k1 signature path lets users self-recover funds if the
-operator ever goes away.
+deposits, the backend operator atomically bridges them to Arbitrum through supported LiFi
+routes (Relay Depository or Eco), and a SECP256k1 signature path lets users self-recover
+funds if the operator ever goes away. A separate direct Across V4 integration is retained,
+but Across is not currently advertised as a Solana-origin LiFi tool.
 
 ## Program addresses
 
@@ -33,7 +34,7 @@ packages/solana/
 ├── scripts/                    # tsx-runnable utility scripts (devnet/mainnet)
 ├── runbooks/deployment/        # Surfpool / txtx deploy descriptors
 ├── migrations/deploy.ts        # `initialize` invocation (config bootstrap)
-├── idls/                       # Vendored Across + Relay IDLs (for CPI building)
+├── idls/                       # Vendored provider IDLs (for CPI building)
 ├── keys/                       # GIT-IGNORED — see "Key management" below
 ├── .env / .env.example         # GIT-IGNORED — local test fixtures only
 ├── Anchor.toml
@@ -43,8 +44,8 @@ packages/solana/
 ```
 
 The on-chain instruction handlers and their TypeScript counterparts in
-`packages/backend/src/lib/repositories/portal/chain/solana/instructions.ts` must stay in
-sync. If you change account ordering or add an account in Rust, update the builder.
+`packages/services/portal-broadcaster/src/chain/solana/instructions.ts` must stay in sync.
+If you change account ordering or add an account in Rust, update the builder.
 
 ---
 
@@ -82,8 +83,34 @@ anchor build              # re-compile so the new ID is baked in
 
 The IDL at `target/idl/curvy_portal.json` is consumed by:
 - `migrations/deploy.ts` (initializes the config PDA)
-- `packages/backend/.../solana/instructions.ts` (instruction discriminators are mirrored
-  by hand from the IDL — re-run the discriminator hash if you rename an instruction).
+- `packages/services/portal-broadcaster/src/chain/solana/instructions.ts` (instruction
+  discriminators are mirrored by hand from the IDL — re-run the discriminator hash if
+  you rename an instruction).
+
+### LiFi quote identity and fees
+
+The portal PDA is off-curve and cannot sign a LiFi transaction. Quotes must therefore use
+the configured operator's on-curve public key as `fromAddress`; the portal PDA remains the
+actual source of funds inside the Curvy instruction.
+
+- Relay is called with `sender = portal PDA` and `depositor = operator`. The exact Relay
+  amount and 32-byte deposit ID are decoded from LiFi's serialized transaction.
+- LiFi source-token fee transfers are decoded from the same transaction, reproduced by
+  the Curvy program, and included in the invariant
+  `provider amount + LiFi fees = full portal balance`.
+- Total LiFi source-token fees are capped on-chain at 1% of the portal balance.
+- Relay supports native SOL and SPL tokens. Eco support is SPL-only and executes only the
+  exact quoted Eco instruction, with an exact temporary token delegation that is revoked
+  after the CPI.
+
+Provider support is deliberately explicit. Adding a LiFi tool name to an allowlist is not
+enough: each provider needs a transaction decoder, account validation, and a constrained
+on-chain CPI adapter.
+
+The Relay instruction ABI changed to carry the exact provider amount and LiFi fees, and
+Eco adds a new instruction. Roll out the upgraded Solana program before the corresponding
+portal-broadcaster release; the new broadcaster is not compatible with the old on-chain
+Relay ABI.
 
 ---
 
@@ -100,8 +127,8 @@ program, but it's the only path that mirrors what `anchor deploy` does on devnet
 
 ### Surfpool (mainnet fork)
 
-Faster iteration when you need to test against real mainnet account state (Across vault,
-Relay depository, real SPL mints). Requires Surfpool installed.
+Faster iteration when you need to test against real mainnet account state (provider
+programs, token accounts, and real SPL mints). Requires Surfpool installed.
 
 ```bash
 surfpool start            # starts a mainnet-forking validator on http://127.0.0.1:8899
@@ -355,4 +382,6 @@ done
 - Squads multisig (authority pattern): <https://docs.squads.so/>
 - Surfpool / txtx runbooks: <https://docs.surfpool.run/>
 - LiFi Solana integration: <https://docs.li.fi/>
+- Relay protocol: <https://docs.relay.link/>
+- Eco Routes: <https://eco.com/docs/routes/>
 - Across V4 protocol: <https://docs.across.to/>
