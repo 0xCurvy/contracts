@@ -112,6 +112,15 @@ Eco adds a new instruction. Roll out the upgraded Solana program before the corr
 portal-broadcaster release; the new broadcaster is not compatible with the old on-chain
 Relay ABI.
 
+That ordering is load-bearing, not a preference. The instruction names — and therefore the
+8-byte discriminators — did not change, and Anchor decodes arguments with borsh
+`deserialize`, which **ignores trailing bytes**. A pre-upgrade program will therefore
+*accept* a new-format Relay payload and read `relay_id` out of
+`relay_amount ‖ vec_len ‖ fee[0] ‖ relay_id[..12]`, depositing to Relay under an ID that
+matches no LiFi order — funds leave the vault and strand off-chain. The reverse direction
+(old payload, upgraded program) fails closed on a borsh under-run. So: **upgrade the
+program first, with the bridge paused, and only then release the broadcaster.**
+
 ---
 
 ## Test
@@ -157,12 +166,21 @@ deposit → bridge → recover loop against deployed devnet state. Run them via 
 
 ### 1. Devnet
 
+Devnet is the dry-run for a mainnet upgrade, so it must run the **same** program ID as
+`declare_id!` (`6cHtg7…`). The pre-v2 devnet program at `HuMaeg6Z…` cannot host this
+binary — Anchor would reject every instruction with `DeclaredProgramIdMismatch` (4100) —
+so the first devnet push of the current program is a fresh deploy at `6cHtg7…`, which
+needs `keys/mainnet/program-keypair.json` as the program keypair. `scripts/devnet-helpers.ts`
+still points at the legacy ID; repoint it after that deploy.
+
 ```bash
 solana config set --url devnet
-solana airdrop 2                                # need ~2 SOL for deploy + buffer
+solana balance                                  # a 585 KB program needs ~4.1 SOL of
+solana airdrop 2                                # refundable buffer + ~4.1 SOL of rent on
+                                                # a first deploy; airdrop in 2-SOL chunks
 
 # Confirm we'll deploy to the right program ID
-anchor keys list
+anchor keys list                                # MUST print 6cHtg7sPLL9NQQuuyepnkud6PskMWV5yxvU2vXfag4qX
 
 # Deploy via Anchor (uses ~/.config/solana/id.json as upgrade authority by default)
 anchor deploy --provider.cluster devnet
@@ -185,11 +203,22 @@ keypair.
 # 1. Pre-flight checks
 anchor build                              # produce a fresh .so
 solana config set --url mainnet-beta
-solana balance                            # need ~5 SOL on the payer for first deploy
+solana balance                            # payer needs the buffer (refundable) + any
+                                          # ProgramData growth (permanent) — see step 2b
 
 # 2. Inspect what will be deployed
 anchor keys list                          # MUST match the mainnet program ID above
 sha256sum target/deploy/curvy_portal.so   # record this for change control
+
+# 2b. Size check — an upgrade FAILS if the new .so exceeds the allocated ProgramData
+stat -f %z target/deploy/curvy_portal.so  # new program length, in bytes
+solana program show <PROGRAM_ID>          # "Data Length" = currently allocated length
+# Rent for growth is (new - allocated) x 6960 lamports and is NOT refundable; the deploy
+# buffer is (new + 173) x 6960 lamports and IS refunded when the upgrade completes.
+# `solana program deploy` extends automatically unless --no-auto-extend is passed; the
+# txtx/Surfpool path (svm::deploy_program) has NOT been verified to extend, so when the
+# binary has grown, extend explicitly first:
+solana program extend <PROGRAM_ID> <ADDITIONAL_BYTES>
 
 # 3. Drive the deployment via Surfpool runbook
 #    `runbooks/deployment/main.tx` declares two signers: `payer` and `authority`.
@@ -206,6 +235,25 @@ PORTAL_OPERATOR_PUBKEY=<base58-of-prod-operator> \
 For subsequent upgrades only steps 1–3 are needed — `initialize` is one-time. Use
 `update_config` (driven by the authority signer) to rotate the operator without
 redeploying.
+
+An upgrade also needs, in this order:
+
+```bash
+# a. (optional but recommended) freeze the bridge flows for the swap window.
+#    `recover_sol` / `recover_spl` are deliberately NOT pause-gated, so users keep access.
+#    pause = true, driven by the authority signer
+
+# b. verify what actually landed
+solana program show <PROGRAM_ID>          # Data Length >= the size from step 2b
+                                          # and the sha256 recorded in step 2
+
+# c. refresh the on-chain IDL account — `anchor build` regenerates the local IDL, it does
+#    NOT publish it. Explorers and any IDL-driven client keep decoding the old ABI until:
+anchor idl upgrade <PROGRAM_ID> --filepath target/idl/curvy_portal.json --provider.cluster mainnet
+
+# d. unpause, then deploy the portal-broadcaster release (never before the program), then
+#    bridge one small SPL portal through each of Relay and Eco before re-enabling traffic.
+```
 
 ### 3. Backing the deploy out
 

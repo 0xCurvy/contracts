@@ -14,6 +14,13 @@ import { resolve } from "path";
 
 // ─── Program constants ───────────────────────────────────────────────────────
 
+/**
+ * Legacy devnet deployment. This program predates the fee-aware Relay ABI, so its
+ * `bridge_relay_{sol,spl}` still take 4 args — sending the current 6-arg payload to it
+ * would be silently mis-parsed, not rejected. `migrations/deploy.ts` and Anchor.toml both
+ * target `declare_id!` (6cHtg7…); repoint this constant to that ID once the current binary
+ * is deployed to devnet.
+ */
 export const DEVNET_PROGRAM_ID = new PublicKey("HuMaeg6Z81uRhYQ8ct3L3zphbKttULbyhoYGrH1AmLn8");
 
 export const PORTAL_SEED = Buffer.from("portal");
