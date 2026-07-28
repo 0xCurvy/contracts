@@ -130,9 +130,7 @@ function extractRelayQuote(
   const DEPOSIT_NATIVE_DISC = [13, 158, 13, 223, 95, 213, 28, 6];
   const staticKeys = msg.staticAccountKeys;
   const feeStep = quote.includedSteps?.find((step: any) => step.tool === "feeCollection");
-  const expectedFee = feeStep
-    ? BigInt(feeStep.action.fromAmount) - BigInt(feeStep.estimate.toAmount)
-    : 0n;
+  const expectedFee = feeStep ? BigInt(feeStep.action.fromAmount) - BigInt(feeStep.estimate.toAmount) : 0n;
   const feeTransfers: Array<{ recipient: PublicKey; amount: bigint }> = [];
   let relayAmount: bigint | undefined;
   let relayId: number[] | undefined;
