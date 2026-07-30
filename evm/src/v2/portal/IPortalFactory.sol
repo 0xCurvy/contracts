@@ -1,0 +1,130 @@
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.8.28;
+
+import { CurvyTypes } from "../utils/Types.sol";
+
+interface ILiFiCalldataVerification {
+    struct LiFiBridgeData {
+        bytes32 transactionId;
+        string bridge;
+        string integrator;
+        address referrer;
+        address sendingAssetId;
+        address receiver;
+        uint256 minAmount;
+        uint256 destinationChainId;
+        bool hasSourceSwaps;
+        bool hasDestinationCall;
+    }
+
+    struct LiFiGenericSwapData {
+        address sendingAssetId;
+        uint256 amount;
+        address receiver;
+        address receivingAssetId;
+        uint256 receivingAmount;
+    }
+
+    struct SwapData {
+        address callTo;
+        address approveTo;
+        address sendingAssetId;
+        address receivingAssetId;
+        uint256 fromAmount;
+        bytes callData;
+        bool requiresDeposit;
+    }
+
+    function extractBridgeData(bytes calldata data) external pure returns (LiFiBridgeData memory);
+
+    function extractGenericSwapParameters(bytes calldata data) external pure returns (LiFiGenericSwapData memory);
+
+    function extractSwapData(bytes calldata data) external pure returns (SwapData[] memory);
+}
+
+interface IPortalFactory {
+    //#region Errors
+
+    error UnsupportedShielding();
+    error DeploymentFailed();
+    error UnsupportedBridging();
+    error InvalidLiFiReceiver();
+    error InvalidLiFiDestinationChain();
+    error AmountMismatch();
+
+    //#endregion
+
+    //#region Events
+
+    event ShieldPortalDeployed(address indexed portalAddress, uint256 indexed ownerHash, address indexed recovery);
+    event EntryBridgePortalDeployed(address indexed portalAddress, uint256 indexed ownerHash, address indexed recovery, address currency);
+    event ExitBridgePortalDeployed(address indexed portalAddress, address indexed exitAddress, uint256 exitChainId, address indexed recovery, address currency);
+    event SolanaExitBridgePortalDeployed(address indexed portalAddress, bytes32 indexed exitAddress, uint256 exitChainId, address indexed recovery, address currency);
+    event RecoveryPortalDeployed(address indexed portalAddress, address indexed tokenAddress, address indexed to);
+    event SolanaRecoveryPortalDeployed(address indexed portalAddress, bytes32 indexed exitAddress, address indexed tokenAddress, address to);
+    event ConfigUpdated(address curvyVaultProxyAddress, address curvyAggregatorAlphaProxyAddress, address lifiDiamondAddress);
+
+    //#endregion
+
+    //#region Public functions
+
+    function updateConfig(
+        address curvyVaultProxyAddress,
+        address curvyAggregatorAlphaProxyAddress,
+        address lifiDiamondAddress
+    ) external returns (bool);
+
+    /// @notice EIP-1167 implementation contract used for all EVM portal proxies.
+    function portalImpl() external view returns (address);
+
+    /// @notice EIP-1167 implementation contract used for all Solana-exit portal proxies.
+    function solanaPortalImpl() external view returns (address);
+
+    function getEntryPortalAddress(uint256 ownerHash, address recovery) external view returns (address);
+
+    function getExitPortalAddress(address exitAddress, uint256 exitChainId, address recovery) external view returns (address);
+
+    function getSolanaExitPortalAddress(bytes32 exitAddress, uint256 exitChainId, address recovery) external view returns (address);
+
+    function portalIsRegistered(address portalAddress) external view returns (bool);
+
+    function deployShieldPortal(CurvyTypes.Note memory note, address recovery) external;
+
+    /// @dev `payable`: the operator forwards the LiFi native fee (msg.value) for ERC20 bridges that
+    /// charge one; the portal passes it through. `gasFee` reimburses the operator in `currency`.
+    function deployEntryBridgePortal(
+        bytes calldata bridgeData,
+        CurvyTypes.Note memory note,
+        address currency,
+        address recovery,
+        uint256 gasFee
+    ) external payable;
+
+    function deployExitBridgePortal(
+        bytes calldata bridgeData,
+        uint256 amount,
+        address currency,
+        address exitAddress,
+        uint256 exitChainId,
+        address recovery,
+        uint256 gasFee
+    ) external payable;
+
+    function deploySolanaExitBridgePortal(
+        bytes calldata bridgeData,
+        uint256 amount,
+        address currency,
+        bytes32 exitAddress,
+        uint256 exitChainId,
+        address recovery,
+        uint256 gasFee
+    ) external payable;
+
+    function deployRecoveryEntryPortal(uint256 ownerHash, address recovery, address tokenAddress, address to) external;
+
+    function deployRecoveryExitPortal(address exitAddress, uint256 exitChainId, address recovery, address tokenAddress, address to) external;
+
+    function deploySolanaRecoveryExitPortal(bytes32 exitAddress, uint256 exitChainId, address recovery, address tokenAddress, address to) external;
+
+    //#endregion
+}

@@ -1,0 +1,29 @@
+[toolchain]
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.devnet]
+# Must equal `declare_id!` in programs/curvy-portal/src/lib.rs — Anchor bakes that ID into
+# the binary and rejects every instruction with DeclaredProgramIdMismatch (4100) when the
+# deploy target differs. The pre-v2 devnet deployment lives at
+# HuMaeg6Z81uRhYQ8ct3L3zphbKttULbyhoYGrH1AmLn8 (old Relay ABI, see scripts/devnet-helpers.ts);
+# a dry-run of the current binary needs this ID deployed to devnet — see README "Devnet".
+curvy_portal = "6cHtg7sPLL9NQQuuyepnkud6PskMWV5yxvU2vXfag4qX"
+
+[programs.localnet]
+curvy_portal = "6cHtg7sPLL9NQQuuyepnkud6PskMWV5yxvU2vXfag4qX"
+
+[programs.mainnet]
+curvy_portal = "6cHtg7sPLL9NQQuuyepnkud6PskMWV5yxvU2vXfag4qX"
+
+[registry]
+url = "https://api.dev.secondstate.io"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
