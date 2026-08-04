@@ -36,9 +36,9 @@ reconcile.
   - `v2/PortalFactory` (id `PortalFactoryV2`) — the fresh, independent V2 factory
     (own `create2_salt_v2` → new address), used by both `v2/Core` and `v2/PortalDeployment`.
   - `v1/MainDeployment` (id `MainDeploymentV2`), `v1/Deployment` (id `DeploymentV2`),
-    `v1/PortalFactory` (id `PortalFactoryV2`) — the existing V1-era flow (V1 proxies +
-    V2 portal factory), still driven by `deploy:staging|production`. Left intact; the
-    live V1 proxies are not touched.
+    `v1/PortalFactory` (id `PortalFactoryV2`) — the V1-era flow (V1 proxies + V2 portal
+    factory). No script drives these any more (`scripts/deploy.ts` is gone); they are
+    kept so the live V1 journals still reconcile. The live V1 proxies are not touched.
 - `upgrades/` — post-deployment mutations:
   - `UpgradeProxy` — generic UUPS upgrade for future same-line **V2 → V2.x** impl
     bumps (parameterized by `proxyAddress` + a pre-deployed `newImplementation` +
@@ -49,37 +49,53 @@ reconcile.
 - `utils/parameters.ts` — env/`--deployment-id`-driven parameter resolution backed by
   `ignition/network-parameters.json` and `ignition/environment-parameters.json`.
 
+## Generated consumers
+
+Two downstream artefacts are generated from the *same* compiled Hardhat output that the
+Ignition deploy pipeline ships — so what a consumer calls is what is actually deployed,
+not a second independent build of the same sources:
+
+- **TypeScript ABIs** → `packages/@0xcurvy/sdk/src/contracts/evm/abi/`, written by
+  `scripts/extract-abis.ts` (`pnpm extract-abis`).
+- **Rust bindings** → `rust/curvy-bindings`, a standalone crate published to crates.io
+  and consumed by blokli. See `rust/curvy-bindings/README.md`.
+
+`artifact-registry.mjs` is the single source of truth tying the two together: it maps a
+logical contract id to its artifact path and fully qualified name. Both extractors and
+all Ignition modules resolve through it, so moving a contract is a one-place edit. Keys
+are logical ids rather than contract names because the v1/v2 split left several contracts
+sharing a short name (three different `PortalFactory.sol`) — and because **Ignition
+records the fully qualified name in its journals**, an existing id must never change what
+it resolves to.
+
+### Rust bindings (`rust/`)
+
+The crate commits no generated Rust: `src/codegen/mod.rs` is a short set of
+`alloy::sol!` invocations that expand the Hardhat artifacts vendored in
+`curvy-bindings/src/artifacts/` at compile time. `rust/extract-artifacts.mjs` refreshes
+those artifacts and stamps `artifact-manifest.json` (source commit, compiler settings
+read from build-info, and a SHA-256 per artifact); `rust/generate.sh` wraps it.
+
+```bash
+./rust/generate.sh          # refresh vendored artifacts + re-stamp the manifest
+./rust/generate.sh --check  # verify both are up to date (the CI gate)
+```
+
+`generate.sh` recompiles with `HARDHAT_DEVENV=true` when `artifacts/devenv/` is empty.
+`devenv/**` is only in `paths.sources` under that flag, and every
+ordinary Hardhat task — `compile`, `run`, even `ignition visualize` — silently empties
+that directory. Don't "fix" a failing `--check` by hand.
+
 ## Common commands
 
 ```bash
 pnpm build                  # hardhat compile
 pnpm deploy:local           # spin up anvil + deploy the local Devenv stack
-pnpm deploy:staging         # V1-era flow: ENVIRONMENT=staging, all configured networks
-pnpm deploy:production      # V1-era flow: ENVIRONMENT=production, all configured networks
-pnpm extract-abis           # write deployed v2 ABIs into packages/sdk
-```
-
-### Deploying the standalone V2 (greenfield)
-
-V2 is a fresh, standalone deployment (new proxies, new factory) — it does not
-upgrade the live V1 proxies. It lands on the separate `<env>_<network>_v2`
-deployment-id namespace across all configured networks: the full stack on the
-aggregator chains, and the V2 portal factory (+ LiFi) on every other chain:
-
-```bash
-pnpm deploy-v2:staging      # ENVIRONMENT=staging  -> staging_<net>_v2
-pnpm deploy-v2:production    # ENVIRONMENT=production -> production_<net>_v2
-```
-
-### Upgrading a V2 proxy later (V2 → V2.x)
-
-`upgrades/UpgradeProxy.ts` performs a generic UUPS `upgradeToAndCall`. Deploy the
-new implementation first, then point the proxy at it:
-
-```bash
-# params file: { "UpgradeProxy": { "proxyAddress": "0x…", "newImplementation": "0x…", "reinitCalldata": "0x" } }
-pnpm hardhat ignition deploy ignition/modules/upgrades/UpgradeProxy.ts \
-  --deployment-id <env>_<network>_v2 --network <network> --parameters <params.json>
+pnpm deploy-v2:staging      # V2 stack: ENVIRONMENT=staging, all configured networks
+pnpm deploy-v2:production   # V2 stack: ENVIRONMENT=production, all configured networks
+pnpm extract-abis           # write deployed v2 ABIs into packages/@0xcurvy/sdk
+pnpm test:solidity          # Solidity tests (test/solidity, Hardhat's EDR runner)
+pnpm test                   # TypeScript tests — needs `deploy:local` + `start:anvil` first
 ```
 
 ### Deploying / registering the ENS offchain resolver

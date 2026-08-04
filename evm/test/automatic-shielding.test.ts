@@ -1,133 +1,117 @@
 import fs from "node:fs";
-import type { HexString } from "@0xcurvy/curvy-sdk";
 import { network } from "hardhat";
+import { parseEventLogs } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { expect, test } from "vitest";
+import { fullyQualifiedName } from "../artifact-registry.mjs";
 
-// import PortalFactoryModule from "../ignition/modules/AutomaticShielding";
-
+/**
+ * Automatic shielding against the V2 stack.
+ *
+ * Flow: predict the portal address for an owner hash, send tokens to it, then have the
+ * factory deploy the portal, which auto-shields the balance into a pending note.
+ *
+ * Requires a local deployment:
+ *
+ *   pnpm deploy:local     # writes ignition/deployments/local_anvil + cache/anvil_state.json
+ *   pnpm start:anvil      # reloads that state
+ *
+ * Both are gitignored, so a fresh checkout has neither. NOTE: this test needs a CLEAN
+ * chain each run — the portal is a deterministic CREATE2 clone, so a second run against
+ * the same anvil reverts with `FailedDeployment()`. Restart `start:anvil` between runs.
+ */
 test("automatic-shielding", async () => {
   const ownerHash = 702705117071108858750548073842146797693190729490869702449519502701872077655n;
   const token = 2n;
-  const amount = 2797004n;
-  const noteId = 14967077268631546162044198053248993673186354912497893587694799228971941136645n;
 
-  const networkObj = await network.connect({ network: "anvil" });
+  const { viem } = await network.connect({ network: "anvil" });
 
-  // Deploy and run tests
-  // const { ignition, viem } = networkObj
-  // const { portalFactory, curvyVault, curvyAggregatorAlpha, erc20Mock } =
-  //   await ignition.deploy(PortalFactoryModule);
-
-  //#region Load deployed contracts
-
-  const { viem } = networkObj;
   const deployedAddressesPath = "./ignition/deployments/local_anvil/deployed_addresses.json";
   const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, "utf8"));
 
-  const vaultAddress = deployedAddresses["CurvyVault#ERC1967Proxy"];
-  if (!vaultAddress) {
-    throw new Error("CurvyVault proxy address not found for anvil");
-  }
-  const portalFactoryAddress = deployedAddresses["PortalFactory#PortalFactory"];
-  if (!portalFactoryAddress) {
-    throw new Error("PortalFactory address not found for anvil");
-  }
-  const curvyAggregatorAlphaAddress = deployedAddresses["CurvyAggregatorAlpha#ERC1967Proxy"];
-  if (!curvyAggregatorAlphaAddress) {
-    throw new Error("CurvyAggregatorAlpha proxy address not found for anvil");
-  }
+  const address = (key: string): `0x${string}` => {
+    const value = deployedAddresses[key];
+    if (!value) throw new Error(`${key} not found in ${deployedAddressesPath}`);
+    return value;
+  };
 
-  const erc20MockAddress = deployedAddresses["Devenv#ERC20Mock"];
-  if (!erc20MockAddress) {
-    throw new Error("ERC20Mock address not found for anvil");
-  }
-
-  const curvyVault = await viem.getContractAt("CurvyVaultV1", vaultAddress);
-  const portalFactory = await viem.getContractAt("PortalFactory", portalFactoryAddress);
-  const curvyAggregatorAlpha = await viem.getContractAt("CurvyAggregatorAlphaV1", curvyAggregatorAlphaAddress);
-  const erc20Mock = await viem.getContractAt("ERC20Mock", erc20MockAddress);
-
-  //#endregion
+  // `PortalFactory` and `Portal` are ambiguous short names across the v1/v2 trees, so
+  // Hardhat types them as `never`. The fully qualified name from the shared registry
+  // pins the V2 artifact.
+  const curvyVault = await viem.getContractAt("CurvyVaultV2", address("CurvyVault#ERC1967Proxy"));
+  const portalFactory = await viem.getContractAt(
+    fullyQualifiedName("PortalFactory"),
+    address("PortalFactory#PortalFactory"),
+  );
+  const curvyAggregatorAlpha = await viem.getContractAt(
+    "CurvyAggregatorAlphaV2",
+    address("CurvyAggregator#ERC1967Proxy"),
+  );
+  const erc20Mock = await viem.getContractAt("ERC20Mock", address("Devenv#ERC20Mock"));
 
   const tokenIdOfErc20Mock = await curvyVault.read.getTokenId([erc20Mock.address]);
-  expect(tokenIdOfErc20Mock).toBe(2n);
+  expect(tokenIdOfErc20Mock).toBe(token);
 
   const tokenAddress = await curvyVault.read.getTokenAddress([token]);
   expect(tokenAddress).toBe(erc20Mock.address);
 
-  // User's wallet, random generated - this is the account: 0x0eeCE19240e3A8826d92da5f4D31581a1DC97779
+  // User's wallet, randomly generated — account 0x0eeCE19240e3A8826d92da5f4D31581a1DC97779
   const user = privateKeyToAccount("0x49593edf99c94e11b7e1e6f98387af4b5bb996ee76723f0ab5a658ba643d1058");
   const userClient = await viem.getWalletClient(user.address);
-
   const publicClient = await viem.getPublicClient();
 
-  const portalAddress = await portalFactory.read.getPortalAddress([ownerHash]);
+  // V2 charges per-token gas fees on top of the percentage deposit fee, and `autoShield`
+  // underflows if the shielded amount cannot cover them — so size the amount off the
+  // live fees rather than hardcoding it.
+  const depositFee = await curvyVault.read.depositFee();
+  const gasFees = await curvyVault.read.perTokenGasFees([token]);
+  const totalGasFees = gasFees.portalDeployment + gasFees.pendingNoteCommitment;
+  const amount = totalGasFees * 4n;
+
+  // V2 portals require a non-zero recovery address (`Portal.initialize` reverts with
+  // InvalidRecoveryAddress otherwise) and it is part of the CREATE2 salt, so the same
+  // value must be used to predict the address and to deploy.
+  const recovery = user.address;
+  const portalAddress = await portalFactory.read.getEntryPortalAddress([ownerHash, recovery]);
 
   const { request } = await publicClient.simulateContract({
     account: user,
-    address: tokenAddress as HexString,
-    abi: [
-      {
-        inputs: [
-          {
-            internalType: "address",
-            name: "to",
-            type: "address",
-          },
-          {
-            internalType: "uint256",
-            name: "value",
-            type: "uint256",
-          },
-        ],
-        name: "transfer",
-        outputs: [
-          {
-            internalType: "bool",
-            name: "",
-            type: "bool",
-          },
-        ],
-        stateMutability: "nonpayable",
-        type: "function",
-      },
-    ],
+    address: erc20Mock.address,
+    abi: erc20Mock.abi,
     functionName: "transfer",
     args: [portalAddress, amount],
   });
+  const receipt = await publicClient.waitForTransactionReceipt({ hash: await userClient.writeContract(request) });
+  expect(receipt.status).toBe("success");
 
-  const hash = await userClient.writeContract(request);
-
-  const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
-  expect(receipt).toBeDefined();
-
-  const deployHash = await portalFactory.write.deployAndShield([
-    {
-      ownerHash,
-      token,
-      amount,
-    },
+  // `deployShieldPortal` is OPERATOR_ROLE-gated; the factory grants it to the deployer
+  // (anvil account 0), which is the default wallet client here.
+  const deployHash = await portalFactory.write.deployShieldPortal([
+    { ownerHash, token, amount, ephemeralKey: [0n, 0n], viewTag: 0 },
+    recovery,
   ]);
-
   const deployReceipt = await publicClient.waitForTransactionReceipt({ hash: deployHash });
+  expect(deployReceipt.status).toBe("success");
 
-  expect(deployReceipt).toBeDefined();
+  // Both the percentage deposit fee and the per-token gas fees come off the deposit; the
+  // remainder is what the aggregator holds in the vault and what is bound into the note.
+  const netAmount = amount - (amount * BigInt(depositFee)) / 10_000n - totalGasFees;
 
-  // check balances after deposit
+  expect(await curvyVault.read.balanceOf([curvyAggregatorAlpha.address, tokenIdOfErc20Mock])).toBe(netAmount);
 
-  const depositFee = (await curvyVault.read.depositFee()) as bigint;
-  const expectedAmountMinusFees = amount - (amount * depositFee) / 10000n;
+  // The note id is PoseidonT4(ownerHash, netAmount, token) — read it off the event the
+  // aggregator emitted rather than recomputing the hash here.
+  const [pendingNotes] = parseEventLogs({
+    abi: curvyAggregatorAlpha.abi,
+    eventName: "PendingNotes",
+    logs: deployReceipt.logs,
+  });
+  expect(pendingNotes).toBeDefined();
+  expect(pendingNotes.args.amounts[0]).toBe(netAmount);
+  expect(pendingNotes.args.tokens[0]).toBe(token);
 
-  const vaultErc20MockBalanceOfAggregator = await curvyVault.read.balanceOf([
-    curvyAggregatorAlphaAddress,
-    tokenIdOfErc20Mock,
-  ]);
-  expect(vaultErc20MockBalanceOfAggregator).toBe(expectedAmountMinusFees);
-
-  // check if note is deposited
-
-  const noteDeposited = await curvyAggregatorAlpha.read.noteInQueue([noteId]);
-  expect(noteDeposited).toBe(true);
+  // NoteStatus { UNKNOWN, PENDING, INCLUDED } — auto-shielding leaves it PENDING until
+  // a batch commitment includes it.
+  const noteId = pendingNotes.args.noteIds[0];
+  expect(await curvyAggregatorAlpha.read.noteStatus([noteId])).toBe(1);
 });

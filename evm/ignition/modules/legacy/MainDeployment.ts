@@ -1,4 +1,5 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import { fullyQualifiedName } from "../../../artifact-registry.mjs";
 // audit(2026-Q1): No Validation of Address Format - use validated address parameter helper
 import { getAddressParameter } from "../utils/parameters";
 import PortalFactory from "./PortalFactory";
@@ -48,7 +49,7 @@ export default buildModule("MainDeployment", (m) => {
   );
 
   // === Aggregator upgrade ===
-  const poseidonT4 = m.contractAt("src/v1/aggregator-alpha/utils/PoseidonT4.sol:PoseidonT4", poseidonT4Address, {
+  const poseidonT4 = m.contractAt(fullyQualifiedName("PoseidonT4V1"), poseidonT4Address, {
     id: "PoseidonT4Existing",
   });
 

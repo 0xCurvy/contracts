@@ -47,7 +47,7 @@ contract WithdrawalTest is Test {
 
         // Withdrawal verifier + zero protocol fee
         verifier = new CurvyWithdrawalVerifier();
-        aggregator.setWithdrawalVerifier(WDR_MAX_INPUTS, WDR_TREE_DEPTH, address(verifier));
+        aggregator.setWithdrawalVerifier(WDR_MAX_INPUTS, address(verifier));
         aggregator.setProtocolFees(0);
 
         WithdrawalFixtures.Input memory fixture = WithdrawalFixtures.input();
@@ -70,7 +70,7 @@ contract WithdrawalTest is Test {
 
         // Sanity
         assertEq(
-            aggregator.getWithdrawalVerifier(WDR_MAX_INPUTS, WDR_TREE_DEPTH),
+            aggregator.getWithdrawalVerifier(WDR_MAX_INPUTS),
             address(verifier)
         );
         assertEq(vault.balanceOf(address(aggregator), fixture.tokenId), fixture.withdrawnAmount);
@@ -93,7 +93,7 @@ contract WithdrawalTest is Test {
         // Pre-state
         for (uint256 i = 0; i < WDR_MAX_INPUTS; i++) {
             if (fixture.inputNullifiers[i] == 0) continue;
-            assertFalse(aggregator.withdrawalNullifiers(fixture.inputNullifiers[i]));
+            assertFalse(aggregator.nullifiers(fixture.inputNullifiers[i]));
         }
         uint256 prevDestBalance = fixture.destinationAddress.balance;
         uint256 prevVaultBalance = address(vault).balance;
@@ -131,7 +131,7 @@ contract WithdrawalTest is Test {
         // Nullifiers registered
         for (uint256 i = 0; i < WDR_MAX_INPUTS; i++) {
             if (fixture.inputNullifiers[i] == 0) continue;
-            assertTrue(aggregator.withdrawalNullifiers(fixture.inputNullifiers[i]));
+            assertTrue(aggregator.nullifiers(fixture.inputNullifiers[i]));
         }
         assertEq(aggregator.getCurrentNullifiersBatchIndex(), prevNullifierBatchIndex + 1);
     }
@@ -141,12 +141,18 @@ contract WithdrawalTest is Test {
         WithdrawalFixtures.Input memory fixture = WithdrawalFixtures.input();
 
         uint256 gasFee = 100;
-        // Per-token withdrawal gas cost lives on the vault (tokenId is public on withdrawals).
-        uint256[] memory tokenIds = new uint256[](1);
-        uint256[] memory costs = new uint256[](1);
-        tokenIds[0] = fixture.tokenId;
-        costs[0] = gasFee;
-        vault.setWithdrawalGasFee(tokenIds, costs);
+        // Per-token withdrawal gas cost lives on the vault (tokenId is public on withdrawals), and
+        // is published together with the deployment/commitment costs in one `GasFees` entry. The
+        // commitment root is irrelevant here — only the aggregation path checks it — but it must be
+        // non-zero, so pass a placeholder.
+        CurvyTypes.GasFees[] memory gasFees = new CurvyTypes.GasFees[](1);
+        gasFees[0] = CurvyTypes.GasFees({
+            tokenId: fixture.tokenId,
+            portalDeployment: 0,
+            pendingNoteCommitment: 0,
+            withdrawal: gasFee
+        });
+        vault.setPerTokenGasFees(gasFees, 1);
 
         // Relayer = address(this) (msg.sender of submitWithdrawalRequest)
         uint256 prevRelayerBalance = address(this).balance;

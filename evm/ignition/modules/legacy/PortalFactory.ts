@@ -1,15 +1,17 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { encodeDeployData } from "viem";
-import artifact from "../../../artifacts/src/v1/portal/v1/PortalFactory.sol/PortalFactory.json";
+import { fullyQualifiedName, readArtifact } from "../../../artifact-registry.mjs";
 // audit(2026-Q1): Moving constant to JSON
 import { getAddressParameter, getEnvironmentParameter } from "../utils/parameters";
+
+const artifact = readArtifact("PortalFactoryV1");
 
 export default buildModule("PortalFactory", (m) => {
   const ownerAddress = getEnvironmentParameter<`0x${string}`>("owner");
 
   // audit(2026-Q1): Moving constant to JSON - CreateX address now sourced per-network from network-parameters.json
   const createXAddress = getAddressParameter("createXAddress", "network");
-  const createX = m.contractAt("src/v1/utils/ICreateX.sol:ICreateX", createXAddress, { id: "CreateX" });
+  const createX = m.contractAt(fullyQualifiedName("ICreateXV1"), createXAddress, { id: "CreateX" });
 
   // audit(2026-Q1): Moving constant to JSON - error message if artifact is malformed
   if (!artifact.abi || !artifact.bytecode) {
@@ -36,7 +38,7 @@ export default buildModule("PortalFactory", (m) => {
     emitter: createX,
   });
 
-  const portalFactory = m.contractAt("src/v1/portal/v1/PortalFactory.sol:PortalFactory", deployedAddress, {
+  const portalFactory = m.contractAt(fullyQualifiedName("PortalFactoryV1"), deployedAddress, {
     after: [deployCall],
   });
 

@@ -59,25 +59,22 @@ contract CurvyAggregatorAlphaV2TestConfig is Test {
         // Check  default verifiers
         assertEq(
             address(
-                curvyAggregatorAlphaV2.getPendingNotesCommitmentVerifier(
-                    100,
-                    100
-                )
+                curvyAggregatorAlphaV2.getPendingNotesCommitmentVerifier(100)
             ),
             address(0),
-            "getPendingNotesCommitmentVerifier(100, 100) should be 0"
+            "getPendingNotesCommitmentVerifier(100) should be 0"
         );
         assertEq(
             address(
-                curvyAggregatorAlphaV2.getAggregationVerifier(100, 100, 100)
+                curvyAggregatorAlphaV2.getAggregationVerifier(100, 100)
             ),
             address(0),
-            "getAggregationVerifier(100, 100, 100) should be 0"
+            "getAggregationVerifier(100, 100) should be 0"
         );
         assertEq(
-            address(curvyAggregatorAlphaV2.getWithdrawalVerifier(100, 100)),
+            address(curvyAggregatorAlphaV2.getWithdrawalVerifier(100)),
             address(0),
-            "getWithdrawalVerifier(100, 100) should be 0"
+            "getWithdrawalVerifier(100) should be 0"
         );
 
         assertEq(
@@ -119,22 +116,13 @@ contract CurvyAggregatorAlphaV2TestConfig is Test {
         curvyAggregatorAlphaV2.setFeeNotePublicKey(0, 0);
 
         // Set pending notes commitment verifier
-        curvyAggregatorAlphaV2.setPendingNotesCommitmentVerifier(
-            100,
-            100,
-            address(123)
-        );
+        curvyAggregatorAlphaV2.setPendingNotesCommitmentVerifier(100, address(123));
 
         // Set aggregation verifier
-        curvyAggregatorAlphaV2.setAggregationVerifier(
-            100,
-            100,
-            100,
-            address(456)
-        );
+        curvyAggregatorAlphaV2.setAggregationVerifier(100, 100, address(456));
 
         // Set withdrawal verifier
-        curvyAggregatorAlphaV2.setWithdrawalVerifier(100, 100, address(789));
+        curvyAggregatorAlphaV2.setWithdrawalVerifier(100, address(789));
 
         // Check curvy vault and portal factory
         assertEq(
@@ -169,19 +157,19 @@ contract CurvyAggregatorAlphaV2TestConfig is Test {
 
         // Check verifier addresses
         assertEq(
-            curvyAggregatorAlphaV2.getPendingNotesCommitmentVerifier(100, 100),
+            curvyAggregatorAlphaV2.getPendingNotesCommitmentVerifier(100),
             address(123),
-            "getPendingNotesCommitmentVerifier(100, 100) should be 123"
+            "getPendingNotesCommitmentVerifier(100) should be 123"
         );
         assertEq(
-            curvyAggregatorAlphaV2.getAggregationVerifier(100, 100, 100),
+            curvyAggregatorAlphaV2.getAggregationVerifier(100, 100),
             address(456),
-            "getAggregationVerifier(100, 100, 100) should be 456"
+            "getAggregationVerifier(100, 100) should be 456"
         );
         assertEq(
-            curvyAggregatorAlphaV2.getWithdrawalVerifier(100, 100),
+            curvyAggregatorAlphaV2.getWithdrawalVerifier(100),
             address(789),
-            "getWithdrawalVerifier(100, 100) should be 789"
+            "getWithdrawalVerifier(100) should be 789"
         );
     }
 }

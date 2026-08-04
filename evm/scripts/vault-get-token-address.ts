@@ -12,5 +12,5 @@ if (!vaultAddress) {
 }
 const vault = await viem.getContractAt("CurvyVaultV1", vaultAddress);
 
-const tokenAddress = await vault.read.getTokenAddress([1]);
+const tokenAddress = await vault.read.getTokenAddress([1n]);
 console.log(tokenAddress);

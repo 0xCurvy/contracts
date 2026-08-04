@@ -1,7 +1,9 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { encodeDeployData } from "viem";
-import artifact from "../../../../artifacts/src/v2/portal/PortalFactory.sol/PortalFactory.json";
+import { fullyQualifiedName, readArtifact } from "../../../../artifact-registry.mjs";
 import { getAddressParameter, getEnvironmentParameter } from "../../utils/parameters";
+
+const artifact = readArtifact("PortalFactory");
 
 /**
  * Greenfield V2 PortalFactory — a FRESH, independent CreateX deployment for the
@@ -17,7 +19,7 @@ export default buildModule("PortalFactoryV2", (m) => {
   const ownerAddress = getEnvironmentParameter<`0x${string}`>("owner");
 
   const createXAddress = getAddressParameter("createXAddress", "network");
-  const createX = m.contractAt("src/v2/utils/ICreateX.sol:ICreateX", createXAddress, { id: "CreateX" });
+  const createX = m.contractAt(fullyQualifiedName("ICreateX"), createXAddress, { id: "CreateX" });
 
   if (!artifact.abi || !artifact.bytecode) {
     throw new Error("PortalFactory artifact is malformed: missing abi or bytecode");
@@ -43,7 +45,7 @@ export default buildModule("PortalFactoryV2", (m) => {
     emitter: createX,
   });
 
-  const portalFactory = m.contractAt("src/v2/portal/PortalFactory.sol:PortalFactory", deployedAddress, {
+  const portalFactory = m.contractAt(fullyQualifiedName("PortalFactory"), deployedAddress, {
     id: "PortalFactory",
     after: [deployCall],
   });

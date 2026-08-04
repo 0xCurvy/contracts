@@ -34,16 +34,16 @@ function getPortalFactoryAddress(deploymentId: string) {
 
 async function main() {
   const networks = [
-    // "sepolia",
-    // "arbitrum",
-    // "ethereum",
+    "sepolia",
+    "arbitrum",
+    "ethereum",
     "optimism",
-    // "base",
-    // "linea",
-    // "polygon",
-    // "bsc",
-    // "gnosis",
-    // "tempo",
+    "base",
+    "linea",
+    "polygon",
+    "bsc",
+    "gnosis",
+    "tempo",
   ];
   const environment = process.env.ENVIRONMENT;
 

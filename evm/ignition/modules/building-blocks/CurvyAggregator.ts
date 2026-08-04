@@ -1,7 +1,8 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import { fullyQualifiedName } from "../../../artifact-registry.mjs";
 
 export default buildModule("CurvyAggregator", (m) => {
-  const poseidonT4 = m.library("src/v2/utils/PoseidonT4.sol:PoseidonT4");
+  const poseidonT4 = m.library(fullyQualifiedName("PoseidonT4"));
 
   const implementation = m.contract("CurvyAggregatorAlphaV2", [], {
     id: "CurvyAggregatorV2Implementation",
@@ -15,7 +16,7 @@ export default buildModule("CurvyAggregator", (m) => {
   // proxy by fully-qualified name — the one the original deploy used — and keep
   // the explicit id so the deployed-address key stays `CurvyAggregator#ERC1967Proxy`.
   const proxy = m.contract(
-    "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol:ERC1967Proxy",
+    fullyQualifiedName("ERC1967Proxy"),
     [implementation, m.encodeFunctionCall(implementation, "initialize", [owner])],
     { id: "ERC1967Proxy" },
   );

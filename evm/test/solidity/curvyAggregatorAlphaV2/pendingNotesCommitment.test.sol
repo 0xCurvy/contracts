@@ -45,7 +45,6 @@ contract PendingNotesCommitmentTest is Test {
 
         curvyAggregatorAlphaV2.setPendingNotesCommitmentVerifier(
             BATCH_SIZE,
-            TREE_DEPTH,
             address(curvyPendingNotesCommitmentVerifier)
         );
 
@@ -53,10 +52,7 @@ contract PendingNotesCommitmentTest is Test {
             memory fixture = PendingNotesCommitmentFixtures.input();
 
         assertEq(
-            curvyAggregatorAlphaV2.getPendingNotesCommitmentVerifier(
-                BATCH_SIZE,
-                TREE_DEPTH
-            ),
+            curvyAggregatorAlphaV2.getPendingNotesCommitmentVerifier(BATCH_SIZE),
             address(curvyPendingNotesCommitmentVerifier)
         );
         assertEq(
@@ -101,7 +97,6 @@ contract PendingNotesCommitmentTest is Test {
 
         curvyAggregatorAlphaV2.commitPendingNotes(
             BATCH_SIZE,
-            TREE_DEPTH,
             noteIds,
             fixture.newNotesRoot,
             fixture.proof_a,

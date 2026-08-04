@@ -63,21 +63,23 @@ contract AggregationTest is Test {
         curvyAggregatorAlphaV2.setAggregationVerifier(
             AGG_MAX_INPUTS,
             AGG_MAX_OUTPUTS,
-            AGG_TREE_DEPTH,
             address(verifier)
         );
         curvyAggregatorAlphaV2.setProtocolFees(fixture.protocolFeePerThousand);
-        // Per-token commitment gas cost: publish the FULL table (left-aligned with the fixture
-        // costs, zero-padded to 2^GAS_TREE_DEPTH) + the committed root, via the vault. The vault
-        // pushes the root to the aggregator (onlyCurvyVault).
-        uint256 width = 1 << curvyAggregatorAlphaV2.GAS_TREE_DEPTH();
-        uint256[] memory tokenIds = new uint256[](width);
-        uint256[] memory costs = new uint256[](width);
-        for (uint256 i = 0; i < width; i++) {
-            tokenIds[i] = i;
-            costs[i] = i < fixture.commitmentGasCosts.length ? fixture.commitmentGasCosts[i] : 0;
-        }
-        vault.setCommitmentGasFee(tokenIds, costs, fixture.commitPendingNotesGasFeeRoot);
+        // Per-token commitment gas cost: publish one entry per REGISTERED token (ids ascending
+        // from 1) + the committed root, via the vault. The gas-fee tree keeps a fixed
+        // 2^GAS_TREE_DEPTH leaves, but only the registered prefix is ever written — the rest stay
+        // a zero buffer — so the full padded table is never passed. The vault pushes the root to
+        // the aggregator (onlyCurvyVault). `initialize` reserves tokenId 1, which is the only one
+        // this fixture uses; `commitmentGasCosts` is indexed by tokenId (index 0 unused).
+        CurvyTypes.GasFees[] memory gasFees = new CurvyTypes.GasFees[](1);
+        gasFees[0] = CurvyTypes.GasFees({
+            tokenId: fixture.tokenId,
+            portalDeployment: 0,
+            pendingNoteCommitment: fixture.commitmentGasCosts[fixture.tokenId],
+            withdrawal: 0
+        });
+        vault.setPerTokenGasFees(gasFees, fixture.commitPendingNotesGasFeeRoot);
         curvyAggregatorAlphaV2.setFeeNotePublicKey(
             fixture.feeNotePublicKey[0],
             fixture.feeNotePublicKey[1]
@@ -91,11 +93,7 @@ contract AggregationTest is Test {
             .checked_write(true);
 
         assertEq(
-            curvyAggregatorAlphaV2.getAggregationVerifier(
-                AGG_MAX_INPUTS,
-                AGG_MAX_OUTPUTS,
-                AGG_TREE_DEPTH
-            ),
+            curvyAggregatorAlphaV2.getAggregationVerifier(AGG_MAX_INPUTS, AGG_MAX_OUTPUTS),
             address(verifier)
         );
         assertEq(
@@ -133,7 +131,7 @@ contract AggregationTest is Test {
         for (uint256 i = 0; i < AGG_MAX_INPUTS; i++) {
             if (fixture.inputNullifiers[i] == 0) continue;
             assertFalse(
-                curvyAggregatorAlphaV2.aggregationNullifiers(
+                curvyAggregatorAlphaV2.nullifiers(
                     fixture.inputNullifiers[i]
                 )
             );
@@ -153,6 +151,7 @@ contract AggregationTest is Test {
 
         curvyAggregatorAlphaV2.submitAggregationRequest(
             AGG_MAX_INPUTS,
+            AGG_MAX_OUTPUTS,
             fixture.proof_a,
             fixture.proof_b,
             fixture.proof_c,
@@ -163,7 +162,7 @@ contract AggregationTest is Test {
         for (uint256 i = 0; i < AGG_MAX_INPUTS; i++) {
             if (fixture.inputNullifiers[i] == 0) continue;
             assertTrue(
-                curvyAggregatorAlphaV2.aggregationNullifiers(
+                curvyAggregatorAlphaV2.nullifiers(
                     fixture.inputNullifiers[i]
                 )
             );

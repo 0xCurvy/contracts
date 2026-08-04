@@ -1,4 +1,5 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import { fullyQualifiedName } from "../../../artifact-registry.mjs";
 import { getNetworkParameter } from "../utils/parameters";
 
 export default buildModule("CurvyVault", (m) => {
@@ -11,7 +12,7 @@ export default buildModule("CurvyVault", (m) => {
   // proxy by fully-qualified name — the one the original deploy used — and keep
   // the explicit id so the deployed-address key stays `CurvyVault#ERC1967Proxy`.
   const proxy = m.contract(
-    "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol:ERC1967Proxy",
+    fullyQualifiedName("ERC1967Proxy"),
     [implementation, m.encodeFunctionCall(implementation, "initialize", [owner])],
     { id: "ERC1967Proxy" },
   );
