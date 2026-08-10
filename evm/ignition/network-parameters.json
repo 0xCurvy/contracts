@@ -1,0 +1,93 @@
+{
+  "sepolia": {
+    "mainDeployment":  true,
+    "lifiDiamondAddress": "0x0000000000000000000000000000000000000000",
+    "createXAddress": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
+    "erc20Addresses": ["0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238", "0x779877A7B0D9E8603169DdbD7836e478b4624789"],
+    "outputBridgeLifiDiamondAddress": "0x0000000000000000000000000000000000000000",
+    "legacyProxies": {
+      "production": {
+        "vaultProxy": "0xc837Aaa99A8e5A096F5e6E54E396F027fA106aB5",
+        "aggregatorProxy": "0xE7c543dE96e99fDD9F8435bDEeCeE4361B98cebB",
+        "poseidonT4": "0xEa16Fb67A4Bb4a90598FDf03e68091ecD33614ae"
+      },
+      "staging": {
+        "vaultProxy": "0x73Efd0aBE4D89F3C40Ac226229db204A1E7B13aD",
+        "aggregatorProxy": "0x97FfCE8e772EA1594BE3C34F85B43e9c00522320",
+        "poseidonT4": "0x8584baE2E04A9481cBd8E896188f265fDD7136e1"
+      }
+    }
+  },
+  "arbitrum": {
+    "mainDeployment": true,
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
+    "createXAddress": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
+    "outputBridgeLifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
+    "erc20Addresses": [
+      "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+      "0x2bcC6D6CdBbDC0a4071e48bb3B969b06B3330c07",
+      "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+      "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f"
+    ],
+    "legacyProxies": {
+      "production": {
+        "vaultProxy": "0xB4BA872fBa00Bc4268067D5DE4223240cEc4B6d5",
+        "aggregatorProxy": "0x9c07E1Ff4f1B96ae609331BAc327FcC2d8563224",
+        "poseidonT4": "0xe5d7A03b2343F7d8155Dd70F45744644a7Fbf5Eb"
+      },
+      "staging": {
+        "vaultProxy": "0xB61F0c208356Df565Bde02dCEd33C896F6b0F939",
+        "aggregatorProxy": "0xE01eE56C613175502c8e677774eaCbBB2738674C",
+        "poseidonT4": "0xfAf8ab242A7445b5D5749bAa5a6D2C20A8dD0B10"
+      }
+    }
+  },
+  "ethereum": {
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
+    "createXAddress": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
+    "mainDeployment": false
+  },
+  "base": {
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
+    "createXAddress": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
+    "mainDeployment": false
+  },
+  "optimism": {
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
+    "createXAddress": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
+    "mainDeployment": false
+  },
+  "polygon": {
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
+    "createXAddress": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
+    "mainDeployment": false
+  },
+  "bsc": {
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
+    "createXAddress": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
+    "mainDeployment": false
+  },
+  "gnosis": {
+    "lifiDiamondAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
+    "createXAddress": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
+    "mainDeployment": false
+  },
+  "linea": {
+    "lifiDiamondAddress": "0xde1e598b81620773454588b85d6b5d4eec32573e",
+    "createXAddress": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
+    "mainDeployment": false
+  },
+  "tempo": {
+    "lifiDiamondAddress": "0x2cAcAE8e22418E65dcf7651c67aEbe6288EB8243",
+    "createXAddress": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
+    "mainDeployment": false
+  },
+  "anvil": {
+    "lifiDiamondAddress": "0x0000000000000000000000000000000000000000",
+    "createXAddress": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
+    "mainDeployment": true,
+    "outputBridgeLifiDiamondAddress": "0x0000000000000000000000000000000000000000",
+    "erc20Addresses": []
+  }
+}
