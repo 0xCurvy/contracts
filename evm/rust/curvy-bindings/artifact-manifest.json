@@ -1,0 +1,27 @@
+{
+  "schema_version": 2,
+  "crate_version": "0.1.0-rc.2",
+  "contract_release": "1.0.0",
+  "source_repository": "https://github.com/0xCurvy/curvy-monorepo",
+  "source_commit": "0d02f0b5946cf269391bccaf1a6b4d2f0c88da7a",
+  "generator": {
+    "command": "packages/contracts/evm/rust/generate.sh",
+    "toolchain": "hardhat",
+    "solc_version": "0.8.28",
+    "evm_version": "cancun",
+    "optimizer_runs": 200
+  },
+  "sha256": {
+    "src/artifacts/CurvyVaultV2.json": "e5e82fec5bc7640f25b27367430ffe8b8df6a5208a0f2f7aa2fe67da85b23629",
+    "src/artifacts/CurvyAggregatorAlphaV2.json": "9f9e2614087c67522b16661314ff1ef97628d59a00730a36d2fbac6f49374c57",
+    "src/artifacts/PortalFactory.json": "c5543c91f775a028fe8ac1713a5bb1259e729770b89a3c4a7e9f78574e05a690",
+    "src/artifacts/Portal.json": "b7a44d0390354d5025a10eff9db1052f4ebd038f857808547874b8ab264dc48b",
+    "src/artifacts/CurvyAggregationVerifier.json": "dec2a50470100c0b1c99d783192557a87359a79a5fad61f1cfa1025329cd4d89",
+    "src/artifacts/CurvyPendingNotesCommitmentVerifier.json": "b7a0838b77d75b99cec16aed9dc52b29489305b044edc4babbbbeceb09270223",
+    "src/artifacts/CurvyWithdrawalVerifier.json": "6fe13f3e8bdf57694694e05f1a3eb5c6450fd3dd854e6f790b3a364ddb1f1dda",
+    "src/artifacts/PoseidonT4.json": "b48685e340a3e8b2af870a394bea0018c62935d8dbd3098f2bfab5891200bad4",
+    "src/artifacts/ERC1967Proxy.json": "ff2761a17b48910e17e0f4592c7e94865383980ce2530004a15c2ade8a048188",
+    "src/artifacts/ERC20Mock.json": "dbd6aeb214ea33cc85a0669880812c1d7f819d4a7167953679f2596c1fc744a8",
+    "src/artifacts/Multicall3.json": "b7242dc70ad9b459d60521719643dd0b40dbf163b86bd0141a7be50b1fc35ef8"
+  }
+}

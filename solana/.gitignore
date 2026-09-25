@@ -1,0 +1,28 @@
+# Solana/Anchor build artifacts
+**/target/
+target
+**/.anchor/
+*.so
+Anchor.toml.bak
+
+# Solana IDL generated files
+**/*.json.map
+.surfpool
+/node_modules
+
+# TypeScript build artifacts (we run scripts via tsx, never compile to .js)
+tsconfig.tsbuildinfo
+scripts/*.js
+tests/*.js
+migrations/*.js
+
+# Sensitive: keypairs and local env. NEVER commit these — see README "Key
+# management" section for the secure storage / distribution workflow.
+keys/
+.env
+.env.*
+!.env.example
+
+# Ad-hoc dev artifacts (LiFi quote dumps, tx decoder output, etc.)
+lifi.json
+solana.txt

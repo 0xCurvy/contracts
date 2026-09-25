@@ -1,0 +1,48 @@
+{
+  "routes": [
+    {
+      "id": "aaaaaaaa-bbbb-4ccc-dddd-eeeeeeeeeeee",
+      "fromChainId": 1151111081099710,
+      "fromAmount": "1000000",
+      "toChainId": 42161,
+      "steps": [
+        {
+          "type": "lifi",
+          "id": "aaaaaaaa-bbbb-4ccc-dddd-eeeeeeeeeeee:0",
+          "tool": "relay",
+          "toolDetails": {
+            "key": "relaydepository",
+            "name": "Relay",
+            "logoURI": "https://raw.githubusercontent.com/lifinance/types/main/src/assets/icons/bridges/relay.svg"
+          },
+          "action": {
+            "fromChainId": 1151111081099710,
+            "toChainId": 42161,
+            "fromAmount": "1000000",
+            "fromToken": {
+              "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+              "chainId": 1151111081099710,
+              "symbol": "USDC",
+              "decimals": 6
+            },
+            "toToken": {
+              "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+              "chainId": 42161,
+              "symbol": "USDC",
+              "decimals": 6
+            },
+            "slippage": 0.001
+          },
+          "estimate": {
+            "tool": "relay",
+            "approvalAddress": "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
+            "fromAmount": "1000000",
+            "toAmount": "990000",
+            "toAmountMin": "989000"
+          },
+          "includedSteps": []
+        }
+      ]
+    }
+  ]
+}

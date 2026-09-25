@@ -1,0 +1,13 @@
+{
+  "MainDeployment#AggProxyAsV1": "0x9c07E1Ff4f1B96ae609331BAc327FcC2d8563224",
+  "MainDeployment#PoseidonT4Existing": "0xe5d7A03b2343F7d8155Dd70F45744644a7Fbf5Eb",
+  "MainDeployment#VaultProxyAsV1": "0xB4BA872fBa00Bc4268067D5DE4223240cEc4B6d5",
+  "PortalFactory#CreateX": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
+  "MainDeployment#CurvyVaultV1Implementation_Audited": "0x736f8d453eB94ba3c7a72BF2c562e464348A12d5",
+  "MainDeployment#CurvyAggregatorAlphaV1Implementation_Audited": "0xae0436d93838D16fF8ea0635F1D104Ac009B3dA5",
+  "PortalFactory#PortalFactory": "0xC736a44Cf3324b08489b210e9A7e2a0f5b8a6f9C",
+  "AggregatorVerifiers#CurvyAggregationVerifierAlpha": "0x2D2BD66a76bd3c9eb31922cC03ba9aA67F3f82c3",
+  "MainDeploymentV2#AggProxyAsV1": "0x9c07E1Ff4f1B96ae609331BAc327FcC2d8563224",
+  "PortalFactoryV2#CreateX": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
+  "PortalFactoryV2#PortalFactoryV2": "0xC5698CfB3b5019bEcAFD0706D76796624827BA7F"
+}

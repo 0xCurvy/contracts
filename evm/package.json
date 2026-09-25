@@ -1,0 +1,42 @@
+{
+  "name": "contracts",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "clean": "pnpm hardhat clean && rimraf artifacts cache .turbo",
+    "build": "hardhat compile",
+    "extract-abis": "hardhat run scripts/extract-abis.ts",
+    "test": "vitest run",
+    "test:solidity": "hardhat test solidity",
+    "start:hardhat": "pnpm hardhat node --network hardhat",
+    "start:anvil": "anvil -b 1 --load-state ./cache/anvil_state.json",
+    "deploy:local": "hardhat run scripts/devenv.ts --network anvil",
+    "update-aggregator:staging": "ENVIRONMENT=staging hardhat run scripts/update-aggregator.ts",
+    "update-aggregator:production": "ENVIRONMENT=production hardhat run scripts/update-aggregator.ts",
+    "deploy-v2:staging": "ENVIRONMENT=staging hardhat run scripts/deploy-v2.ts",
+    "deploy-v2:production": "ENVIRONMENT=production hardhat run scripts/deploy-v2.ts",
+    "register-resolver": "hardhat run scripts/register-resolver.ts"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^3.0.3",
+    "@nomicfoundation/hardhat-network-helpers": "^3.0.2",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
+    "@types/glob": "^9.0.0",
+    "@types/node": "catalog:",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.4",
+    "glob": "^13.0.1",
+    "hardhat": "^3.0.6",
+    "rimraf": "^6.0.1",
+    "typescript": "catalog:",
+    "viem": "^2.43.5"
+  },
+  "dependencies": {
+    "@0xcurvy/curvy-sdk": "workspace:*",
+    "@nomicfoundation/hardhat-ignition-viem": "^3.0.3",
+    "@nomicfoundation/hardhat-verify": "^3.0.4",
+    "@openzeppelin/contracts": "^5.4.0",
+    "@openzeppelin/contracts-upgradeable": "^5.4.0",
+    "poseidon-lite": "^0.2.1",
+    "vitest": "^3.2.4"
+  }
+}

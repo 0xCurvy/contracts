@@ -1,0 +1,14 @@
+{
+  "PortalFactoryV2#CreateX": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed",
+  "CurvyAggregator#CurvyPendingNotesCommitmentVerifier": "0xb2F3Cc284d924f955a1aec46469CbB360332ac97",
+  "CurvyAggregator#CurvyAggregationVerifier": "0x377Ea98d9480c0D8Bd30dED3A3A647326a52F918",
+  "CurvyAggregator#CurvyWithdrawalVerifier": "0x65F0b62a3a1342027e07cbD2177279a5718e743D",
+  "CurvyAggregator#PoseidonT4": "0x7bd00fB669c34A19BD4f2f919888295AF964Da4a",
+  "CurvyVault#CurvyVaultV2Implementation": "0x36c8373197609D86c600c36714475D899f987711",
+  "CurvyAggregator#CurvyAggregatorV2Implementation": "0xaaE8179De6DdFDa94ee4268bdaCf1c3d6d391a41",
+  "CurvyVault#ERC1967Proxy": "0x25CD76612BFe4FddA794EFc416635B6D9a77CB7F",
+  "CurvyVault#CurvyVaultV2": "0x25CD76612BFe4FddA794EFc416635B6D9a77CB7F",
+  "PortalFactoryV2#PortalFactory": "0xA0b8049803E8Fb66Da5825dC526aA96aa9145ca0",
+  "CurvyAggregator#ERC1967Proxy": "0xCfFcFD5b1e082b3924CD7dD34A49c99ef080f953",
+  "CurvyAggregator#CurvyAggregatorAlphaV2": "0xCfFcFD5b1e082b3924CD7dD34A49c99ef080f953"
+}
